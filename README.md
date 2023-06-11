@@ -14,7 +14,8 @@ This repo contains data generation, data preprocessing, training, testing, evalu
 
 Install necessary tools and create conda environment (needs to install anaconda if not available): 
 ```
-sudo apt install xvfb ninja-build freeglut3-dev libglew-dev meshlab
+module load LIB/CUDA/11.2 LIB/CUDNN/8.1.0-CUDA11.2 
+# sudo apt install xvfb ninja-build freeglut3-dev libglew-dev meshlab ### should all installed on lab machine, check with (apt -qq list <PACKAGE>)
 conda env create -f environment.yaml
 conda activate Pano3D
 pip install wandb
