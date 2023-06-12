@@ -189,7 +189,8 @@ octave-workspace
 
 ## project
 /out
-/data
+/data/*.zip
+/data/igibson*
 /wandb
 /.vscode
 /demo/*
