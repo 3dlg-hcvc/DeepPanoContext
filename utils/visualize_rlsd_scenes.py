@@ -29,7 +29,7 @@ def visualize_camera(args):
 
     image = visualizer.image('rgb')
     image = visualizer.layout(image, total3d=False)
-    image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False)
+    image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
     if not args.show:
         save_path = os.path.join(scene_folder, args.task_id, 'det3d.png')
         save_image(image, save_path)
@@ -37,7 +37,7 @@ def visualize_camera(args):
         # save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/{args.task_id}/w_pano_camera_n_anno"
         # os.makedirs(save_dir, exist_ok=True)
         # Image.fromarray(image).save(os.path.join(save_dir, f"{pano_id}.png"))
-    image = visualizer.bfov(image, include=('walls', 'objs'))
+    image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
     # image = visualizer.bdb2d(image)
 
     if args.show:

@@ -147,8 +147,8 @@ def _render_scene(args):
     cam_view = np.array([0, 1, 0])
     camera = {
             "id": pano_id,
-            'height': 1024,
-            'width': 2048,
+            'height': 512,
+            'width': 1024,
             "pos": cam_pos,
             "view_dir": cam_view,
             "target": cam_pos + cam_view,
@@ -378,6 +378,7 @@ def main():
           f"{len(scenes['test'])} test scenes, "
           f"{len(split['train'])} train cameras, "
           f"{len(split['test'])} test cameras")
+    # 761 scenes, 551 train scenes, 210 test scenes, 594 train cameras, 227 test cameras
 
     for k, v in split.items():
         v.sort()

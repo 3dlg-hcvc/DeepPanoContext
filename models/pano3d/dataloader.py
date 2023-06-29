@@ -155,6 +155,42 @@ class IGSceneDataset(Pano3DDataset):
             return [scenes[k] for k in stype]
 
 
+class RLSDSceneDataset(IGSceneDataset):
+
+    _basic_info = ('name', 'scene', 'camera', 'image_path')
+
+    def __init__(self, config, mode=None):
+        super(RLSDSceneDataset, self).__init__(config, mode)
+
+    def update_metadata(self):
+        dis_max = 0.
+        size_avg = collections.defaultdict(list)
+        has_bdb3d = True
+        for i in tqdm(range(len(self.split)), desc='Generating metadata of size_avg and dis_max...'):
+            scene = self.get_igibson_scene(i)
+            for obj in scene['objs']:
+                if 'bdb3d' not in obj:
+                    has_bdb3d = False
+                    break
+                bdb3d = obj['bdb3d']
+                dis = scene.transform.world2campix(bdb3d)['dis']
+                if dis > dis_max:
+                    dis_max = dis
+                if isinstance(obj['classname'], list):
+                    for cat in obj['classname']:
+                        size_avg[cat].append(bdb3d['size'])
+                else:
+                    size_avg[obj['classname']].append(bdb3d['size'])
+        if has_bdb3d and len(self.split):
+            size_avg = {k: np.mean(np.stack(v), axis=0) for k, v in size_avg.items()}
+            default_size = np.mean(np.stack(size_avg.values()), axis=0)
+            size_avg = np.stack([size_avg.get(k, default_size.copy()) for k in IG56CLASSES])
+            data_config.metadata.update({
+                'size_avg': size_avg,
+                'dis_max': float(dis_max)
+            })
+
+
 def collate_fn(batch):
     if isinstance(batch, dict):
         batch = [(batch, )]
@@ -209,7 +245,7 @@ def collate_fn(batch):
     return return_list
 
 
-def Total3D_dataloader(config, mode='train'):
+def igibson_dataloader(config, mode='train'):
     dataloader = DataLoader(dataset=IGSceneDataset(config, mode),
                             num_workers=config['device']['num_workers'],
                             batch_size=config[mode]['batch_size'],
@@ -219,3 +255,13 @@ def Total3D_dataloader(config, mode='train'):
                             worker_init_fn=lambda x: np.random.seed())
     return dataloader
 
+
+def rlsd_dataloader(config, mode='train'):
+    dataloader = DataLoader(dataset=RLSDSceneDataset(config, mode),
+                            num_workers=config['device']['num_workers'],
+                            batch_size=config[mode]['batch_size'],
+                            shuffle=(mode == 'train'),
+                            collate_fn=collate_fn,
+                            pin_memory=True,
+                            worker_init_fn=lambda x: np.random.seed())
+    return dataloader

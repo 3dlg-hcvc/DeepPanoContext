@@ -10,8 +10,8 @@ device:
   gpu_ids: '0'
   num_workers: 8
 data:
-  name: igibson
-  split: data/igibson
+  name: rlsd
+  split: data/rlsd
 loss_weights:
   bon_loss: 1.0
   cor_loss: 1.0
