@@ -49,7 +49,10 @@ def seg2obj(seg, i_obj, camera=None):
         seg = np.tile(seg, 2)
 
     # find and sort contours
-    obj_mask = seg == i_obj
+    if isinstance(i_obj, list):
+        obj_mask = np.isin(seg, i_obj)
+    else:
+        obj_mask = seg == i_obj
     contours, hierarchy = cv2.findContours(
         obj_mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     area = [cv2.contourArea(contour) for contour in contours]

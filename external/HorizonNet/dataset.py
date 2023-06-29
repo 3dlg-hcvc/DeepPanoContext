@@ -169,9 +169,9 @@ def sort_xy_filter_unique(xs, ys, y_small_first=True):
     return xs, ys
 
 
-def find_occlusion(coor):
-    u = panostretch.coorx2u(coor[:, 0])
-    v = panostretch.coory2v(coor[:, 1])
+def find_occlusion(coor, w=1024, h=512):
+    u = panostretch.coorx2u(coor[:, 0], w=w)
+    v = panostretch.coory2v(coor[:, 1], h=h)
     x, y = panostretch.uv2xy(u, v, z=-50)
     occlusion = []
     for i in range(len(x)):

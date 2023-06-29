@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 from scipy.spatial.distance import cdist
 from glob import glob
@@ -98,6 +99,28 @@ def scene_layout_from_mesh(args):
     return {'rooms': rooms, 'height': wall_height}
 
 
+def scene_layout_from_rlsd_arch(args):
+    scene_name, _ = args.scene_name, args.scene_source
+    arch_id = scene_name.split('_')[0]
+    
+    arch = json.load(open(f"/project/3dlg-hcvc/rlsd/data/mp3d/arch_refined_clean/{arch_id}.arch.json"))
+    regions = arch["regions"]
+    
+    rooms = []
+    for region in regions:
+        rooms.append({
+            "id": region["id"],
+            "level": region["level"],
+            "type": region["type"],
+            "wall_height": region["height"],
+            "floor_height": region["points"][0][-1],
+            "room": Polygon(np.asarray(region["points"])[:, :-1]),
+        })
+
+    # return {'rooms': rooms, 'height': wall_height}
+    return rooms
+
+
 def scene_layout_from_scene(scene):
     # show_image(scene.room_sem_map)
     room_ids = np.unique(scene.room_sem_map).tolist()
@@ -145,6 +168,31 @@ def room_layout_from_scene_layout(camera, scene_layout):
     return {'room': room_layout, 'height': scene_layout['height']}
 
 
+def room_layout_from_rlsd_scene(camera, scene_layout, panos):
+    cam_id = camera["id"]
+    cam_point = Point(*camera["pos"])
+    room_idx = panos[cam_id]["region_index"]
+    room = scene_layout[room_idx]
+    # assert room["layout2d"].contains(cam_point)
+    layout2d = room["room"]
+
+    # sort boundary points in clockwise order
+    layout2d = shapely.geometry.polygon.orient(layout2d, -1)
+    room["room"] = layout2d
+    boundary = np.array(layout2d.boundary.xy)[:, :-1].T
+    # assert np.all(np.linalg.norm((np.roll(boundary, 1, 0) - boundary), ord=2, axis=1) > 0.01), \
+    #                 'neighboring corners are too close'
+    if np.all(np.linalg.norm((np.roll(boundary, 1, 0) - boundary), ord=2, axis=1) <= 0.01):
+        print(f'{cam_id} neighboring corners are too close')
+
+    nearest_point, _ = shapely.ops.nearest_points(layout2d.boundary, cam_point)
+    distance_wall = cam_point.distance(nearest_point)
+    if distance_wall < 0.5:
+        print(f"{cam_id} close to wall ({distance_wall:.3f} < 0.5)")
+
+    return room
+
+
 def manhattan_pix_layout_from_room_layout(camera, room_layout):
     if room_layout is None:
         return
@@ -184,6 +232,45 @@ def manhattan_pix_layout_from_room_layout(camera, room_layout):
     return points.astype(np.int32)
 
 
+def manhattan_pix_layout_from_rlsd_room(camera, room):
+    if room is None:
+        return
+    cam_id = camera["id"]
+    # generate pano Manhattan layout from room layout
+    height, width = camera['height'], camera['width']
+    boundary = np.array(room['room'].boundary.xy)[:, :-1].T
+    camera_height = camera['pos'][-1] - room["floor_height"]
+    directions = []
+    camera_point = np.array(camera['pos'][:2])
+    front = np.arctan2(*np.array(camera['view_dir'][:2]))
+    points = []
+    for p in boundary:
+        direction = np.mod(np.arctan2(*(p - camera_point)) - front + np.pi, np.pi * 2)
+        directions.append(direction)
+        x = direction / (2 * np.pi) * width
+        dis = np.linalg.norm(p - camera_point, 2)
+        pitch = np.arctan2(room['wall_height'] - camera_height, dis)
+        y_top = (np.pi / 2 - pitch) / np.pi * height
+        points.append([x, y_top])
+        pitch = np.arctan2(camera_height, dis)
+        y_down = (pitch + np.pi / 2) / np.pi * height
+        points.append([x, y_down])
+    points = np.array(points)
+    i_first = directions.index(min(directions))
+    points = np.roll(points, -i_first * 2, axis=0)
+    points_unique = np.unique(points, axis=0)
+    if len(points_unique) < len(points):
+        print(f"{cam_id} duplicate points")
+        # return
+    xs = points[::2, 0].astype(int)
+    xs_unique = np.unique(xs)
+    if len(xs_unique) < len(xs):
+        print(f"{cam_id} duplicate x")
+        # return
+
+    return points.astype(np.int32)
+
+
 def cuboid_world_layout_from_room_layout(room_layout):
     # generate cuboid layout in the world frame from bounding box
     # plot_layout(r, camera)
@@ -199,7 +286,7 @@ def manhattan_world_layout_from_room_layout(room_layout):
     # generate manhattan layout in the world frame from bondary
     boundary = np.array(room_layout['room'].boundary.xy, dtype=np.float32)[:, :-1].T
     boundary_l = np.pad(boundary, [[0, 0], [0, 1]], 'constant', constant_values=0)
-    boundary_h = np.pad(boundary, [[0, 0], [0, 1]], 'constant', constant_values=room_layout['height'])
+    boundary_h = np.pad(boundary, [[0, 0], [0, 1]], 'constant', constant_values=room_layout['height'] if 'height' in room_layout else room_layout['wall_height'])
     world_layout = np.concatenate([boundary_l, boundary_h], 0)
     return world_layout
 
@@ -209,7 +296,7 @@ def horizon_layout_gt_from_scene_data(data):
     camera = data['camera']
 
     # Detect occlusion
-    occlusion = find_occlusion(cor[::2].copy()).repeat(2)
+    occlusion = find_occlusion(cor[::2].copy(), w=camera['width'], h=camera['height']).repeat(2)
 
     # Prepare 1d ceiling-wall/floor-wall boundary
     bon = cor_2_1d(cor, camera['height'], camera['width'])

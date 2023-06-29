@@ -182,8 +182,9 @@ class IGScene:
     def from_pickle(cls, path: str, igibson_obj_dataset=None):
         camera_folder, pickle_file = pickle_path(path)
         data = read_pkl(pickle_file)
-        image_path = {os.path.splitext(os.path.basename(p))[0]: p for p in glob(os.path.join(camera_folder, '*.png'))}
-        data['image_path'] = {k: v for k, v in image_path.items() if k in cls.image_types}
+        if 'image_path' not in data:
+            image_path = {os.path.splitext(os.path.basename(p))[0]: p for p in glob(os.path.join(camera_folder, '*.png'))}
+            data['image_path'] = {k: v for k, v in image_path.items() if k in cls.image_types}
         if igibson_obj_dataset is not None:
             mesh_path = [os.path.join(igibson_obj_dataset, o['model_path'], cls.mesh_file)
                          for o in data['objs'] if 'model_path' in o]

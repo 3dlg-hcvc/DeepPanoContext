@@ -56,7 +56,7 @@ def save_image(image, save_path):
 
 
 def load_image(path):
-    return np.array(Image.open(path))
+    return np.array(Image.open(path).convert('RGB'))
 
 
 def show_image(image):

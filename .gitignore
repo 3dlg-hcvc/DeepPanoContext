@@ -191,6 +191,7 @@ octave-workspace
 /out
 /data/*.zip
 /data/igibson*
+/data/rlsd*
 /wandb
 /.vscode
 /demo/*
