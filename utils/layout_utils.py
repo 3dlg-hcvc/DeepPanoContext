@@ -172,8 +172,16 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
     cam_id = camera["id"]
     cam_point = Point(*camera["pos"])
     room_id = f"{panos[cam_id]['level_id']}_{panos[cam_id]['region_index']}"
+    if not rooms[room_id]["room"].contains(cam_point):
+        outside = True
+        for room in rooms.values():
+            if room["room"].contains(cam_point):
+                room_id = room["id"]
+                outside = False
+                break
+        if outside:
+            return # camera outside rooms -> invalid -> return None
     room = rooms[room_id]
-    # assert room["layout2d"].contains(cam_point)
     layout2d = room["room"]
     level = room["level"]
     plot_2d_layout(rooms, room_id, level, camera, plot_path)
@@ -216,6 +224,7 @@ def plot_2d_layout(rooms, room_id, level=0, cameras=[], output_path=None):
         ax.arrow(*pos, *view_dir, width=0.1)
     pyplot.axis('equal')
     pyplot.savefig(output_path)
+    pyplot.close()
     # pyplot.show()
 
 

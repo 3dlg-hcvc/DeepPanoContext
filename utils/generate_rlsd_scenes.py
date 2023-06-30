@@ -237,7 +237,7 @@ def _render_scene(args):
 
     if not data['objs']:
         print(f"{skip_info}no object in the frame")
-        return None
+        # return None
 
     # construction IGScene
     rlsd_scene = IGScene(data)
