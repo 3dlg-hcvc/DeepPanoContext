@@ -168,13 +168,15 @@ def room_layout_from_scene_layout(camera, scene_layout):
     return {'room': room_layout, 'height': scene_layout['height']}
 
 
-def room_layout_from_rlsd_scene(camera, scene_layout, panos):
+def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
     cam_id = camera["id"]
     cam_point = Point(*camera["pos"])
     room_idx = panos[cam_id]["region_index"]
-    room = scene_layout[room_idx]
+    room = rooms[room_idx]
     # assert room["layout2d"].contains(cam_point)
     layout2d = room["room"]
+    level = room["level"]
+    plot_2d_layout(rooms, room_idx, level, camera, plot_path)
 
     # sort boundary points in clockwise order
     layout2d = shapely.geometry.polygon.orient(layout2d, -1)
@@ -191,6 +193,30 @@ def room_layout_from_rlsd_scene(camera, scene_layout, panos):
         print(f"{cam_id} close to wall ({distance_wall:.3f} < 0.5)")
 
     return room
+
+
+def plot_2d_layout(rooms, room_idx, level=0, cameras=[], output_path=None):
+    if isinstance(rooms, dict):
+        rooms = [rooms]
+    elif isinstance(rooms, Polygon):
+        rooms = []
+    if isinstance(cameras, dict):
+        cameras = [cameras]
+    _, ax = pyplot.subplots(figsize=(8,8))
+    for room in rooms:
+        if room["level"] == level:
+            ax.plot(*room["room"].exterior.xy)
+            if int(room["id"].split('_')[-1]) == room_idx:
+                ax.fill(*room["room"].exterior.xy, "lightgreen")  
+    for cam in cameras:
+        pos = cam["pos"][:2]
+        view_dir = cam["view_dir"][:2]
+        cam_point = Point(*pos).buffer(0.2)
+        ax.plot(*cam_point.exterior.xy) 
+        ax.arrow(*pos, *view_dir, width=0.1)
+    pyplot.axis('equal')
+    pyplot.savefig(output_path)
+    # pyplot.show()
 
 
 def manhattan_pix_layout_from_room_layout(camera, room_layout):

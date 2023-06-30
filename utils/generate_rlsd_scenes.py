@@ -60,15 +60,23 @@ def _render_scene(args):
     task_file = f"/project/3dlg-hcvc/rlsd/data/annotations/task_json/{task_id}.json"
     task_json = json.load(open(task_file))
     panos = json.load(open("/project/3dlg-hcvc/rlsd/data/mp3d/pano_objects_mapping.json"))
-    inst_path = f"{inst_dir}/{house_id}/{pano_id}.objectId.encoded.png"
-    inst_seg = encode_rgba(np.array(Image.open(inst_path)))
     
     output_folder = os.path.join(args.output, scene_name, task_id)
     os.makedirs(output_folder, exist_ok=True)
+    
+    # resize images
+    rgb_path = f"{rgb_dir}/{house_id}/{pano_id}.png"
+    Image.open(rgb_path).convert("RGB").resize((1024, 512)).save(os.path.join(args.output, scene_name, "rgb.png"))
+    
+    inst_path = f"{inst_dir}/{house_id}/{pano_id}.objectId.encoded.png"
+    Image.open(inst_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, scene_name, "seg.png"))
+    
+    depth_path = f"{inst_dir}/{house_id}/{pano_id}.depth.png"
+    Image.open(depth_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, scene_name, "depth.png"))
 
     # generate scene layout
-    scene_layout = scene_layout_from_rlsd_arch(args)
-    if not scene_layout:
+    rooms = scene_layout_from_rlsd_arch(args)
+    if not rooms:
         raise Exception('Layout not valid!')
     
     # get object params
@@ -162,13 +170,15 @@ def _render_scene(args):
             'room_idx': panos[pano_id]["region_index"],
             'camera': camera,
             'image_path': {
-                'rgb': os.path.join(rgb_dir, house_id, f'{pano_id}.png'),
-                'seg': os.path.join(inst_dir, house_id, f'{pano_id}.objectId.encoded.png'),
-                'depth': os.path.join(inst_dir, house_id, f'{pano_id}.depth.png')
+                'rgb': os.path.join(args.output, scene_name, "rgb.png"),
+                'seg': os.path.join(args.output, scene_name, "seg.png"),
+                'depth': os.path.join(args.output, scene_name, "depth.png")
             }
         }
     skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
-    room_layout = room_layout_from_rlsd_scene(camera, scene_layout, panos)
+    plot_path = os.path.join(args.output, scene_name, "layout2d.png")
+    # plot_path = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/rooms_layout2d/{task_id}/layout2d.png"
+    room_layout = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
     if room_layout is None:
         print(skip_info + "room layout generation failed")
         return
@@ -191,7 +201,8 @@ def _render_scene(args):
 
     # # extract object params
     data['objs'] = []
-
+    inst_path = os.path.join(args.output, scene_name, "seg.png")
+    inst_seg = encode_rgba(np.array(Image.open(inst_path)))
     for obj_id in objs:
         # if obj_id not in objs.keys():
         #     continue

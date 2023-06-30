@@ -2,7 +2,8 @@ method: Pano3D
 resume: False
 finetune: True
 weight: [
-  '/home/zhangcheng/projects/pano_3d_understanding/third_party/HorizonNet/ckpt/resnet50_rnn__st3d.pth'
+  # 'out/layout_estimation/23062914512913/model_best.pth',
+  'out/layout_estimation/21022217101943/model_best.pth',
 ]
 seed: 123
 device:
@@ -50,7 +51,7 @@ val:
 test:
   batch_size: 6
 log:
-  vis_step: 10
+  vis_step: 1
   print_step: 20
   path: out/layout_estimation
 
