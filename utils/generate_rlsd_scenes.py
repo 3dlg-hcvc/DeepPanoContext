@@ -65,14 +65,15 @@ def _render_scene(args):
     os.makedirs(output_folder, exist_ok=True)
     
     # resize images
-    rgb_path = f"{rgb_dir}/{house_id}/{pano_id}.png"
-    Image.open(rgb_path).convert("RGB").resize((1024, 512)).save(os.path.join(args.output, scene_name, "rgb.png"))
-    
-    inst_path = f"{inst_dir}/{house_id}/{pano_id}.objectId.encoded.png"
-    Image.open(inst_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, scene_name, "seg.png"))
-    
-    depth_path = f"{inst_dir}/{house_id}/{pano_id}.depth.png"
-    Image.open(depth_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, scene_name, "depth.png"))
+    if not os.path.exists(os.path.join(args.output, scene_name, "rgb.png")):
+        rgb_path = f"{rgb_dir}/{house_id}/{pano_id}.png"
+        Image.open(rgb_path).convert("RGB").resize((1024, 512)).save(os.path.join(args.output, scene_name, "rgb.png"))
+        
+        inst_path = f"{inst_dir}/{house_id}/{pano_id}.objectId.encoded.png"
+        Image.open(inst_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, scene_name, "seg.png"))
+        
+        depth_path = f"{inst_dir}/{house_id}/{pano_id}.depth.png"
+        Image.open(depth_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, scene_name, "depth.png"))
 
     # generate scene layout
     rooms = scene_layout_from_rlsd_arch(args)

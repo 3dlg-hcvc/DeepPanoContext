@@ -106,16 +106,16 @@ def scene_layout_from_rlsd_arch(args):
     arch = json.load(open(f"/project/3dlg-hcvc/rlsd/data/mp3d/arch_refined_clean/{arch_id}.arch.json"))
     regions = arch["regions"]
     
-    rooms = []
+    rooms = {}
     for region in regions:
-        rooms.append({
+        rooms[region["id"]] = {
             "id": region["id"],
             "level": region["level"],
             "type": region["type"],
             "wall_height": region["height"],
             "floor_height": region["points"][0][-1],
             "room": Polygon(np.asarray(region["points"])[:, :-1]),
-        })
+        }
 
     # return {'rooms': rooms, 'height': wall_height}
     return rooms
@@ -171,12 +171,12 @@ def room_layout_from_scene_layout(camera, scene_layout):
 def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
     cam_id = camera["id"]
     cam_point = Point(*camera["pos"])
-    room_idx = panos[cam_id]["region_index"]
-    room = rooms[room_idx]
+    room_id = f"{panos[cam_id]['level_id']}_{panos[cam_id]['region_index']}"
+    room = rooms[room_id]
     # assert room["layout2d"].contains(cam_point)
     layout2d = room["room"]
     level = room["level"]
-    plot_2d_layout(rooms, room_idx, level, camera, plot_path)
+    plot_2d_layout(rooms, room_id, level, camera, plot_path)
 
     # sort boundary points in clockwise order
     layout2d = shapely.geometry.polygon.orient(layout2d, -1)
@@ -195,18 +195,18 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
     return room
 
 
-def plot_2d_layout(rooms, room_idx, level=0, cameras=[], output_path=None):
-    if isinstance(rooms, dict):
-        rooms = [rooms]
-    elif isinstance(rooms, Polygon):
-        rooms = []
+def plot_2d_layout(rooms, room_id, level=0, cameras=[], output_path=None):
+    # if isinstance(rooms, dict):
+    #     rooms = [rooms]
+    # elif isinstance(rooms, Polygon):
+    #     rooms = []
     if isinstance(cameras, dict):
         cameras = [cameras]
     _, ax = pyplot.subplots(figsize=(8,8))
-    for room in rooms:
+    for id, room in rooms.items():
         if room["level"] == level:
             ax.plot(*room["room"].exterior.xy)
-            if int(room["id"].split('_')[-1]) == room_idx:
+            if id == room_id:
                 ax.fill(*room["room"].exterior.xy, "lightgreen")  
     for cam in cameras:
         pos = cam["pos"][:2]

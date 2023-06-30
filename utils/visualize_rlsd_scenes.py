@@ -7,7 +7,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 import numpy as np
 from PIL import Image
-import cv2
+import shutil
 
 # from models.detector.dataset import register_igibson_detection_dataset
 from .igibson_utils import IGScene
@@ -17,7 +17,7 @@ from .visualize_utils import IGVisualizer
 
 
 def visualize_camera(args):
-    pano_id = args.scene_name.split("/")[-1]
+    arch_id, pano_id = args.scene_name.split("/")
     scene_folder = os.path.join(args.dataset, args.scene_name) if args.scene_name is not None else args.dataset
     camera_folder = os.path.join(scene_folder, args.task_id)
     if not os.path.exists(os.path.join(camera_folder, 'data.pkl')): return
@@ -34,9 +34,9 @@ def visualize_camera(args):
         save_path = os.path.join(scene_folder, args.task_id, 'det3d.png')
         save_image(image, save_path)
         # save_image(image, './det3d.png')
-        # save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/{args.task_id}/w_pano_camera_n_anno"
-        # os.makedirs(save_dir, exist_ok=True)
-        # Image.fromarray(image).save(os.path.join(save_dir, f"{pano_id}.png"))
+        save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/w_pano_camera_n_anno/{args.task_id}"
+        os.makedirs(save_dir, exist_ok=True)
+        save_image(image, os.path.join(save_dir, f"{pano_id}.png"))
     image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
     # image = visualizer.bdb2d(image)
 
@@ -56,6 +56,10 @@ def visualize_camera(args):
         save_path = os.path.join(scene_folder, args.task_id, 'visual.png')
         save_image(image, save_path)
         # save_image(image, './visual.png')
+    
+    save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/rooms_layout2d/{args.task_id}"
+    os.makedirs(save_dir, exist_ok=True)
+    shutil.copy2(f"/local-scratch/qiruiw/research/DeepPanoContext/data/rlsd/{arch_id}/{pano_id}/layout2d.png", save_dir)
 
 
 def main():
