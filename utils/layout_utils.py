@@ -180,7 +180,7 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
                 outside = False
                 break
         if outside:
-            return # camera outside rooms -> invalid -> return None
+            return None, None # camera outside rooms -> invalid -> return None
     room = rooms[room_id]
     layout2d = room["room"]
     level = room["level"]
@@ -190,17 +190,15 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
     layout2d = shapely.geometry.polygon.orient(layout2d, -1)
     room["room"] = layout2d
     boundary = np.array(layout2d.boundary.xy)[:, :-1].T
-    # assert np.all(np.linalg.norm((np.roll(boundary, 1, 0) - boundary), ord=2, axis=1) > 0.01), \
-    #                 'neighboring corners are too close'
     if np.all(np.linalg.norm((np.roll(boundary, 1, 0) - boundary), ord=2, axis=1) <= 0.01):
         print(f'{cam_id} neighboring corners are too close')
 
     nearest_point, _ = shapely.ops.nearest_points(layout2d.boundary, cam_point)
     distance_wall = cam_point.distance(nearest_point)
-    if distance_wall < 0.5:
-        print(f"{cam_id} close to wall ({distance_wall:.3f} < 0.5)")
+    # if distance_wall < 0.5:
+    #     print(f"{cam_id} close to wall ({distance_wall:.3f} < 0.5)")
 
-    return room
+    return room, distance_wall
 
 
 def plot_2d_layout(rooms, room_id, level=0, cameras=[], output_path=None):

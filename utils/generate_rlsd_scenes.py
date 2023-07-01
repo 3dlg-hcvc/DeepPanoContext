@@ -28,7 +28,8 @@ from .transform_utils import bdb3d_corners, IGTransform
 rgb_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_rgb_panos"
 inst_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_instance_panos"
 
-issues = {key:[] for key in ["over_large_objects", "outside_house"]}
+issues = {key:[] for key in ["over_large_objects", "outside_house", "close_to_wall"]}
+issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
 
 
 def _render_scene_fail_remove(args):
@@ -126,11 +127,18 @@ def _render_scene(args):
         }
     skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
     plot_path = os.path.join(args.output, scene_name, "layout2d.png")
-    room = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
+    room, distance_wall = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
     if room is None:
         issues["outside_house"].append(full_task_id)
         print(skip_info + "room layout generation failed")
         return
+    if distance_wall < 0.5:
+        issues["close_to_wall"]["0.5"].append(f"{full_task_id}/{distance_wall}")
+        # print(f"{full_task_id} close to wall ({distance_wall:.3f} < 0.5)")
+    if distance_wall < 0.3:
+        issues["close_to_wall"]["0.3"].append(f"{full_task_id}/{distance_wall}")
+    if distance_wall < 0.1:
+        issues["close_to_wall"]["0.1"].append(f"{full_task_id}/{distance_wall}")
     data['room'] = room
     
     # generate camera layout and check if the camaera is valid
