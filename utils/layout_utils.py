@@ -101,9 +101,9 @@ def scene_layout_from_mesh(args):
 
 def scene_layout_from_rlsd_arch(args):
     scene_name, _ = args.scene_name, args.scene_source
-    arch_id = scene_name.split('_')[0]
+    house_id = scene_name.split('_')[0]
     
-    arch = json.load(open(f"/project/3dlg-hcvc/rlsd/data/mp3d/arch_refined_clean/{arch_id}.arch.json"))
+    arch = json.load(open(f"/project/3dlg-hcvc/rlsd/data/mp3d/arch_refined_clean/{house_id}.arch.json"))
     regions = arch["regions"]
     
     rooms = {}

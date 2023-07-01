@@ -28,6 +28,8 @@ from .transform_utils import bdb3d_corners, IGTransform
 rgb_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_rgb_panos"
 inst_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_instance_panos"
 
+issues = {key:[] for key in ["over_large_objects", "outside_house"]}
+
 
 def _render_scene_fail_remove(args):
     output_folder = os.path.join(args.output, args.scene_name, args.task_id)
@@ -57,6 +59,7 @@ def _render_scene(args):
     house_id = scene_name.split("_")[0]
     pano_id = scene_name.split("/")[-1]
     task_id = args.task_id
+    full_task_id = f'{scene_name}/{task_id}'
     task_file = f"/project/3dlg-hcvc/rlsd/data/annotations/task_json/{task_id}.json"
     task_json = json.load(open(task_file))
     panos = json.load(open("/project/3dlg-hcvc/rlsd/data/mp3d/pano_objects_mapping.json"))
@@ -79,64 +82,9 @@ def _render_scene(args):
     rooms = scene_layout_from_rlsd_arch(args)
     if not rooms:
         raise Exception('Layout not valid!')
-    
-    # get object params
-    scene_json = task_json["sceneJson"]
-    objects = scene_json["scene"]["object"]
-    objects = {obj["id"]: obj for obj in objects}
-    mask_infos = {mask_info["id"]: mask_info for mask_info in scene_json["maskInfos"]}
-    mask_assignments = scene_json["maskObjectAssignments"]
-    # obj2masks = {assign["objectInstanceId"]: assign["maskId"] for assign in mask_assignments}
-    obj2masks = {}
-    for assign in mask_assignments:
-        obj_id = assign["objectInstanceId"]
-        if obj_id not in obj2masks:
-            obj2masks[obj_id] = [assign["maskId"]]
-        else:
-            obj2masks[obj_id].append(assign["maskId"])
-    objs = {}
-    for obj_id in objects:
-        if obj_id not in obj2masks:
-            continue
-        mask_ids = obj2masks[obj_id]
-        categories = [mask_infos[mask_id]["label"] for mask_id in mask_ids if mask_id in mask_infos]
-        # for cat in categories:
-        #     if cat not in RLSD32CLASSES:
-        #         import pdb; pdb.set_trace()
-        obj = objects[obj_id]
-        model_source, model_name = obj["modelId"].split('.')
-        if model_source == 'wayfair':
-            model_path = f'/datasets/external/3dfront/3D-FUTURE-model/{model_name}/raw_model.obj'
-        elif model_source == '3dw':
-            model_path = f'/project/3dlg-hcvc/rlsd/data/3dw/objmeshes_local/{model_name}/{model_name}.obj'
-        else:
-            raise NotImplementedError
-        obj_dict = {
-            "id": obj_id,
-            "mask_ids": mask_ids,
-            "index": obj["index"],
-            "classname": categories,
-            # "label": [RLSD48CLASSES.index(cat) for cat in categories],
-            "model_name": obj["modelId"],
-            "model_path": model_path,
-            "is_fixed": True,
-        }
-        obj_dict["bdb3d"] = {
-            "centroid": np.array(obj["obb"]["centroid"], dtype=np.float32),
-            "basis": np.array(obj["obb"]["normalizedAxes"], dtype=np.float32).reshape(3, 3).T,
-            "size": np.array(obj["obb"]["axesLengths"], dtype=np.float32),
-        }
-        objs[obj_id] = obj_dict
-
-    # get object layout
-    object_layout = []
-    for obj in objs.values():
-        corners = bdb3d_corners(obj['bdb3d'])
-        corners2d = corners[(0, 1, 3, 2), :2]
-        obj2d = Polygon(corners2d)
-        object_layout.append(obj2d)
-    object_layout = shapely.ops.cascaded_union(object_layout)
-    # plot_layout(object_layout)
+    rooms_bounds = shapely.ops.cascaded_union([r['room'] for r in rooms.values()]).bounds
+    rooms_height = max([r['wall_height']+r['floor_height'] for r in rooms.values()])
+    rooms_scale = (rooms_bounds[2]-rooms_bounds[0], rooms_bounds[3]-rooms_bounds[1], rooms_height)
     
     with jsonlines.open(f"/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_camera_poses/{house_id}.jsonl") as cameras:
         for c in cameras:
@@ -178,27 +126,87 @@ def _render_scene(args):
         }
     skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
     plot_path = os.path.join(args.output, scene_name, "layout2d.png")
-    # plot_path = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/rooms_layout2d/{task_id}/layout2d.png"
-    room_layout = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
-    if room_layout is None:
+    room = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
+    if room is None:
+        issues["outside_house"].append(full_task_id)
         print(skip_info + "room layout generation failed")
         return
-    data['room'] = room_layout
+    data['room'] = room
     
     # generate camera layout and check if the camaera is valid
-    layout = {'manhattan_pix': manhattan_pix_layout_from_rlsd_room(camera, room_layout)}
+    layout = {'manhattan_pix': manhattan_pix_layout_from_rlsd_room(camera, room)}
     data['layout'] = layout
     if layout['manhattan_pix'] is None:
         print(skip_info + "manhattan pixel layout generation failed")
         return
     if args.world_lo:
-        layout['manhattan_world'] = manhattan_world_layout_from_room_layout(room_layout)
+        layout['manhattan_world'] = manhattan_world_layout_from_room_layout(room)
     if args.horizon_lo:
         layout['horizon'] = horizon_layout_gt_from_scene_data(data)
+    
+    # get object params
+    scene_json = task_json["sceneJson"]
+    objects = scene_json["scene"]["object"]
+    objects = {obj["id"]: obj for obj in objects}
+    mask_infos = {mask_info["id"]: mask_info for mask_info in scene_json["maskInfos"]}
+    mask_assignments = scene_json["maskObjectAssignments"]
+    # obj2masks = {assign["objectInstanceId"]: assign["maskId"] for assign in mask_assignments}
+    obj2masks = {}
+    for assign in mask_assignments:
+        obj_id = assign["objectInstanceId"]
+        if obj_id not in obj2masks:
+            obj2masks[obj_id] = [assign["maskId"]]
+        else:
+            obj2masks[obj_id].append(assign["maskId"])
+    objs = {}
+    for obj_id in objects:
+        if obj_id not in obj2masks:
+            continue
+        obj = objects[obj_id]
+        if np.any((np.array(obj["obb"]["axesLengths"])-np.array(rooms_scale)) > 1):
+            if task_id == '61e0e08cddd48e322a18884b':
+                import pdb; pdb.set_trace()
+            if full_task_id not in issues["over_large_objects"]:
+                issues["over_large_objects"].append(full_task_id)
+            continue
+        mask_ids = obj2masks[obj_id]
+        categories = [mask_infos[mask_id]["label"] for mask_id in mask_ids if mask_id in mask_infos]
+        # for cat in categories:
+        #     if cat not in RLSD32CLASSES:
+        #         import pdb; pdb.set_trace()
+        model_source, model_name = obj["modelId"].split('.')
+        if model_source == 'wayfair':
+            model_path = f'/datasets/external/3dfront/3D-FUTURE-model/{model_name}/raw_model.obj'
+        elif model_source == '3dw':
+            model_path = f'/project/3dlg-hcvc/rlsd/data/3dw/objmeshes_local/{model_name}/{model_name}.obj'
+        else:
+            raise NotImplementedError
+        obj_dict = {
+            "id": obj_id,
+            "mask_ids": mask_ids,
+            "index": obj["index"],
+            "classname": categories,
+            # "label": [RLSD48CLASSES.index(cat) for cat in categories],
+            "model_name": obj["modelId"],
+            "model_path": model_path,
+            "is_fixed": True,
+        }
+        obj_dict["bdb3d"] = {
+            "centroid": np.array(obj["obb"]["centroid"], dtype=np.float32),
+            "basis": np.array(obj["obb"]["normalizedAxes"], dtype=np.float32).reshape(3, 3).T,
+            "size": np.array(obj["obb"]["axesLengths"], dtype=np.float32),
+        }
+        objs[obj_id] = obj_dict
 
-    # # render
-    # render_results = render_camera(s.renderer, camera, args.render_type,
-    #                                perspective, obj_groups, scene.objects_by_id)
+    # get object layout
+    object_layout = []
+    for obj in objs.values():
+        corners = bdb3d_corners(obj['bdb3d'])
+        corners2d = corners[(0, 1, 3, 2), :2]
+        obj2d = Polygon(corners2d)
+        object_layout.append(obj2d)
+    object_layout = shapely.ops.cascaded_union(object_layout)
+    # plot_layout(object_layout)
 
     # # extract object params
     data['objs'] = []
@@ -368,6 +376,9 @@ def main():
         else:
             with Pool(processes=args.processes) as p:
                 data_paths = list(tqdm(p.imap(_render_scene_fail_remove, args_list), total=len(args_list)))
+
+    with open("/project/3dlg-hcvc/rlsd/data/annotations/annotation_issues.json", 'w') as f:
+        json.dump(issues, f, indent=4)
 
     # split dataset
     split = {'train': [], 'test': []}
