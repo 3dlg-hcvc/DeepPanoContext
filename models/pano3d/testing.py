@@ -49,7 +49,7 @@ class Tester(BaseTester, Trainer):
                     est_scenes
             ):
                 height, width = est_scene['camera']['height'], est_scene['camera']['width']
-                test_general(dt_cor_id, gt_cor_id, height, width, losses)
+                test_general(dt_cor_id, gt_cor_id, width, height, losses)
             for n_corners, ms in losses.items():
                 for metric_name, metric in ms.items():
                     metrics[f"layout_{n_corners}_{metric_name}"] = AverageMeter(metric)

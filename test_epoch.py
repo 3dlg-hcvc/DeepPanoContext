@@ -6,6 +6,7 @@ from models.eval_metrics import ClassMeanMeter, MetricRecorder, AverageMeter
 from time import time
 import torch
 import wandb
+from tqdm import tqdm
 
 
 def test_func(cfg, tester, test_loader):
@@ -19,7 +20,7 @@ def test_func(cfg, tester, test_loader):
     metric_recorder = MetricRecorder()
     cfg.log_string('-' * 100)
     eta_calc = ETA(smooth=0.99, ignore_first=True)
-    for iter, data in enumerate(test_loader):
+    for iter, data in enumerate(tqdm(test_loader)):
         loss, est_data = tester.test_step(data)
 
         # visualize intermediate results.
