@@ -124,6 +124,10 @@ Train layout estimation network (HorizonNet) with:
 CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_igibson.yaml
 ```
 The checkpoint and visualization results will be saved to ```out/layout_estimation/<layout_estimation_id>/model_best.pth```
+Train layout estimation network (HorizonNet) with:
+```shell
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_igibson.yaml --mode test --weight out/layout_estimation/<layout_estimation_id>/model_best.pth
+```
    
 #### Save First Stage Outputs
 
