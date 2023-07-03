@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 import shutil
 
-# from models.detector.dataset import register_igibson_detection_dataset
+from models.detector.dataset import register_igibson_detection_dataset
 from .igibson_utils import IGScene
 from .image_utils import save_image, show_image
 # from models.pano3d.dataloader import IGSceneDataset
@@ -34,11 +34,11 @@ def visualize_camera(args):
         save_path = os.path.join(scene_folder, args.task_id, 'det3d.png')
         save_image(image, save_path)
         # save_image(image, './det3d.png')
-        save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/w_pano_camera_n_anno/{args.task_id}"
-        os.makedirs(save_dir, exist_ok=True)
-        save_image(image, os.path.join(save_dir, f"{pano_id}.png"))
-    image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
-    # image = visualizer.bdb2d(image)
+        # save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/w_pano_camera_n_anno/{args.task_id}"
+        # os.makedirs(save_dir, exist_ok=True)
+        # save_image(image, os.path.join(save_dir, f"{pano_id}.png"))
+    # image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
+    image = visualizer.bdb2d(image)
 
     if args.show:
         # if not args.skip_render:
@@ -56,6 +56,9 @@ def visualize_camera(args):
         save_path = os.path.join(scene_folder, args.task_id, 'visual.png')
         save_image(image, save_path)
         # save_image(image, './visual.png')
+        save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/w_pano_camera_n_anno/{args.task_id}"
+        os.makedirs(save_dir, exist_ok=True)
+        save_image(image, os.path.join(save_dir, f"{pano_id}.png"))
     
     save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/rooms_layout2d/{args.task_id}"
     os.makedirs(save_dir, exist_ok=True)
@@ -84,7 +87,7 @@ def main():
     parser.add_argument('--show', default=False, action='store_true',
                         help='Show visualization results instead of saving')
     args = parser.parse_args()
-    # register_igibson_detection_dataset(args.dataset)
+    register_igibson_detection_dataset(args.dataset)
     
 
     if args.full_pano_id is not None and args.task_id is not None:

@@ -191,6 +191,8 @@ def _render_scene(args):
                     # import pdb; pdb.set_trace()
             igibson_cat = RLSD2IG[cat]
             categories.append(igibson_cat)
+        if not categories:
+            continue
         model_source, model_name = obj["modelId"].split('.')
         if model_source == 'wayfair':
             model_path = f'/datasets/external/3dfront/3D-FUTURE-model/{model_name}/raw_model.obj'

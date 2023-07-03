@@ -14,7 +14,7 @@ RLSD16CLASSES_NOCARE = ['beam', 'board_panel', 'ceiling', 'clothes', 'column', '
                     'stairs', 'unlabeled', 'void', 'wall']
 RLSD48CLASSES = RLSD32CLASSES + RLSD16CLASSES_NOCARE
 
-CUSTOM2RLSD = {'pictures': 'picture', 'platn': 'plant', 'light': 'lighting', 'painting': 'picture', 'ligth': 'lighting', 'toilet paper': 'toilet', 'door wat': 'door', 'shelf': 'shelving', 'paint': 'picture', 'monitor': 'tv_monitor', 'light stand': 'lighting', 'tv': 'tv_monitor', 'lamp': 'lighting', 'pentant light': 'lighting'} # grill
+CUSTOM2RLSD = {'pictures': 'picture', 'platn': 'plant', 'light': 'lighting', 'painting': 'picture', 'ligth': 'lighting', 'toilet paper': 'toilet', 'door wat': 'door', 'shelf': 'shelving', 'paint': 'picture', 'monitor': 'tv_monitor', 'light stand': 'lighting', 'tv': 'tv_monitor', 'lamp': 'lighting', 'pentant light': 'lighting'} # grill, basket
 
 common_objects = ['counter', 'picture', 'microwave', 'sink', 'oven', 'dishwasher', 'chair', 'mirror', 'shower', 'table', 'stove', 'stool', 'bed', 'plant', 'door', 'bathtub', 'sofa', 'cushion', 'toilet', 'window']
 rlsd_common_mapping = {k:k for k in common_objects}

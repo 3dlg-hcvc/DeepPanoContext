@@ -40,7 +40,7 @@ def detectron_gt_sample(data, idx=None):
             "bbox": [bdb2d['x1'], bdb2d['y1'], bdb2d['x2'], bdb2d['y2']],
             "bbox_mode": BoxMode.XYXY_ABS,
             "segmentation": [poly],
-            "category_id": obj['label'],
+            "category_id": obj['label'] if isinstance(obj['label'], int) else obj['label'][0],
         }
         annotations.append(obj)
     record["annotations"] = annotations
@@ -294,7 +294,9 @@ class IGVisualizer:
         i_objs = sorted(range(len(dis)), key=lambda k: dis[k])
         for i_obj in reversed(i_objs):
             obj = objs[i_obj]
-            color = (igibson_colorbox[obj['label']] * 255).astype(np.uint8).tolist()
+            label = obj['label'] if isinstance(obj['label'], int) else obj['label'][0]
+            color = (igibson_colorbox[label] * 255).astype(np.uint8).tolist()
+            # color = (200, 0, 0)
             bdb3d = obj['bdb3d']
             # # test bdb3d transformation
             # bdb3d = self.transform.world2campix(bdb3d)
@@ -428,8 +430,8 @@ class IGVisualizer:
             for l in [0, 1]:
                 for idx1, idx2 in [((0, k, l), (1, k, l)), ((k, 0, l), (k, 1, l)), ((k, l, 0), (k, l, 1))]:
                     self._line3d(image, corners_box[idx1], corners_box[idx2], color, thickness=thickness, frame='cam3d')
-        for idx1, idx2 in [(0, 5), (1, 4)]:
-            self._line3d(image, corners[idx1], corners[idx2], color, thickness=thickness, frame='cam3d')
+        # for idx1, idx2 in [(0, 5), (1, 4)]:
+        #     self._line3d(image, corners[idx1], corners[idx2], color, thickness=thickness, frame='cam3d')
 
     def _contour(self, image, contour, color, thickness=1):
         contour_pix = np.stack([contour['x'], contour['y']], -1)
