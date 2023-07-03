@@ -28,7 +28,7 @@ from .transform_utils import bdb3d_corners, IGTransform
 rgb_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_rgb_panos"
 inst_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_instance_panos"
 
-issues = {key:[] for key in ["over_large_objects", "outside_house", "close_to_wall"]}
+issues = {key:[] for key in ["over_large_objects", "outside_house", "mask_missing", "close_to_wall"]}
 issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
 
 
@@ -180,7 +180,7 @@ def _render_scene(args):
         categories = []
         for mask_id in mask_ids:
             if mask_id not in mask_infos:
-                # import pdb; pdb.set_trace()
+                issues["mask_missing"].append(f"{full_task_id}/{mask_id}")
                 continue
             cat = mask_infos[mask_id]["label"].lower()
             if cat not in RLSD32CLASSES: # and mask_infos[mask_id]["type"] != "mask":
