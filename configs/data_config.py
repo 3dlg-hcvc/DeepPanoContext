@@ -4,6 +4,25 @@ import scipy.io as sio
 import os
 
 
+RLSD32CLASSES = ['bathtub', 'bed', 'blinds', 'cabinet', 'chair', 'chest_of_drawers', 
+                  'clothes dryer', 'counter', 'curtain', 'cushion', 'dishwasher', 'door', 
+                  'lighting', 'microwave', 'mirror', 'oven', 'picture', 'plant', 
+                  'refrigerator', 'seating', 'shelving', 'shower', 'sink', 'sofa', 
+                  'stool', 'stove', 'table', 'toilet', 'towel', 'tv_monitor', 'washing machine', 'window']
+RLSD16CLASSES_NOCARE = ['beam', 'board_panel', 'ceiling', 'clothes', 'column', 'fireplace', 
+                    'floor', 'furniture', 'gym_equipment', 'misc', 'objects', 'railing', 
+                    'stairs', 'unlabeled', 'void', 'wall']
+RLSD48CLASSES = RLSD32CLASSES + RLSD16CLASSES_NOCARE
+
+CUSTOM2RLSD = {'pictures': 'picture', 'platn': 'plant', 'light': 'lighting', 'painting': 'picture', 'ligth': 'lighting', 'toilet paper': 'toilet', 'door wat': 'door', 'shelf': 'shelving', 'paint': 'picture', 'monitor': 'tv_monitor', 'light stand': 'lighting', 'tv': 'tv_monitor', 'lamp': 'lighting', 'pentant light': 'lighting'}
+
+common_objects = ['counter', 'picture', 'microwave', 'sink', 'oven', 'dishwasher', 'chair', 'mirror', 'shower', 'table', 'stove', 'stool', 'bed', 'plant', 'door', 'bathtub', 'sofa', 'cushion', 'toilet', 'window']
+rlsd_common_mapping = {k:k for k in common_objects}
+
+RLSD2IG = {'washing machine': 'washer', 'towel': 'towel_rack', 'cabinet': 'bottom_cabinet', 'tv_monitor': 'monitor', 'lighting': 'floor_lamp', 'blinds': 'fence', 'seating': 'bench', 'refrigerator': 'fridge', 'chest_of_drawers': 'counter', 'clothes dryer': 'dryer', 'shelving': 'shelf', 'curtain': 'fence'}
+RLSD2IG.update(rlsd_common_mapping)
+
+
 IG56CLASSES = [
     'basket', 'bathtub', 'bed', 'bench', 'bottom_cabinet',
     'bottom_cabinet_no_top', 'carpet', 'chair', 'chest',

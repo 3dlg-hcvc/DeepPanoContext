@@ -14,7 +14,7 @@ import shapely
 from glob import glob
 import traceback
 
-from configs.data_config import IG56CLASSES
+from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD2IG, RLSD32CLASSES
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
 from .igibson_utils import hash_split, IGScene
@@ -126,7 +126,7 @@ def _render_scene(args):
             }
         }
     skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
-    plot_path = os.path.join(args.output, scene_name, "layout2d.png")
+    plot_path = os.path.join(args.output, scene_name, "rooms.png")
     room, distance_wall = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
     if room is None:
         issues["outside_house"].append(full_task_id)
@@ -172,16 +172,25 @@ def _render_scene(args):
             continue
         obj = objects[obj_id]
         if np.any((np.array(obj["obb"]["axesLengths"])-np.array(rooms_scale)) > 1):
-            if task_id == '61e0e08cddd48e322a18884b':
-                import pdb; pdb.set_trace()
             if full_task_id not in issues["over_large_objects"]:
                 issues["over_large_objects"].append(full_task_id)
             continue
         mask_ids = obj2masks[obj_id]
-        categories = [mask_infos[mask_id]["label"] for mask_id in mask_ids if mask_id in mask_infos]
-        # for cat in categories:
-        #     if cat not in RLSD32CLASSES:
-        #         import pdb; pdb.set_trace()
+        # categories = [mask_infos[mask_id]["label"] for mask_id in mask_ids if mask_id in mask_infos]
+        categories = []
+        for mask_id in mask_ids:
+            if mask_id not in mask_infos:
+                # import pdb; pdb.set_trace()
+                continue
+            cat = mask_infos[mask_id]["label"].lower()
+            if cat not in RLSD32CLASSES: # and mask_infos[mask_id]["type"] != "mask":
+                try:
+                    cat = CUSTOM2RLSD[cat]
+                except:
+                    continue
+                    # import pdb; pdb.set_trace()
+            igibson_cat = RLSD2IG[cat]
+            categories.append(igibson_cat)
         model_source, model_name = obj["modelId"].split('.')
         if model_source == 'wayfair':
             model_path = f'/datasets/external/3dfront/3D-FUTURE-model/{model_name}/raw_model.obj'
@@ -194,7 +203,7 @@ def _render_scene(args):
             "mask_ids": mask_ids,
             "index": obj["index"],
             "classname": categories,
-            # "label": [RLSD48CLASSES.index(cat) for cat in categories],
+            "label": [IG56CLASSES.index(cat) for cat in categories],
             "model_name": obj["modelId"],
             "model_path": model_path,
             "is_fixed": True,
