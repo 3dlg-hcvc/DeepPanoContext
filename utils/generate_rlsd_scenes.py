@@ -28,7 +28,7 @@ from .transform_utils import bdb3d_corners, IGTransform
 rgb_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_rgb_panos"
 inst_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_instance_panos"
 
-issues = {key:[] for key in ["over_large_objects", "outside_house", "mask_missing", "close_to_wall"]}
+issues = {key:[] for key in ["duplicate_points", "duplicate_x", "over_large_objects", "outside_house", "mask_missing", "close_to_wall"]}
 issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
 
 
@@ -142,7 +142,7 @@ def _render_scene(args):
     data['room'] = room
     
     # generate camera layout and check if the camaera is valid
-    layout = {'manhattan_pix': manhattan_pix_layout_from_rlsd_room(camera, room)}
+    layout = {'manhattan_pix': manhattan_pix_layout_from_rlsd_room(camera, room, full_task_id, issues)}
     data['layout'] = layout
     if layout['manhattan_pix'] is None:
         print(skip_info + "manhattan pixel layout generation failed")

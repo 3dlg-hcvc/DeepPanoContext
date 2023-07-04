@@ -73,7 +73,7 @@ class IGSceneDataset(Pano3DDataset):
         size_avg = collections.defaultdict(list)
         has_bdb3d = True
         for i in tqdm(range(len(self.split)), desc='Generating metadata of size_avg and dis_max...'):
-            scene = self.get_igibson_scene(i)
+            scene = self.get_scene(i)
             for obj in scene['objs']:
                 if 'bdb3d' not in obj:
                     has_bdb3d = False
@@ -93,7 +93,7 @@ class IGSceneDataset(Pano3DDataset):
             })
 
     def __getitem__(self, index):
-        est_scene, gt_scene = self.get_igibson_scene(index, ('est', 'gt'))
+        est_scene, gt_scene = self.get_scene(index, ('est', 'gt'))
 
         gt_data = {k: gt_scene[k] for k in self._basic_info}
         if est_scene is None:
@@ -131,7 +131,7 @@ class IGSceneDataset(Pano3DDataset):
 
         return est_data, gt_data, est_scene, gt_scene
 
-    def get_igibson_scene(self, item, stype: (str, tuple, list)='gt'):
+    def get_scene(self, item, stype: (str, tuple, list)='gt'):
         pkl = self.split[item]
         if pkl.lower().endswith(('png', 'jpg')):
             gt_scene = IGScene.from_image(pkl)
@@ -167,7 +167,7 @@ class RLSDSceneDataset(IGSceneDataset):
         size_avg = collections.defaultdict(list)
         has_bdb3d = True
         for i in tqdm(range(len(self.split)), desc='Generating metadata of size_avg and dis_max...'):
-            scene = self.get_igibson_scene(i)
+            scene = self.get_scene(i)
             for obj in scene['objs']:
                 if 'bdb3d' not in obj:
                     has_bdb3d = False
@@ -189,6 +189,34 @@ class RLSDSceneDataset(IGSceneDataset):
                 'size_avg': size_avg,
                 'dis_max': float(dis_max)
             })
+    
+    def get_scene(self, item, stype: (str, tuple, list)='gt'):
+        pkl = self.split[item]
+        if pkl.lower().endswith(('png', 'jpg')):
+            gt_scene = IGScene.from_image(pkl)
+            est_scene = None
+        else:
+            if isinstance(stype, str):
+                stype = (stype, )
+
+            gt_pkl = os.path.join(os.path.dirname(pkl), 'gt.pkl')
+            if os.path.exists(gt_pkl):
+                est_scene = IGScene.from_pickle(pkl) if 'est' in stype else None
+                gt_scene = IGScene.from_pickle(gt_pkl, self.igibson_obj_dataset) if 'gt' in stype else None
+            else:
+                est_scene = None
+                gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset) if 'gt' in stype else None
+
+        for obj in gt_scene.data['objs']:
+            for k in ["mask_ids", "classname", "label"]:
+                if isinstance(obj[k], list):
+                    obj[k] = obj[k][0] #HACK
+
+        scenes = {'est': est_scene, 'gt': gt_scene}
+        if len(stype) == 1:
+            return scenes[stype[0]]
+        else:
+            return [scenes[k] for k in stype]
 
 
 def collate_fn(batch):

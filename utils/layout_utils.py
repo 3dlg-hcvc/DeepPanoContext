@@ -108,13 +108,14 @@ def scene_layout_from_rlsd_arch(args):
     
     rooms = {}
     for region in regions:
+        region_xy = np.asarray(region["points"])[:, :-1]
         rooms[region["id"]] = {
             "id": region["id"],
             "level": region["level"],
             "type": region["type"],
             "wall_height": region["height"],
             "floor_height": region["points"][0][-1],
-            "room": Polygon(np.asarray(region["points"])[:, :-1]),
+            "room": Polygon(region_xy),
         }
 
     # return {'rooms': rooms, 'height': wall_height}
@@ -265,10 +266,10 @@ def manhattan_pix_layout_from_room_layout(camera, room_layout):
     return points.astype(np.int32)
 
 
-def manhattan_pix_layout_from_rlsd_room(camera, room):
+def manhattan_pix_layout_from_rlsd_room(camera, room, full_task_id, issues):
     if room is None:
         return
-    cam_id = camera["id"]
+    
     # generate pano Manhattan layout from room layout
     height, width = camera['height'], camera['width']
     boundary = np.array(room['room'].boundary.xy)[:, :-1].T
@@ -293,12 +294,14 @@ def manhattan_pix_layout_from_rlsd_room(camera, room):
     points = np.roll(points, -i_first * 2, axis=0)
     points_unique = np.unique(points, axis=0)
     if len(points_unique) < len(points):
-        print(f"{cam_id} duplicate points")
+        issues["duplicate_points"].append(full_task_id)
+        print(f"{full_task_id} duplicate points")
         # return
     xs = points[::2, 0].astype(int)
     xs_unique = np.unique(xs)
     if len(xs_unique) < len(xs):
-        print(f"{cam_id} duplicate x")
+        issues["duplicate_x"].append(full_task_id)
+        print(f"{full_task_id} duplicate x")
         # return
 
     return points.astype(np.int32)
