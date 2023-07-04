@@ -55,7 +55,7 @@ log:
   vis_step: 0
   print_step: 20
   path: out/first_stage
-  save_as_dataset: 'data/igibson_stage1'
+  save_as_dataset: 'data/rlsd_stage1'
 
 
 
