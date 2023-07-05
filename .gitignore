@@ -189,12 +189,14 @@ octave-workspace
 
 ## project
 /out
+/data/*
 /data/*.zip
 /data/igibson*
 /data/rlsd*
 /wandb
 /.vscode
 /demo/*
+/demo_render
 !/demo/input
 demo
 *.zip
