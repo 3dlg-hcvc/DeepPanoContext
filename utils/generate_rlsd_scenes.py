@@ -30,6 +30,9 @@ inst_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_instance_panos"
 
 issues = {key:[] for key in ["duplicate_points", "duplicate_x", "over_large_objects", "outside_house", "mask_missing", "close_to_wall"]}
 issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
+model_paths = set()
+missing_3dw = set()
+model2cat = {}
 
 
 def _render_scene_fail_remove(args):
@@ -194,12 +197,16 @@ def _render_scene(args):
         if not categories:
             continue
         model_source, model_name = obj["modelId"].split('.')
+        model_path = f'{categories[0]}/{model_name}'
         if model_source == 'wayfair':
-            model_path = f'/datasets/external/3dfront/3D-FUTURE-model/{model_name}/raw_model.obj'
+            model_path = f'/datasets/internal/models3d/wayfair/wayfair_models_cleaned/{model_name}/{model_name}.glb'
         elif model_source == '3dw':
-            model_path = f'/project/3dlg-hcvc/rlsd/data/3dw/objmeshes_local/{model_name}/{model_name}.obj'
+            model_path = f'/project/3dlg-hcvc/rlsd/data/3dw/objmeshes-normalized/{model_name}/{model_name}.obj'
+            if not os.path.exists(model_path):
+                missing_3dw.add(model_name)
         else:
             raise NotImplementedError
+        model_paths.add(model_path)
         obj_dict = {
             "id": obj_id,
             "mask_ids": mask_ids,
@@ -398,6 +405,14 @@ def main():
 
     with open("/project/3dlg-hcvc/rlsd/data/annotations/annotation_issues.json", 'w') as f:
         json.dump(issues, f, indent=4)
+    
+    with open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt", 'w') as f:
+        for p in model_paths:
+            f.write(f"{p}\n")
+            
+    with open("/project/3dlg-hcvc/rlsd/data/annotations/missing_3dw.txt", 'w') as f:
+        for m in missing_3dw:
+            f.write(f"{m}\n")
 
     # split dataset
     split = {'train': [], 'test': []}

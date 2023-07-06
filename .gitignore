@@ -197,6 +197,7 @@ octave-workspace
 /.vscode
 /demo/*
 /demo_render
+/demo_obj
 !/demo/input
 demo
 *.zip
