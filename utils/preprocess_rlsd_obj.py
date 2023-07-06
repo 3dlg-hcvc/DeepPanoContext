@@ -111,7 +111,7 @@ def crop_images(args):
 
 def preprocess_obj(args):
     gaps = './external/ldif/gaps/bin/x86_64'
-    output_folder = os.path.join(args.output, *args.object.split('/')[-3:-1])
+    output_folder = os.path.join(args.output, *args.object.split('/')[-2:])
     obj_category = output_folder.split('/')[-2]
     # output_folder = './demo_obj'
     os.makedirs(output_folder, exist_ok=True)
@@ -364,7 +364,7 @@ def main():
                         help='The path of the dataset')
     parser.add_argument('--output', type=str, default='data/rlsd_obj',
                         help='The path of the output folder')
-    parser.add_argument('--processes', type=int, default=0,
+    parser.add_argument('--processes', type=int, default=12,
                         help='Number of threads')
     parser.add_argument('--keep_interfile', default=False, action='store_true',
                         help='Keep intermediate files')
