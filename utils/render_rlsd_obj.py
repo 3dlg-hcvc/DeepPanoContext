@@ -1,6 +1,9 @@
 import os
 import json
 import argparse
+from glob import glob
+from tqdm import tqdm
+from multiprocessing import Pool
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
@@ -17,7 +20,6 @@ from pyrender import PerspectiveCamera,\
                      MetallicRoughnessMaterial,\
                      Primitive, Mesh, Node, Scene,\
                      OffscreenRenderer
-import matplotlib.pyplot as plt
 
 
 def points2bdb2d(points):
@@ -111,13 +113,16 @@ def seg2obj(seg, i_obj, camera=None):
     }
 
 
-def render_view(out_dir, shape_id):
-    os.makedirs(out_dir, exist_ok=True)
-    obj_filename = f"/datasets/internal/models3d/wayfair/wayfair_models_cleaned/{shape_id}/{shape_id}.glb"
+def render_view(args):
+    output_folder = os.path.join(args.output, *args.object.split('/')[-2:])
+    obj_category = output_folder.split('/')[-2]
+    # output_folder = './demo_render'
+    os.makedirs(output_folder, exist_ok=True)
 
-    tri_glb = trimesh.load(obj_filename)
-    center = np.mean(tri_glb.bounds, axis=0)
-    scale = 1.0 / float(max(tri_glb.bounds[1] - tri_glb.bounds[0]))
+    # args.object_path = f"/datasets/internal/models3d/wayfair/wayfair_models_cleaned/{shape_id}/{shape_id}.glb"
+    obj = trimesh.load(args.object_path)
+    center = np.mean(obj.bounds, axis=0)
+    scale = 1.0 / float(max(obj.bounds[1] - obj.bounds[0]))
     center_mat = np.array([
     [1, 0, 0, -center[0]],
     [0.0, 1, 0.0, -center[1]],
@@ -130,19 +135,13 @@ def render_view(out_dir, shape_id):
         [0.0, 0.0, scale, 0],
         [0.0,  0.0, 0.0, 1.0]
     ])
-    tri_glb.apply_transform(np.matmul(norm_mat, center_mat))
-    scene = pyrender.Scene.from_trimesh_scene(tri_glb, ambient_light=[0.1, 0.1, 0.1])
+    obj.apply_transform(np.matmul(norm_mat, center_mat))
+    if not isinstance(obj, trimesh.Scene):
+        obj = trimesh.Scene(obj)
+    scene = pyrender.Scene.from_trimesh_scene(obj, ambient_light=[0.1, 0.1, 0.1])
     
     # img = cv2.imread("/local-scratch/qiruiw/research/DeepPanoContext/data/gibson2/ig_dataset/scenes/background/palermo_sidewalk.jpg")
-    img = np.asarray(Image.open("/local-scratch/qiruiw/research/DeepPanoContext/ballroom_2k.png"))
-    # img = cv2.imread("/local-scratch/qiruiw/research/DeepPanoContext/data/gibson2/ig_dataset/scenes/background/ballroom_2k.hdr", flags=cv2.IMREAD_ANYDEPTH)
-    # tonemapDurand = cv2.createTonemap(2.2)
-    # img = tonemapDurand.process(img)
-    # merge_mertens = cv2.createMergeMertens()
-    # img = merge_mertens.process([img])
-    # img = np.clip(img * 255, 0, 255).astype('uint8')
-    # img = imageio.v2.imread("/local-scratch/qiruiw/research/DeepPanoContext/data/gibson2/ig_dataset/scenes/background/ballroom_2k.hdr", format="HDR-FI")
-    # # img = (img * 255).round().astype(np.uint8)
+    bg_img = np.asarray(Image.open("/local-scratch/qiruiw/research/DeepPanoContext/ballroom_2k.png"))
     sphere_trimesh = trimesh.load_mesh("/local-scratch/qiruiw/research/rlsd/evaluation/conf/sphere/sphere.obj")
     sphere_scale = np.array([
         [10, 0, 0, 0],
@@ -151,7 +150,7 @@ def render_view(out_dir, shape_id):
         [0.0,  0.0, 0.0, 1.0]
     ])
     sphere_trimesh.apply_transform(sphere_scale)
-    texture = pyrender.Texture(source=img, source_channels="RGB", 
+    texture = pyrender.Texture(source=bg_img, source_channels="RGB", 
                                sampler=pyrender.Sampler(magFilter=pyrender.constants.GLTF.NEAREST, 
                                                         minFilter=pyrender.constants.GLTF.NEAREST))
     material = pyrender.MetallicRoughnessMaterial(baseColorFactor=[1.,1.,1.,1.],baseColorTexture=texture)
@@ -166,7 +165,7 @@ def render_view(out_dir, shape_id):
     # point_l = PointLight(color=np.ones(3), intensity=10.0)
     r = OffscreenRenderer(viewport_width=512, viewport_height=512)
 
-    for i_render in range(5):
+    for i_render in range(args.renders):
         # randomize light direction
         # renderer.set_light_position_direction(((np.random.random(3) - 0.5) * 10 + 5).tolist(), [0, 0, 0])
         l_dis = np.random.random() * 0.5 + 1
@@ -238,7 +237,7 @@ def render_view(out_dir, shape_id):
             else:
                 crop = seg[bdb2d['y1']: bdb2d['y2'] + 1, bdb2d['x1']: bdb2d['x2'] + 1]
                 crop = crop * 255
-            Image.fromarray(crop).save(os.path.join(out_dir, f"render-{i_render:05d}-{key}.png"))
+            Image.fromarray(crop).save(os.path.join(output_folder, f"render-{i_render:05d}-{key}.png"))
         
         scene.remove_node(bg_node)
         scene.remove_node(cam_node)
@@ -250,10 +249,56 @@ def render_view(out_dir, shape_id):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--out_dir', type=str, default='./demo_render')
+    parser.add_argument('--dataset', type=str, default='data/rlsd',
+                        help='The path of the dataset')
+    parser.add_argument('--output', type=str, default='data/rlsd_obj',
+                        help='The path of the output folder')
+    parser.add_argument('--processes', type=int, default=0,
+                        help='Number of threads')
+    parser.add_argument('--skip_done', default=False, action='store_true',
+                        help='Skip objects exist in output folder')
+    parser.add_argument('--object_path', type=str, default=None,
+                        help="Specify the 'visual' folder of a single object to be processed")
+    parser.add_argument('--renders', type=int, default=10,
+                        help='Number of renders per obj')
     parser.add_argument('--shape_id', type=str, default='ZPCD5500')
-    parser.add_argument('--obj_source', type=str, default='wayfair')
+    # parser.add_argument('--obj_source', type=str, default='wayfair')
     parser.add_argument('--mask', type=bool, default=False)
     args = parser.parse_args()
     
-    render_view(args.out_dir, args.shape_id)
+    # render_view(args.out_dir, args.shape_id)
+    
+    # render and preprocess obj
+    # if args.all:
+    args_dict = args.__dict__.copy()
+    # args_dict['spacing'] = args.bbox / 32
+    # args_dict['bbox'] = ' '.join([str(-args.bbox / 2), ] * 3 + [str(args.bbox / 2), ] * 3)
+    # print(f"bbox: [{args_dict['bbox']}] spacing: {args_dict['spacing']}")
+
+    if args.object_path is None:
+        # object_paths = glob(os.path.join(gibson2.ig_dataset_path, 'objects', '*', '*', '*.urdf'))
+        objects = glob('/local-scratch/qiruiw/research/DeepPanoContext/data/rlsd_obj/*/*')
+        object_paths = [p.strip() for p in open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt")]
+        print(f"{len(object_paths)} objects in total")
+    else:
+        objects = [args.object_path]
+        object_paths = [args.object_path]
+    obj_path_mapping = {}
+    for obj_path in object_paths:
+        obj_name = obj_path.split('/')[-1].split('.')[0]
+        obj_path_mapping[obj_name] = obj_path
+    args_list = []
+    for obj in objects:
+        obj_name = obj.split('/')[-1].split('.')[0]
+        args_dict['object'] = obj
+        args_dict['object_path'] = obj_path_mapping[obj_name]
+        args_list.append(argparse.Namespace(**args_dict))
+
+    print("Rendering ...")
+    if args.processes == 0:
+        r = []
+        for a in tqdm(args_list):
+            r.append(render_view(a))
+    else:
+        with Pool(processes=args.processes) as p:
+            r = list(tqdm(p.imap(render_view, args_list), total=len(args_list)))
