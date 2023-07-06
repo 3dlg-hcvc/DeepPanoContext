@@ -6,6 +6,7 @@ import sys
 import subprocess
 import argparse
 import trimesh
+
 from utils.igibson_utils import IGScene, hash_split
 from utils.image_utils import save_image
 from models.pano3d.dataloader import IGSceneDataset
@@ -158,42 +159,149 @@ def preprocess_obj(args):
         # merged_mesh = [trimesh.Trimesh(v, f) for v, f in zip(*instance.dump())]
         # merged_mesh = sum(merged_mesh)
 
-    # # render with iGibson
+    # # render with pyrender
     # if not args.skip_render:
+    #     obj = trimesh.load_mesh(args.object_path)
+    #     center = np.mean(obj.bounds, axis=0)
+    #     scale = 1.0 / np.linalg.norm(obj.bounds[1] - obj.bounds[0])
+    #     center_mat = np.array([
+    #     [1, 0, 0, -center[0]],
+    #     [0.0, 1, 0.0, -center[1]],
+    #     [0.0, 0.0, 1, -center[2]],
+    #     [0.0,  0.0, 0.0, 1.0]
+    #     ])
+    #     norm_mat = np.array([
+    #         [scale, 0, 0, 0],
+    #         [0.0, scale, 0.0, 0],
+    #         [0.0, 0.0, scale, 0],
+    #         [0.0,  0.0, 0.0, 1.0]
+    #     ])
+    #     obj.apply_transform(np.matmul(norm_mat, center_mat))
+    #     scene = pyrender.Scene(ambient_light=[1, 1, 1])
+    #     obj_node = scene.add(pyrender.Mesh.from_trimesh(obj))
+        
+    #     # scene = pyrender.Scene.from_trimesh_scene(obj, ambient_light=[0.2, 0.2, 0.2])
+    #     # scene = pyrender.Scene.from_trimesh_scene(obj)
+        
+    #     img = np.asarray(Image.open("/local-scratch/qiruiw/research/DeepPanoContext/ballroom_2k.png"))
+    #     sphere_trimesh = trimesh.load_mesh("/local-scratch/qiruiw/research/rlsd/evaluation/conf/sphere/sphere.obj")
+    #     sphere_scale = np.array([
+    #         [12, 0, 0, 0],
+    #         [0.0, 12, 0.0, 0],
+    #         [0.0, 0.0, 12, 0],
+    #         [0.0,  0.0, 0.0, 1.0]
+    #     ])
+    #     sphere_trimesh.apply_transform(sphere_scale)
+    #     texture = pyrender.Texture(source=img, source_channels="RGB", 
+    #                             sampler=pyrender.Sampler(magFilter=pyrender.constants.GLTF.NEAREST, 
+    #                                                         minFilter=pyrender.constants.GLTF.NEAREST))
+    #     material = pyrender.MetallicRoughnessMaterial(baseColorFactor=[1.,1.,1.,1.],baseColorTexture=texture)
+    #     bg_mesh = pyrender.Mesh.from_trimesh(sphere_trimesh, material=material)
+        
+    #     # direc_l = DirectionalLight(color=np.ones(3), intensity=0.5)
+    #     spot_l = SpotLight(color=np.ones(3), intensity=1.0, innerConeAngle=np.pi/8, outerConeAngle=np.pi/3)
+    #     r = OffscreenRenderer(viewport_width=512, viewport_height=512)
+        
     #     for i_render in range(args.renders):
     #         # randomize light direction
-    #         renderer.set_light_position_direction(((np.random.random(3) - 0.5) * 10 + 5).tolist(), [0, 0, 0])
+    #         # renderer.set_light_position_direction(((np.random.random(3) - 0.5) * 10 + 5).tolist(), [0, 0, 0])
+    #         # l_dis = np.random.random() * 5 + 2
+    #         # azim = np.random.random() * np.pi * 2
+    #         # elev = np.random.random() * np.pi
+    #         # l_pose = np.eye(4)
+    #         # y = l_dis * np.sin(elev)
+    #         # x = l_dis * np.cos(elev) * np.sin(azim)
+    #         # z = l_dis * np.cos(elev) * np.cos(azim)
+    #         # l_pose[:3, 3] = [x, y, z]
+    #         # rotx = np.array([
+    #         #     [1.0, 0, 0],
+    #         #     [0.0, np.cos(elev), np.sin(elev)],
+    #         #     [0.0, -np.sin(elev), np.cos(elev)]
+    #         # ])
+    #         # roty = np.array([
+    #         #     [np.cos(azim), 0, np.sin(azim)],
+    #         #     [0.0, 1, 0.0],
+    #         #     [-np.sin(azim), 0, np.cos(azim)]
+    #         # ])
+    #         # l_pose[:3, :3] = np.matmul(roty, rotx)
+    #         # direc_l_node = scene.add(spot_l, pose=cam_pose)
 
     #         # randomize camera settings
-    #         dis = np.random.random() * 7 + 1
-    #         fov = np.rad2deg(np.arctan2(.5, dis) * 2) * 1.5
-    #         camera_height = np.random.random() * 1.4
-    #         if obj_category in ['microwave', 'picture', 'top_cabinet', 'towel_rack', 'wall_clock']:
-    #             camera_height -= 1.
-    #         yaw = np.random.random() * np.pi * 2
-    #         pos = np.array([np.sin(yaw) * dis, np.cos(yaw) * dis, camera_height], np.float32)
-    #         target = np.array([0, 0, 0], dtype= np.float32)
-    #         camera = {
-    #             'pos': pos, 'target': target, 'up': np.array([0, 0, 1], np.float32),
-    #             'width': 512, 'height': 512, 'vertical_fov': fov
-    #         }
+    #         dis = 1 #np.random.random() * 1 + 2
+    #         fov = (np.pi / 2.0) #np.rad2deg(np.arctan2(.5, dis) * 2) * 1.5
+    #         # camera_height = np.random.random() * 1.4
+    #         # if obj_category in ['microwave', 'picture', 'top_cabinet', 'towel_rack', 'wall_clock']:
+    #         #     camera_height -= 1.
+    #         azim = np.random.random() * np.pi * 2
+    #         elev = np.random.random() * np.pi / 3
+    #         cam_pose = np.eye(4)
+    #         y = dis * np.sin(elev)
+    #         x = dis * np.cos(elev) * np.sin(azim)
+    #         z = dis * np.cos(elev) * np.cos(azim)
+    #         cam_pose[:3, 3] = [x, y, z]
+    #         rotx = np.array([
+    #             [1.0, 0, 0],
+    #             [0.0, np.cos(elev), np.sin(elev)],
+    #             [0.0, -np.sin(elev), np.cos(elev)]
+    #         ])
+    #         roty = np.array([
+    #             [np.cos(azim), 0, np.sin(azim)],
+    #             [0.0, 1, 0.0],
+    #             [-np.sin(azim), 0, np.cos(azim)]
+    #         ])
+    #         cam_pose[:3, :3] = np.matmul(roty, rotx)
+    #         cam = PerspectiveCamera(yfov=fov)
+    #         cam_node = scene.add(cam, pose=cam_pose)
+    #         direc_l_node = scene.add(spot_l, pose=cam_pose)
+            
+    #         # pos = np.array([np.sin(yaw) * dis, np.cos(yaw) * dis, camera_height], np.float32)
+    #         # target = np.array([0, 0, 0], dtype= np.float32)
+    #         # camera = {
+    #         #     'pos': pos, 'target': target, 'up': np.array([0, 0, 1], np.float32),
+    #         #     'width': 512, 'height': 512, 'vertical_fov': fov
+    #         # }
 
     #         # render
-    #         render_results = render_camera(renderer, camera, ['rgb', 'seg'], perspective=True)
+    #         # render_results = render_camera(renderer, camera, ['rgb', 'seg'], perspective=True)
     #         # visualize = visualize_image(render_results)
     #         # show_image(visualize['rgb'])
     #         # show_image(visualize['seg'])
-
-    #         # crop and resize image
-    #         bdb2d = seg2obj(render_results['seg'], 1)['bdb2d']
+            
+    #         color, _ = r.render(scene)
+    #         nm = {node: 255 for _, node in enumerate(scene.mesh_nodes)}
+    #         seg = r.render(scene, RenderFlags.SEG, nm)[0]
+            
+    #         bg_node = scene.add(bg_mesh)
+    #         bg_color, _ = r.render(scene, flags=pyrender.constants.RenderFlags.SKIP_CULL_FACES | pyrender.constants.RenderFlags.FLAT)
+    #         mask = seg // 255
+    #         blend = (color * mask + bg_color * (1 - mask)).astype(np.uint8)
+            
+    #         seg = np.all(seg, -1).astype(np.uint8)
+    #         bdb2d = seg2obj(seg, 1)['bdb2d']
     #         for key in ('rgb', 'seg'):
     #             if key == 'seg' and not args.mask:
     #                 continue
-    #             crop = render_results[key][bdb2d['y1']: bdb2d['y2'] + 1, bdb2d['x1']: bdb2d['x2'] + 1]
-    #             # show_image(crop)
-    #             if key == 'seg':
+    #             if key == 'rgb':
+    #                 crop = blend[bdb2d['y1']: bdb2d['y2'] + 1, bdb2d['x1']: bdb2d['x2'] + 1]
+    #             else:
+    #                 crop = seg[bdb2d['y1']: bdb2d['y2'] + 1, bdb2d['x1']: bdb2d['x2'] + 1]
     #                 crop = crop * 255
     #             save_image(crop, os.path.join(output_folder, f"render-{i_render:05d}-{key}.png"))
+
+    #         # # crop and resize image
+    #         # bdb2d = seg2obj(render_results['seg'], 1)['bdb2d']
+    #         # for key in ('rgb', 'seg'):
+    #         #     if key == 'seg' and not args.mask:
+    #         #         continue
+    #         #     crop = render_results[key][bdb2d['y1']: bdb2d['y2'] + 1, bdb2d['x1']: bdb2d['x2'] + 1]
+    #         #     # show_image(crop)
+    #         #     if key == 'seg':
+    #         #         crop = crop * 255
+    #         #     save_image(crop, os.path.join(output_folder, f"render-{i_render:05d}-{key}.png"))
+            
+    #         scene.remove_node(bg_node)
+    #         scene.remove_node(cam_node)
+    #         scene.remove_node(direc_l_node)
 
     if not args.skip_watertight:
         # save merged obj
