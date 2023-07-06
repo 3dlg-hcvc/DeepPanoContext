@@ -16,6 +16,8 @@ def save_mesh(mesh, save_path):
 
 def load_mesh(path, mesh_only=False):
     mesh = trimesh.load_mesh(path)
+    if isinstance(mesh, trimesh.Scene):
+        mesh = trimesh.load(path, force='mesh', skip_materials=True)
     if mesh_only:
         mesh = trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces)
     return mesh

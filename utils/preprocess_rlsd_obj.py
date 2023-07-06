@@ -12,11 +12,10 @@ from models.pano3d.dataloader import IGSceneDataset
 import numpy as np
 from scipy.spatial import cKDTree
 
-import gibson2
-from gibson2.render.mesh_renderer.mesh_renderer_settings import MeshRendererSettings
-from gibson2.simulator import Simulator
-from gibson2.objects.articulated_object import ArticulatedObject
-from gibson2.objects.shapenet_object import ShapeNetObject
+# import gibson2
+# from gibson2.render.mesh_renderer.mesh_renderer_settings import MeshRendererSettings
+# from gibson2.simulator import Simulator
+# from gibson2.objects.articulated_object import ArticulatedObject
 
 from utils.render_utils import seg2obj, render_camera, hdr_texture, hdr_texture2
 from .mesh_utils import MeshIO, save_mesh, load_mesh, normalize_to_unit_square, read_obj, write_obj, \
@@ -107,79 +106,94 @@ def crop_images(args):
             crop = obj[key]
             ext = '' if key == 'rgb' else f"-{key}"
             save_image(crop, os.path.join(output_folder, f"crop-{scene['scene'].replace('/', '-')}-{scene['name']}-{obj['id']}{ext}.png"))
-    # import pdb; pdb.set_trace()
 
 
 def preprocess_obj(args):
     gaps = './external/ldif/gaps/bin/x86_64'
-    output_folder = os.path.join(args.output, *args.object_path.split('/')[-3:-1])
+    output_folder = os.path.join(args.output, *args.object.split('/')[-3:-1])
     obj_category = output_folder.split('/')[-2]
+    # output_folder = './demo_obj'
     os.makedirs(output_folder, exist_ok=True)
     if args.skip_done and os.path.exists(os.path.join(output_folder, 'uniform_points.sdf')):
         return
 
     if not args.skip_render or not args.skip_watertight:
         # merge obj files and estimate scale
-        obj_list = glob(os.path.join(os.path.dirname(args.object_path), 'shape', 'visual', '*.obj'))
-        merged_mesh = MeshIO.from_file(obj_list).load().merge()
+        # obj_list = glob(os.path.join(os.path.dirname(args.object_path), 'shape', 'visual', '*.obj'))
+        # merged_mesh = MeshIO.from_file(obj_list).load().merge()
+        merged_mesh = MeshIO.from_file([args.object_path]).load().merge()
         v = np.array(merged_mesh.vertices, dtype=np.float32)
         obj_bbox = np.max(v, axis=0) - np.min(v, axis=0)
         scale = 1. / float(max(obj_bbox))
+        center = np.mean(merged_mesh.bounds, axis=0)
+        center_mat = np.array([
+        [1, 0, 0, -center[0]],
+        [0.0, 1, 0.0, -center[1]],
+        [0.0, 0.0, 1, -center[2]],
+        [0.0,  0.0, 0.0, 1.0]
+        ])
+        norm_mat = np.array([
+            [scale, 0, 0, 0],
+            [0.0, scale, 0.0, 0],
+            [0.0, 0.0, scale, 0],
+            [0.0,  0.0, 0.0, 1.0]
+        ])
+        merged_mesh.apply_transform(np.matmul(norm_mat, center_mat))
 
-        # set renderer
-        settings = MeshRendererSettings(
-            env_texture_filename=hdr_texture,
-            env_texture_filename2=hdr_texture2,
-            env_texture_filename3=os.path.join(gibson2.ig_dataset_path, 'scenes', 'background', 'Rs.hdr'),
-            enable_shadow = True, msaa = True, enable_pbr=True
-        )
-        s = Simulator(mode='headless', image_width=512, image_height=512,
-                      device_idx=args.gpu_id, rendering_settings=settings)
-        renderer = s.renderer
+        # # set renderer
+        # settings = MeshRendererSettings(
+        #     env_texture_filename=hdr_texture,
+        #     env_texture_filename2=hdr_texture2,
+        #     env_texture_filename3=os.path.join(gibson2.ig_dataset_path, 'scenes', 'background', 'Rs.hdr'),
+        #     enable_shadow = True, msaa = True, enable_pbr=True
+        # )
+        # s = Simulator(mode='headless', image_width=512, image_height=512,
+        #               device_idx=args.gpu_id, rendering_settings=settings)
+        # renderer = s.renderer
 
         # load object
-        obj = ArticulatedObject(filename=args.object_path, scale=scale)
-        s.import_object(obj, class_id=1)
-        instance = renderer.instances[0]
-        merged_mesh = [trimesh.Trimesh(v, f) for v, f in zip(*instance.dump())]
-        merged_mesh = sum(merged_mesh)
+        # obj = ArticulatedObject(filename=args.object_path, scale=scale)
+        # s.import_object(obj, class_id=1)
+        # instance = renderer.instances[0]
+        # merged_mesh = [trimesh.Trimesh(v, f) for v, f in zip(*instance.dump())]
+        # merged_mesh = sum(merged_mesh)
 
-    # render with iGibson
-    if not args.skip_render:
-        for i_render in range(args.renders):
-            # randomize light direction
-            renderer.set_light_position_direction(((np.random.random(3) - 0.5) * 10 + 5).tolist(), [0, 0, 0])
+    # # render with iGibson
+    # if not args.skip_render:
+    #     for i_render in range(args.renders):
+    #         # randomize light direction
+    #         renderer.set_light_position_direction(((np.random.random(3) - 0.5) * 10 + 5).tolist(), [0, 0, 0])
 
-            # randomize camera settings
-            dis = np.random.random() * 7 + 1
-            fov = np.rad2deg(np.arctan2(.5, dis) * 2) * 1.5
-            camera_height = np.random.random() * 1.4
-            if obj_category in ['microwave', 'picture', 'top_cabinet', 'towel_rack', 'wall_clock']:
-                camera_height -= 1.
-            yaw = np.random.random() * np.pi * 2
-            pos = np.array([np.sin(yaw) * dis, np.cos(yaw) * dis, camera_height], np.float32)
-            target = np.array([0, 0, 0], dtype= np.float32)
-            camera = {
-                'pos': pos, 'target': target, 'up': np.array([0, 0, 1], np.float32),
-                'width': 512, 'height': 512, 'vertical_fov': fov
-            }
+    #         # randomize camera settings
+    #         dis = np.random.random() * 7 + 1
+    #         fov = np.rad2deg(np.arctan2(.5, dis) * 2) * 1.5
+    #         camera_height = np.random.random() * 1.4
+    #         if obj_category in ['microwave', 'picture', 'top_cabinet', 'towel_rack', 'wall_clock']:
+    #             camera_height -= 1.
+    #         yaw = np.random.random() * np.pi * 2
+    #         pos = np.array([np.sin(yaw) * dis, np.cos(yaw) * dis, camera_height], np.float32)
+    #         target = np.array([0, 0, 0], dtype= np.float32)
+    #         camera = {
+    #             'pos': pos, 'target': target, 'up': np.array([0, 0, 1], np.float32),
+    #             'width': 512, 'height': 512, 'vertical_fov': fov
+    #         }
 
-            # render
-            render_results = render_camera(renderer, camera, ['rgb', 'seg'], perspective=True)
-            # visualize = visualize_image(render_results)
-            # show_image(visualize['rgb'])
-            # show_image(visualize['seg'])
+    #         # render
+    #         render_results = render_camera(renderer, camera, ['rgb', 'seg'], perspective=True)
+    #         # visualize = visualize_image(render_results)
+    #         # show_image(visualize['rgb'])
+    #         # show_image(visualize['seg'])
 
-            # crop and resize image
-            bdb2d = seg2obj(render_results['seg'], 1)['bdb2d']
-            for key in ('rgb', 'seg'):
-                if key == 'seg' and not args.mask:
-                    continue
-                crop = render_results[key][bdb2d['y1']: bdb2d['y2'] + 1, bdb2d['x1']: bdb2d['x2'] + 1]
-                # show_image(crop)
-                if key == 'seg':
-                    crop = crop * 255
-                save_image(crop, os.path.join(output_folder, f"render-{i_render:05d}-{key}.png"))
+    #         # crop and resize image
+    #         bdb2d = seg2obj(render_results['seg'], 1)['bdb2d']
+    #         for key in ('rgb', 'seg'):
+    #             if key == 'seg' and not args.mask:
+    #                 continue
+    #             crop = render_results[key][bdb2d['y1']: bdb2d['y2'] + 1, bdb2d['x1']: bdb2d['x2'] + 1]
+    #             # show_image(crop)
+    #             if key == 'seg':
+    #                 crop = crop * 255
+    #             save_image(crop, os.path.join(output_folder, f"render-{i_render:05d}-{key}.png"))
 
     if not args.skip_watertight:
         # save merged obj
@@ -193,8 +207,8 @@ def preprocess_obj(args):
         if not args.keep_interfile:
             remove_if_exists(merged_obj)
 
-    if not args.skip_render or not args.skip_watertight:
-        s.disconnect()
+    # if not args.skip_render or not args.skip_watertight:
+    #     s.disconnect()
 
     watertight_obj = os.path.join(output_folder, 'mesh_watertight.obj')
 
@@ -302,31 +316,40 @@ def main():
             with Pool(processes=args.processes) as p:
                 r = list(tqdm(p.imap(crop_images, args_list), total=len(args_list)))
 
-    # # render and preprocess obj
-    # if not args.skip_render or not args.skip_watertight or not args.skip_ldif or not args.skip_mgn:
-    #     args_dict = args.__dict__.copy()
-    #     args_dict['spacing'] = args.bbox / 32
-    #     args_dict['bbox'] = ' '.join([str(-args.bbox / 2), ] * 3 + [str(args.bbox / 2), ] * 3)
-    #     print(f"bbox: [{args_dict['bbox']}] spacing: {args_dict['spacing']}")
+    # render and preprocess obj
+    if not args.skip_render or not args.skip_watertight or not args.skip_ldif or not args.skip_mgn:
+        args_dict = args.__dict__.copy()
+        args_dict['spacing'] = args.bbox / 32
+        args_dict['bbox'] = ' '.join([str(-args.bbox / 2), ] * 3 + [str(args.bbox / 2), ] * 3)
+        print(f"bbox: [{args_dict['bbox']}] spacing: {args_dict['spacing']}")
 
-    #     if args.object_path is None:
-    #         object_paths = glob(os.path.join(gibson2.ig_dataset_path, 'objects', '*', '*', '*.urdf'))
-    #         print(f"{len(object_paths)} objects in total")
-    #     else:
-    #         object_paths = [args.object_path]
-    #     args_list = []
-    #     for object_path in object_paths:
-    #         args_dict['object_path'] = object_path
-    #         args_list.append(argparse.Namespace(**args_dict))
+        if args.object_path is None:
+            # object_paths = glob(os.path.join(gibson2.ig_dataset_path, 'objects', '*', '*', '*.urdf'))
+            objects = glob('/local-scratch/qiruiw/research/DeepPanoContext/data/rlsd_obj/*/*')
+            object_paths = [p.strip() for p in open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt")]
+            print(f"{len(object_paths)} objects in total")
+        else:
+            objects = [args.object_path]
+            object_paths = [args.object_path]
+        obj_path_mapping = {}
+        for obj_path in object_paths:
+            obj_name = obj_path.split('/')[-1].split('.')[0]
+            obj_path_mapping[obj_name] = obj_path
+        args_list = []
+        for obj in objects:
+            obj_name = obj.split('/')[-1].split('.')[0]
+            args_dict['object'] = obj
+            args_dict['object_path'] = obj_path_mapping[obj_name]
+            args_list.append(argparse.Namespace(**args_dict))
 
-    #     print("Rendering and making mesh watertight...")
-    #     if args.processes == 0:
-    #         r = []
-    #         for a in tqdm(args_list):
-    #             r.append(preprocess_obj(a))
-    #     else:
-    #         with Pool(processes=args.processes) as p:
-    #             r = list(tqdm(p.imap(preprocess_obj, args_list), total=len(args_list)))
+        print("Rendering and making mesh watertight...")
+        if args.processes == 0:
+            r = []
+            for a in tqdm(args_list):
+                r.append(preprocess_obj(a))
+        else:
+            with Pool(processes=args.processes) as p:
+                r = list(tqdm(p.imap(preprocess_obj, args_list), total=len(args_list)))
 
     # # split dataset
     # split = {'train': [], 'test': []}
