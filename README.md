@@ -80,12 +80,25 @@ Update - Since iGibson has gone through a major update, their dataset download l
     python -m utils.render_igibson_scenes --renders 10 --random_yaw --random_obj --horizon_lo --world_lo
     ```
    The rendered dataset should be in ```data/igibson/```.
+
+   For **RLSD** data,
+    ```shell
+    python -m utils.generate_rlsd_scenes --horizon_lo --world_lo
+    ```
    
 3. Make models watertight and render/crop single object image:
     ```shell
     python -m utils.preprocess_igibson_obj --skip_mgn
     ```
    The processed results should be in ```data/igibson_obj/```.
+
+   For **RLSD** data, separate rendering process
+    ```shell
+    conda activate Pano3D
+    python -m utils.preprocess_rlsd_obj --skip_mgn --skip_render
+    conda activate gcmic # due to erroneous trimesh version used in Pano3D
+    python -m utils.render_rlsd_obj
+    ```
    
 4. (Optional) Before proceeding to the training steps, you could visualize dataset ground-truth of ```data/igibson/``` with:
     ```shell
