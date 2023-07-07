@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+import random
 from glob import glob
 from tqdm import tqdm
 from multiprocessing import Pool
@@ -9,6 +10,7 @@ import numpy as np
 from PIL import Image
 import cv2
 import torch
+import hashlib
 
 os.environ["PYOPENGL_PLATFORM"] = "egl" #opengl seems to only work with TPU
 
@@ -20,6 +22,24 @@ from pyrender import PerspectiveCamera,\
                      MetallicRoughnessMaterial,\
                      Primitive, Mesh, Node, Scene,\
                      OffscreenRenderer
+
+
+def write_json(obj, json_file):
+    with open(json_file, 'w') as file:
+        json.dump(obj, file, indent=4)
+
+
+def read_json(json_file):
+    with open(json_file, 'r') as file:
+        json_data = json.load(file)
+    return json_data
+
+
+def hash_split(train_ratio, key):
+    object_hash = np.frombuffer(hashlib.md5(key.encode('utf-8')).digest(), np.uint32)
+    rng = np.random.RandomState(object_hash)
+    is_train = rng.random() < train_ratio
+    return is_train
 
 
 def points2bdb2d(points):
@@ -271,50 +291,132 @@ if __name__ == "__main__":
                         help='The path of the output folder')
     parser.add_argument('--processes', type=int, default=12,
                         help='Number of threads')
+    parser.add_argument('--skip_render', default=False, action='store_true',
+                        help='Skip rendering')
+    parser.add_argument('--skip_split', default=False, action='store_true',
+                        help='Skip train/test split')
     parser.add_argument('--skip_done', default=False, action='store_true',
                         help='Skip objects exist in output folder')
     parser.add_argument('--object_path', type=str, default=None,
                         help="Specify the 'visual' folder of a single object to be processed")
     parser.add_argument('--renders', type=int, default=100,
                         help='Number of renders per obj')
+    parser.add_argument('--max_renders_per_obj', type=int, default=25,
+                        help='Number of renders per obj selected for splits')
     parser.add_argument('--shape_id', type=str, default='ZPCD5500')
+    parser.add_argument('--split_by_obj', default=False, action='store_true',
+                        help='Split train/test set by object instead of scene')
+    parser.add_argument('--split_by_image', default=False, action='store_true',
+                        help='Split train/test set by image instead of scene')
     # parser.add_argument('--obj_source', type=str, default='wayfair')
     parser.add_argument('--mask', type=bool, default=False)
+    parser.add_argument('--train', type=float, default=0.9,
+                        help='Ratio of train split')
     args = parser.parse_args()
     
     # render_view(args.out_dir, args.shape_id)
     
     # render and preprocess obj
-    # if args.all:
-    args_dict = args.__dict__.copy()
-    # args_dict['spacing'] = args.bbox / 32
-    # args_dict['bbox'] = ' '.join([str(-args.bbox / 2), ] * 3 + [str(args.bbox / 2), ] * 3)
-    # print(f"bbox: [{args_dict['bbox']}] spacing: {args_dict['spacing']}")
+    if not args.skip_render:
+        args_dict = args.__dict__.copy()
+        # args_dict['spacing'] = args.bbox / 32
+        # args_dict['bbox'] = ' '.join([str(-args.bbox / 2), ] * 3 + [str(args.bbox / 2), ] * 3)
+        # print(f"bbox: [{args_dict['bbox']}] spacing: {args_dict['spacing']}")
 
-    if args.object_path is None:
-        # object_paths = glob(os.path.join(gibson2.ig_dataset_path, 'objects', '*', '*', '*.urdf'))
-        objects = glob('/local-scratch/qiruiw/research/DeepPanoContext/data/rlsd_obj/*/*')
-        object_paths = [p.strip() for p in open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt")]
-        print(f"{len(object_paths)} objects in total")
-    else:
-        objects = [args.object_path]
-        object_paths = [args.object_path]
-    obj_path_mapping = {}
-    for obj_path in object_paths:
-        obj_name = obj_path.split('/')[-1].split('.')[0]
-        obj_path_mapping[obj_name] = obj_path
-    args_list = []
-    for obj in objects:
-        obj_name = obj.split('/')[-1].split('.')[0]
-        args_dict['object'] = obj
-        args_dict['object_path'] = obj_path_mapping[obj_name]
-        args_list.append(argparse.Namespace(**args_dict))
+        if args.object_path is None:
+            # object_paths = glob(os.path.join(gibson2.ig_dataset_path, 'objects', '*', '*', '*.urdf'))
+            objects = glob('/local-scratch/qiruiw/research/DeepPanoContext/data/rlsd_obj/*/*')
+            object_paths = [p.strip() for p in open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt")]
+            print(f"{len(object_paths)} objects in total")
+        else:
+            objects = [args.object_path]
+            object_paths = [args.object_path]
+        obj_path_mapping = {}
+        for obj_path in object_paths:
+            obj_name = obj_path.split('/')[-1].split('.')[0]
+            obj_path_mapping[obj_name] = obj_path
+        args_list = []
+        for obj in objects:
+            obj_name = obj.split('/')[-1].split('.')[0]
+            args_dict['object'] = obj
+            args_dict['object_path'] = obj_path_mapping[obj_name]
+            args_list.append(argparse.Namespace(**args_dict))
 
-    print("Rendering ...")
-    if args.processes == 0:
-        r = []
-        for a in tqdm(args_list):
-            r.append(render_view(a))
-    else:
-        with Pool(processes=args.processes) as p:
-            r = list(tqdm(p.imap(render_view, args_list), total=len(args_list)))
+        print("Rendering ...")
+        if args.processes == 0:
+            r = []
+            for a in tqdm(args_list):
+                r.append(render_view(a))
+        else:
+            with Pool(processes=args.processes) as p:
+                r = list(tqdm(p.imap(render_view, args_list), total=len(args_list)))
+    
+    
+    # split dataset
+    if not args.skip_split:
+        split = {'train': [], 'test': []}
+        if args.split_by_obj:
+            train_objects = 0
+            test_objects = 0
+            one_obj_categories = 0
+            categories = [os.path.basename(c) for c in glob(os.path.join(args.output, '*')) if os.path.isdir(c)]
+            category_objects = {
+                c: [os.path.basename(o) for o in glob(os.path.join(args.output, c, '*')) if os.path.isdir(o)]
+                for c in categories
+            }
+            for category, objects in category_objects.items():
+                for object in objects:
+                    folder = os.path.join(category, object)
+                    if len(objects) > 1:
+                        is_train = hash_split(args.train, folder)
+                    else:
+                        one_obj_categories += 1
+                        is_train = True
+                    images = glob(os.path.join(args.output, folder, '*.png'))
+                    if is_train:
+                        train_objects += 1
+                        split['train'].extend(images)
+                    else:
+                        test_objects += 1
+                        split['test'].extend(images)
+            print(f"{len(categories)} categories, "
+                f"{sum([len(o) for o in category_objects.values()])} objects, "
+                f"{one_obj_categories} categories with only one object, "
+                f"{train_objects} train objects, "
+                f"{test_objects} test objects, "
+                f"{len(split['train'])} train images, "
+                f"{len(split['test'])} test images")
+
+        else:
+            if args.max_renders_per_obj is None:
+                images = glob(os.path.join(args.output, '*', '*', '*.png'))
+            else:
+                images = glob(os.path.join(args.output, '*', '*', 'crop-*.png'))
+                objects = glob(os.path.join(args.output, '*', '*'))
+                for obj in objects:
+                    obj_renders = glob(os.path.join(obj, 'render-*.png'))
+                    if not obj_renders or len(obj_renders) < args.max_renders_per_obj:
+                        images.extend(obj_renders)
+                    else:
+                        images.extend(random.sample(obj_renders, args.max_renders_per_obj))
+            images = [f for f in images if not f.endswith('seg')]
+            if not args.split_by_image:
+                test_split = read_json(os.path.join(args.dataset, 'test.json'))
+                test_split = set([c.split('/')[0] for c in test_split])
+            for image in images:
+                image_name = os.path.basename(image)
+                if not args.split_by_image and image_name.startswith('crop'):
+                    is_train = image_name.split('-')[1] not in test_split
+                else:
+                    is_train = hash_split(args.train, image)
+                if is_train:
+                    split['train'].append(image)
+                else:
+                    split['test'].append(image)
+            print(f"{sum([len(o) for o in split.values()])} images, "
+                f"{len(split['train'])} train images, "
+                f"{len(split['test'])} test images")
+
+        for k, v in split.items():
+            v = [os.path.join(*os.path.splitext(i)[0].split('/')[-3:]) for i in v]
+            write_json(v, os.path.join(args.output, k + '.json'))

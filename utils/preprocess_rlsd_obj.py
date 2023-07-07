@@ -459,64 +459,6 @@ def main():
             with Pool(processes=args.processes) as p:
                 r = list(tqdm(p.imap(preprocess_obj, args_list), total=len(args_list)))
 
-    # # split dataset
-    # split = {'train': [], 'test': []}
-    # if args.split_by_obj:
-    #     train_objects = 0
-    #     test_objects = 0
-    #     one_obj_categories = 0
-    #     categories = [os.path.basename(c) for c in glob(os.path.join(args.output, '*')) if os.path.isdir(c)]
-    #     category_objects = {
-    #         c: [os.path.basename(o) for o in glob(os.path.join(args.output, c, '*')) if os.path.isdir(o)]
-    #         for c in categories
-    #     }
-    #     for category, objects in category_objects.items():
-    #         for object in objects:
-    #             folder = os.path.join(category, object)
-    #             if len(objects) > 1:
-    #                 is_train = hash_split(args.train, folder)
-    #             else:
-    #                 one_obj_categories += 1
-    #                 is_train = True
-    #             images = glob(os.path.join(args.output, folder, '*.png'))
-    #             if is_train:
-    #                 train_objects += 1
-    #                 split['train'].extend(images)
-    #             else:
-    #                 test_objects += 1
-    #                 split['test'].extend(images)
-    #     print(f"{len(categories)} categories, "
-    #           f"{sum([len(o) for o in category_objects.values()])} objects, "
-    #           f"{one_obj_categories} categories with only one object, "
-    #           f"{train_objects} train objects, "
-    #           f"{test_objects} test objects, "
-    #           f"{len(split['train'])} train images, "
-    #           f"{len(split['test'])} test images")
-
-    # else:
-    #     images = glob(os.path.join(args.output, '*', '*', '*.png'))
-    #     images = [f for f in images if not f.endswith('seg')]
-    #     if not args.split_by_image:
-    #         test_split = read_json(os.path.join(args.dataset, 'test.json'))
-    #         test_split = set([c.split('/')[0] for c in test_split])
-    #     for image in images:
-    #         image_name = os.path.basename(image)
-    #         if not args.split_by_image and image_name.startswith('crop'):
-    #             is_train = image_name.split('-')[1] not in test_split
-    #         else:
-    #             is_train = hash_split(args.train, image)
-    #         if is_train:
-    #             split['train'].append(image)
-    #         else:
-    #             split['test'].append(image)
-    #     print(f"{sum([len(o) for o in split.values()])} images, "
-    #           f"{len(split['train'])} train images, "
-    #           f"{len(split['test'])} test images")
-
-    # for k, v in split.items():
-    #     v = [os.path.join(*os.path.splitext(i)[0].split('/')[-3:]) for i in v]
-    #     write_json(v, os.path.join(args.output, k + '.json'))
-
 
 if __name__ == "__main__":
     main()
