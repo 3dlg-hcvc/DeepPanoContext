@@ -118,9 +118,14 @@ def render_view(args):
     obj_category = output_folder.split('/')[-2]
     # output_folder = './demo_render'
     os.makedirs(output_folder, exist_ok=True)
+    if args.skip_done and len(glob(os.path.join(output_folder, f"render-*.png"))) == args.renders:
+        return
 
     # args.object_path = f"/datasets/internal/models3d/wayfair/wayfair_models_cleaned/{shape_id}/{shape_id}.glb"
-    obj = trimesh.load(args.object_path)
+    try:
+        obj = trimesh.load(args.object_path)
+    except:
+        return
     center = np.mean(obj.bounds, axis=0)
     scale = 1.0 / float(max(obj.bounds[1] - obj.bounds[0]))
     center_mat = np.array([
@@ -191,13 +196,13 @@ def render_view(args):
         direc_l_node = scene.add(direc_l, pose=l_pose)
 
         # randomize camera settings
-        dis = np.random.random() * 0.8 + 1
+        dis = np.random.random() + 1
         fov = np.pi / 2 #np.rad2deg(np.arctan2(.5, dis) * 2) * 1.5
         # camera_height = np.random.random() * 1.4
         # if obj_category in ['microwave', 'picture', 'top_cabinet', 'towel_rack', 'wall_clock']:
         #     camera_height -= 1.
         azim = np.random.random() * np.pi * 2
-        elev = np.random.random() * np.pi / 2.5
+        elev = np.random.random() * np.pi / 3
         cam_pose = np.eye(4)
         y = dis * np.sin(elev)
         x = dis * np.cos(elev) * np.sin(azim)
@@ -231,7 +236,12 @@ def render_view(args):
         blend = (color * mask + bg_color * (1 - mask)).astype(np.uint8)
         
         seg = np.all(seg, -1).astype(np.uint8)
-        bdb2d = seg2obj(seg, 1)['bdb2d']
+        seg_info = seg2obj(seg, 1)
+        if seg_info is not None:
+            bdb2d = seg_info['bdb2d']
+        else:
+            return
+        # bdb2d = seg2obj(seg, 1)['bdb2d']
         for key in ('rgb', 'seg'):
             if key == 'seg' and not args.mask:
                 continue
@@ -240,7 +250,10 @@ def render_view(args):
             else:
                 crop = seg[bdb2d['y1']: bdb2d['y2'] + 1, bdb2d['x1']: bdb2d['x2'] + 1]
                 crop = crop * 255
-            Image.fromarray(crop).save(os.path.join(output_folder, f"render-{i_render:05d}-{key}.png"))
+            try:
+                Image.fromarray(crop).save(os.path.join(output_folder, f"render-{i_render:05d}-{key}.png"))
+            except:
+                continue
         
         scene.remove_node(bg_node)
         scene.remove_node(cam_node)
