@@ -140,8 +140,8 @@ def render_view(args):
         obj = trimesh.Scene(obj)
     scene = pyrender.Scene.from_trimesh_scene(obj, ambient_light=[0.1, 0.1, 0.1])
     
-    # img = cv2.imread("/local-scratch/qiruiw/research/DeepPanoContext/data/gibson2/ig_dataset/scenes/background/palermo_sidewalk.jpg")
-    bg_img = np.asarray(Image.open("/local-scratch/qiruiw/research/DeepPanoContext/ballroom_2k.png"))
+    bg_list = glob('/local-scratch/qiruiw/research/DeepPanoContext/data/background/*')
+    bg_img = np.asarray(Image.open(bg_list[np.random.randint(len(bg_list))]))
     sphere_trimesh = trimesh.load_mesh("/local-scratch/qiruiw/research/rlsd/evaluation/conf/sphere/sphere.obj")
     sphere_scale = np.array([
         [10, 0, 0, 0],
@@ -168,7 +168,7 @@ def render_view(args):
     for i_render in range(args.renders):
         # randomize light direction
         # renderer.set_light_position_direction(((np.random.random(3) - 0.5) * 10 + 5).tolist(), [0, 0, 0])
-        l_dis = np.random.random() * 0.5 + 1
+        l_dis = np.random.random() * 0.5 + 2
         azim = np.random.random() * np.pi * 2
         elev = np.random.random() * np.pi
         l_pose = np.eye(4)
@@ -191,13 +191,13 @@ def render_view(args):
         direc_l_node = scene.add(direc_l, pose=l_pose)
 
         # randomize camera settings
-        dis = np.random.random() * 0.5 + 1
+        dis = np.random.random() * 0.8 + 1
         fov = np.pi / 2 #np.rad2deg(np.arctan2(.5, dis) * 2) * 1.5
         # camera_height = np.random.random() * 1.4
         # if obj_category in ['microwave', 'picture', 'top_cabinet', 'towel_rack', 'wall_clock']:
         #     camera_height -= 1.
         azim = np.random.random() * np.pi * 2
-        elev = np.random.random() * np.pi / 3
+        elev = np.random.random() * np.pi / 2.5
         cam_pose = np.eye(4)
         y = dis * np.sin(elev)
         x = dis * np.cos(elev) * np.sin(azim)
@@ -218,7 +218,10 @@ def render_view(args):
         cam_node = scene.add(cam, pose=cam_pose)
         # direc_l_node = scene.add(spot_l, pose=cam_pose)
         
-        color, _ = r.render(scene)
+        try:
+            color, _ = r.render(scene)
+        except:
+            return
         nm = {node: 255 for _, node in enumerate(scene.mesh_nodes)}
         seg = r.render(scene, RenderFlags.SEG, nm)[0]
         
@@ -253,13 +256,13 @@ if __name__ == "__main__":
                         help='The path of the dataset')
     parser.add_argument('--output', type=str, default='data/rlsd_obj',
                         help='The path of the output folder')
-    parser.add_argument('--processes', type=int, default=0,
+    parser.add_argument('--processes', type=int, default=12,
                         help='Number of threads')
     parser.add_argument('--skip_done', default=False, action='store_true',
                         help='Skip objects exist in output folder')
     parser.add_argument('--object_path', type=str, default=None,
                         help="Specify the 'visual' folder of a single object to be processed")
-    parser.add_argument('--renders', type=int, default=10,
+    parser.add_argument('--renders', type=int, default=100,
                         help='Number of renders per obj')
     parser.add_argument('--shape_id', type=str, default='ZPCD5500')
     # parser.add_argument('--obj_source', type=str, default='wayfair')
