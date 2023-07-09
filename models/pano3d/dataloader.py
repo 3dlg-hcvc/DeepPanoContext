@@ -147,6 +147,10 @@ class IGSceneDataset(Pano3DDataset):
             else:
                 est_scene = None
                 gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset) if 'gt' in stype else None
+            
+        for obj in gt_scene.data['objs']:
+            if 'bdb2d_clip' in obj: del obj['bdb2d_clip']
+            if 'contour_clip' in obj: del obj['contour_clip']
 
         scenes = {'est': est_scene, 'gt': gt_scene}
         if len(stype) == 1:
