@@ -22,6 +22,10 @@ def visualize_camera(args):
     camera_folder = os.path.join(scene_folder, args.task_id)
     if not os.path.exists(os.path.join(camera_folder, 'data.pkl')): return
     scene = IGScene.from_pickle(camera_folder)
+    rotx90 = np.array([[1,0,0],[0,0,-1],[0,1,0]])
+    for obj in scene['objs']:
+        bdb3d = obj['bdb3d']
+        bdb3d['basis'] = bdb3d['basis'] @ rotx90
     visualizer = IGVisualizer(scene, gpu_id=args.gpu_id, debug=args.debug)
 
     # if not args.skip_render:

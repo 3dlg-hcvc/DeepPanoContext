@@ -170,6 +170,7 @@ def _render_scene(args):
         else:
             obj2masks[obj_id].append(assign["maskId"])
     objs = {}
+    rotx90 = np.array([[1,0,0],[0,0,1],[0,-1,0]])
     for obj_id in objects:
         if obj_id not in obj2masks:
             continue
@@ -219,7 +220,7 @@ def _render_scene(args):
         }
         obj_dict["bdb3d"] = {
             "centroid": np.array(obj["obb"]["centroid"], dtype=np.float32),
-            "basis": np.array(obj["obb"]["normalizedAxes"], dtype=np.float32).reshape(3, 3).T,
+            "basis": np.array(obj["obb"]["normalizedAxes"], dtype=np.float32).reshape(3, 3).T @ rotx90,
             "size": np.array(obj["obb"]["axesLengths"], dtype=np.float32),
         }
         objs[obj_id] = obj_dict
@@ -355,6 +356,8 @@ def main():
                         help='Width of image cropped of ground truth 2d bounding box')
     parser.add_argument('--relation', default=False, action='store_true',
                         help='Generate relationships')
+    parser.add_argument('--skip_split', default=False, action='store_true',
+                        help='Skip train/test split')
     args = parser.parse_args()
 
     assert args.vertical_fov is not None or args.cam_pitch != 0, \
@@ -414,33 +417,34 @@ def main():
         for m in missing_3dw:
             f.write(f"{m}\n")
 
-    # split dataset
-    split = {'train': [], 'test': []}
-    scenes = {'train': set(), 'test': set()}
-    # cameras = glob(os.path.join(args.output, '*', '*', '*', 'data.pkl'))
-    for camera in data_paths:
-        if camera is None: continue
-        scene_name = camera.split('/')[-3]
-        is_train = hash_split(args.train, scene_name)
-        path = os.path.join(*camera.split('/')[-4:])
-        if is_train:
-            split['train'].append(path)
-            scenes['train'].add(scene_name)
-        else:
-            split['test'].append(path)
-            scenes['test'].add(scene_name)
+    if not args.skip_split:
+        # split dataset
+        split = {'train': [], 'test': []}
+        scenes = {'train': set(), 'test': set()}
+        # cameras = glob(os.path.join(args.output, '*', '*', '*', 'data.pkl'))
+        for camera in data_paths:
+            if camera is None: continue
+            scene_name = camera.split('/')[-3]
+            is_train = hash_split(args.train, scene_name)
+            path = os.path.join(*camera.split('/')[-4:])
+            if is_train:
+                split['train'].append(path)
+                scenes['train'].add(scene_name)
+            else:
+                split['test'].append(path)
+                scenes['test'].add(scene_name)
 
-    print(f"{len(scenes['train']) + len(scenes['test'])} scenes, "
-          f"{len(scenes['train'])} train scenes, "
-          f"{len(scenes['test'])} test scenes, "
-          f"{len(split['train'])} train cameras, "
-          f"{len(split['test'])} test cameras")
-    # 761 scenes, 551 train scenes, 210 test scenes, 594 train cameras, 227 test cameras
+        print(f"{len(scenes['train']) + len(scenes['test'])} scenes, "
+            f"{len(scenes['train'])} train scenes, "
+            f"{len(scenes['test'])} test scenes, "
+            f"{len(split['train'])} train cameras, "
+            f"{len(split['test'])} test cameras")
+        # 761 scenes, 551 train scenes, 210 test scenes, 594 train cameras, 227 test cameras
 
-    for k, v in split.items():
-        v.sort()
-        with open(os.path.join(args.output, k + '.json'), 'w') as f:
-            json.dump(v, f, indent=4)
+        for k, v in split.items():
+            v.sort()
+            with open(os.path.join(args.output, k + '.json'), 'w') as f:
+                json.dump(v, f, indent=4)
 
 
 if __name__ == "__main__":
