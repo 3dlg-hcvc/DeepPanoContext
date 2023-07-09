@@ -13,14 +13,14 @@ from detectron2.data import MetadataCatalog
 from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name
 from utils.visualize_utils import detectron_gt_sample, visualize_igibson_detectron_gt
 from utils.image_utils import show_image
-from models.pano3d.dataloader import IGSceneDataset
+from models.pano3d.dataloader import IGSceneDataset, RLSDSceneDataset
 
 
 def register_igibson_detection_dataset(path, real=None):
     dataset = get_dataset_name(path)
     for d in ["train" , "test"]:
         DatasetCatalog.register(
-            f"{dataset}_{d}", lambda d=d: get_igibson_dicts(path, d))
+            f"{dataset}_{d}", lambda d=d: get_dataset_dicts(path, d))
         if dataset.startswith(('igibson', 'rlsd')) or real == False:
             thing_classes = IG56CLASSES
         elif dataset.startswith(('pano_context', 'wimr')) or real == True:
@@ -30,14 +30,20 @@ def register_igibson_detection_dataset(path, real=None):
         MetadataCatalog.get(f"{dataset}_{d}").set(thing_classes=thing_classes)
 
 
-def get_igibson_dicts(folder, mode):
-    igibson_dataset = IGSceneDataset({'data': {'split': folder}}, mode)
+def get_dataset_dicts(folder, mode):
+    dataset_name = get_dataset_name(folder)
+    if dataset_name == 'igibson':
+        dataset = IGSceneDataset({'data': {'split': folder}}, mode)
+    elif dataset_name == 'rlsd':
+        dataset = RLSDSceneDataset({'data': {'split': folder}}, mode)
+    else:
+            raise NotImplementedError
     dataset_dicts = []
 
-    for idx in tqdm(range(len(igibson_dataset)), desc='Loading iGibson'):
-        igibson_scene = igibson_dataset.get_igibson_scene(idx)
-        record = detectron_gt_sample(igibson_scene, idx)
-        record['scene'] = igibson_scene
+    for idx in tqdm(range(len(dataset)), desc=f'Loading {dataset_name}'):
+        scene = dataset.get_scene(idx)
+        record = detectron_gt_sample(scene, idx)
+        record['scene'] = scene
         dataset_dicts.append(record)
 
     return dataset_dicts
