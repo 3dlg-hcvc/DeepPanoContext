@@ -3,7 +3,7 @@ resume: False
 finetune: True
 weight: [
   # 'out/bdb3d_estimation/21071216554474/model_best.pth',
-  'out/bdb3d_estimation/23070901353249/model_best.pth',
+  'out/bdb3d_estimation/23070818524766/model_best.pth',
   # 'out/ldif/21022210091327/model_best.pth'
   'out/ldif/23070713210586_rlsd/model_best.pth'
 ]
@@ -13,10 +13,10 @@ device:
   gpu_ids: '0'
   num_workers: 4
 data:
-  name: igibson
-  split: data/igibson_stage1
+  name: rlsd
+  split: data/rlsd_stage1
   expand_dis: 0.1
-  igibson_obj_dataset: data/igibson_obj
+  igibson_obj_dataset: data/rlsd_obj
   g_feature_length: 64
   height: 512
   width: 1024

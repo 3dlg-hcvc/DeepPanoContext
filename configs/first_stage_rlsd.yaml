@@ -2,8 +2,8 @@ method: Pano3D
 resume: False
 finetune: True
 weight: [
-  # 'out/layout_estimation/23063018452589_rlsd/model_best.pth',
-  'out/layout_estimation/21022217101943/model_best.pth',
+  'out/layout_estimation/23063018452589_rlsd/model_best.pth',
+  # 'out/layout_estimation/21022217101943/model_best.pth',
 ]
 seed: 123
 device:
@@ -19,7 +19,7 @@ model:
   detector:
     module: Detector2D
     config: 'COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml'
-    weight: 'out/detector/detector_mask_rcnn/model_final.pth'
+    weight: 'out/detector/detector_mask_rcnn_rlsd/model_0029999.pth'
     score_thresh: 0.5
     min_iou: 0.25
     real: False
