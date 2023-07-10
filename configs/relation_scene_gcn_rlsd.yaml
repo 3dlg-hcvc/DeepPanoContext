@@ -3,7 +3,7 @@ resume: False
 finetune: True
 weight: [
   # 'out/bdb3d_estimation/21071216554474/model_best.pth',
-  'out/bdb3d_estimation/23070818524766/model_best.pth',
+  'out/bdb3d_estimation/23070912284372/model_best.pth',
   # 'out/ldif/21022210091327/model_best.pth'
   'out/ldif/23070713210586_rlsd/model_best.pth'
 ]
@@ -49,6 +49,7 @@ model:
   bdb3d_estimation:
     module: Bdb3DNet
     loss: JointLoss
+    use_phy: False
     d_k: 64
     Nr: 16
   shape_encoder:
@@ -133,9 +134,9 @@ model:
       'objs.ben_arfeature',
       'objs.ldif_blob_center',
       'objs.ldif_analytic_code',
-      'objs.layout_dis',
-      'objs.ceil_dis',
-      'objs.floor_dis',
+      # 'objs.layout_dis',
+      # 'objs.ceil_dis',
+      # 'objs.floor_dis',
       'objs.bfov.lon',
       'objs.bfov.lat',
       'objs.bfov.x_fov',
