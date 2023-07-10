@@ -115,26 +115,27 @@ class JointLoss(Bdb3DLoss):
             bdb2d_from_est_bdb3d_t[id_match], bdb2d_from_gt_bdb3d_t[id_gt[id_match]])
 
         # physical violation loss
-        dis = []
-        for i_scene, (start, end) in enumerate(est_objs['split']):
-            if 'layout' not in est_data:
-                continue
-            layout = est_data['layout']['manhattan_world'][i_scene]
-            layout_2d = manhattan_2d_from_manhattan_world_layout(layout)
-            corners_2d = est_bdb3d_corners[start:end, :, :2].reshape(-1, 2)
-            dis_2d = torch.relu(point_polygon_dis(corners_2d, layout_2d))
+        if self.config['model']['bdb3d_estimation'].get('use_phy', True):
+            dis = []
+            for i_scene, (start, end) in enumerate(est_objs['split']):
+                if 'layout' not in est_data:
+                    continue
+                layout = est_data['layout']['manhattan_world'][i_scene]
+                layout_2d = manhattan_2d_from_manhattan_world_layout(layout)
+                corners_2d = est_bdb3d_corners[start:end, :, :2].reshape(-1, 2)
+                dis_2d = torch.relu(point_polygon_dis(corners_2d, layout_2d))
 
-            layout_z = layout[:, -1]
-            floor = layout_z.min()
-            ceil = layout_z.max()
-            corners_z = est_bdb3d_corners[start:end, :, -1].reshape(-1)
-            dis_floor = torch.relu(floor - corners_z)
-            dis_ceil = torch.relu(corners_z - ceil)
+                layout_z = layout[:, -1]
+                floor = layout_z.min()
+                ceil = layout_z.max()
+                corners_z = est_bdb3d_corners[start:end, :, -1].reshape(-1)
+                dis_floor = torch.relu(floor - corners_z)
+                dis_ceil = torch.relu(corners_z - ceil)
 
-            dis.append(torch.cat([dis_2d, dis_floor, dis_ceil]))
-        if dis:
-            dis = torch.cat(dis)
-            loss_dict['phy_loss'] = mse_criterion(dis, torch.zeros_like(dis, device=dis.device))
+                dis.append(torch.cat([dis_2d, dis_floor, dis_ceil]))
+            if dis:
+                dis = torch.cat(dis)
+                loss_dict['phy_loss'] = mse_criterion(dis, torch.zeros_like(dis, device=dis.device))
 
         return loss_dict
 
