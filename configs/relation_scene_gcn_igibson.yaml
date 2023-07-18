@@ -16,7 +16,7 @@ data:
   name: igibson
   split: data/igibson_stage1
   expand_dis: 0.1
-  igibson_obj_dataset: data/igibson_obj
+  igibson_obj_dataset: /project/3dlg-hcvc/rlsd/data/psu/igibson_obj
   g_feature_length: 64
   height: 512
   width: 1024

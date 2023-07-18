@@ -287,7 +287,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='data/rlsd',
                         help='The path of the dataset')
-    parser.add_argument('--output', type=str, default='data/rlsd_obj',
+    parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd_obj',
                         help='The path of the output folder')
     parser.add_argument('--processes', type=int, default=12,
                         help='Number of threads')
@@ -325,7 +325,7 @@ if __name__ == "__main__":
 
         if args.object_path is None:
             # object_paths = glob(os.path.join(gibson2.ig_dataset_path, 'objects', '*', '*', '*.urdf'))
-            objects = glob('/local-scratch/qiruiw/research/DeepPanoContext/data/rlsd_obj/*/*')
+            objects = glob('/project/3dlg-hcvc/rlsd/data/psu/rlsd_obj/*/*')
             object_paths = [p.strip() for p in open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt")]
             print(f"{len(object_paths)} objects in total")
         else:

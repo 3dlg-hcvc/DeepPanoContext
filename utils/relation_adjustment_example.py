@@ -16,7 +16,7 @@ def main():
         description='Relation optimization testing.')
     parser.add_argument('--dataset', type=str, default='data/igibson',
                         help='The path of the iGibson dataset')
-    parser.add_argument('--igibson_obj_dataset', type=str, default='data/igibson_obj',
+    parser.add_argument('--igibson_obj_dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/igibson_obj',
                         help='The path of the iGibson object dataset')
     parser.add_argument('--output', type=str, default='out/tmp',
                         help='The path of the output folder')

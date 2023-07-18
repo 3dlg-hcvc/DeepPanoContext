@@ -195,6 +195,7 @@ octave-workspace
 /data/rlsd*
 /data/gibson2*
 /data/background
+/data/s3d_metadata/scenes.txt
 /wandb
 /.vscode
 /demo/*

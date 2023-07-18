@@ -16,7 +16,7 @@ data:
   name: rlsd
   split: data/rlsd_stage1
   expand_dis: 0.1
-  igibson_obj_dataset: data/rlsd_obj
+  igibson_obj_dataset: /project/3dlg-hcvc/rlsd/data/psu/rlsd_obj
   g_feature_length: 64
   height: 512
   width: 1024
@@ -134,9 +134,9 @@ model:
       'objs.ben_arfeature',
       'objs.ldif_blob_center',
       'objs.ldif_analytic_code',
-      # 'objs.layout_dis',
-      # 'objs.ceil_dis',
-      # 'objs.floor_dis',
+      'objs.layout_dis',
+      'objs.ceil_dis',
+      'objs.floor_dis',
       'objs.bfov.lon',
       'objs.bfov.lat',
       'objs.bfov.x_fov',

@@ -2,7 +2,8 @@ method: LIENLDIF
 resume: False
 finetune: True
 weight: [
-  'out/total3d/20110611514267/model_best.pth'
+  # 'out/total3d/20110611514267/model_best.pth',
+  'out/ldif/23071423264320_ig/model_best.pth'
 ]
 seed: 123
 device:
@@ -10,7 +11,7 @@ device:
   gpu_ids: '0'
   num_workers: 8
 data:
-  split: data/rlsd_obj
+  split: /project/3dlg-hcvc/rlsd/data/psu/rlsd_obj
   near_surface_samples: 1024
   uniform_samples: 1024
 loss_weights:
