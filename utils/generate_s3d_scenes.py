@@ -15,8 +15,8 @@ import shapely
 # from glob import glob
 import traceback
 
-from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD2IG, RLSD32CLASSES
-from data.s3d_metadata.labels import IDX_TO_LABLE, LABEL_TO_IDX, COLOR_TO_LABEL
+from configs.data_config import IG56CLASSES, NYU40_2_IG56
+from data.s3d_metadata.labels import IDX_TO_LABLE, LABEL_TO_IDX
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
 from .igibson_utils import hash_split, IGScene
@@ -125,11 +125,15 @@ def _render_scene(args):
         bdb3d = bdb3ds[inst_id2idx[inst_id]]
         labels, occurences = np.unique(semantic[np.where(instance==inst_id)], return_counts=True)
         label = labels[max(enumerate(occurences), key=lambda x: x[1])[0]]
-        category = IDX_TO_LABLE[label]
+        nyu40_cat = IDX_TO_LABLE[label]
+        if nyu40_cat in NYU40_2_IG56:
+            category = NYU40_2_IG56[nyu40_cat]
+        else:
+            continue
         obj_dict = {
             "id": inst_id,
             "classname": category,
-            "label": label,
+            "label": IG56CLASSES.index(category),
             "is_fixed": True,
         }
         obj_dict["bdb3d"] = {

@@ -19,8 +19,21 @@ CUSTOM2RLSD = {'pictures': 'picture', 'platn': 'plant', 'light': 'lighting', 'pa
 common_objects = ['counter', 'picture', 'microwave', 'sink', 'oven', 'dishwasher', 'chair', 'mirror', 'shower', 'table', 'stove', 'stool', 'bed', 'plant', 'door', 'bathtub', 'sofa', 'cushion', 'toilet', 'window']
 rlsd_common_mapping = {k:k for k in common_objects}
 
-RLSD2IG = {'washing machine': 'washer', 'towel': 'towel_rack', 'cabinet': 'bottom_cabinet', 'tv_monitor': 'monitor', 'lighting': 'floor_lamp', 'blinds': 'fence', 'seating': 'bench', 'refrigerator': 'fridge', 'chest_of_drawers': 'counter', 'clothes dryer': 'dryer', 'shelving': 'shelf', 'curtain': 'fence'}
-RLSD2IG.update(rlsd_common_mapping)
+RLSD32_2_IG56 = {'washing machine': 'washer', 'towel': 'towel_rack', 'cabinet': 'bottom_cabinet', 'tv_monitor': 'monitor', 'lighting': 'floor_lamp', 'blinds': 'fence', 'seating': 'bench', 'refrigerator': 'fridge', 'chest_of_drawers': 'counter', 'clothes dryer': 'dryer', 'shelving': 'shelf', 'curtain': 'fence'}
+RLSD32_2_IG56.update(rlsd_common_mapping)
+
+
+NYU40CLASSES = ['bag', 'bathtub', 'bed', 'blinds', 'books', 'bookshelf', 'box', 'cabinet', 'ceiling', 'chair', 'clothes', 'counter', 'curtain', 'desk', 'door', 'dresser', 'floor', 'floor mat', 'lamp', 'mirror', 'nightstand', 'otherfurniture', 'otherprop', 'otherstructure', 'paper', 'person', 'picture', 'pillow', 'refrigerator', 'shelves', 'shower curtain', 'sink', 'sofa', 'table', 'television', 'toilet', 'towel', 'unknown', 'wall', 'whiteboard', 'window']
+
+NYU40_2_IG56 = {'bathtub': 'bathtub', 'bed':'bed', 'blinds': 'fence',
+                'bookshelf': 'shelf', 'cabinet': 'bottom_cabinet', 'chair': 'chair',
+                'counter': 'counter', 'curtain': 'fence', 'desk': 'table',
+                'door': 'door', 'dresser': 'counter', 'floor mat': 'carpet', 
+                'lamp': 'floor_lamp', 'mirror': 'mirror', 'nightstand': 'chest',
+                'picture': 'picture', 'pillow': 'cushion', 'refrigerator': 'fridge',
+                'shelves': 'shelf', 'shower curtain': 'fence', 'sink': 'sink',
+                'sofa': 'sofa', 'table': 'table', 'television': 'monitor', 'toilet': 'toilet',
+                'towel': 'towel_rack', 'window': 'window'}
 
 
 IG56CLASSES = [

@@ -14,7 +14,7 @@ import shapely
 from glob import glob
 import traceback
 
-from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD2IG, RLSD32CLASSES
+from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, RLSD32CLASSES
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
 from .igibson_utils import hash_split, IGScene
@@ -193,7 +193,7 @@ def _render_scene(args):
                 except:
                     continue
                     # import pdb; pdb.set_trace()
-            igibson_cat = RLSD2IG[cat]
+            igibson_cat = RLSD32_2_IG56[cat]
             categories.append(igibson_cat)
         if not categories:
             continue
