@@ -1,4 +1,5 @@
 IDX_TO_LABLE = {
+    0: "unknown",
     1: "wall",
     2: "floor",
     3: "cabinet",
