@@ -12,7 +12,7 @@ from tqdm import tqdm
 import shutil
 from shapely.geometry import Polygon, Point, MultiPoint
 import shapely
-from glob import glob
+# from glob import glob
 import traceback
 
 from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD2IG, RLSD32CLASSES
@@ -38,7 +38,7 @@ def _render_scene_fail_remove(args):
         if args.strict:
             raise err
     if not data_path:
-        tqdm.write(f"Failed to generate {args.scene_name}")
+        tqdm.write(f"Failed to generate {args.scene_name}/{args.room_id}")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
     else:
@@ -106,20 +106,6 @@ def _render_scene(args):
             }
         }
     skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
-    # plot_path = os.path.join(args.output, scene_name, "rooms.png")
-    # room, distance_wall = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
-    # if room is None:
-    #     issues["outside_house"].append(full_task_id)
-    #     print(skip_info + "room layout generation failed")
-    #     return
-    # if distance_wall < 0.5:
-    #     issues["close_to_wall"]["0.5"].append(f"{full_task_id}/{distance_wall}")
-    #     # print(f"{full_task_id} close to wall ({distance_wall:.3f} < 0.5)")
-    # if distance_wall < 0.3:
-    #     issues["close_to_wall"]["0.3"].append(f"{full_task_id}/{distance_wall}")
-    # if distance_wall < 0.1:
-    #     issues["close_to_wall"]["0.1"].append(f"{full_task_id}/{distance_wall}")
-    # data['room'] = room
     
     # generate camera layout and check if the camaera is valid
     layout = {'manhattan_pix': manhattan_pix}
@@ -174,27 +160,27 @@ def _render_scene(args):
         seg_obj_info = seg2obj(instance, inst_id)
         obj_dict.update(seg_obj_info)
         if not is_obj_valid(obj_dict):
-            # if room_id == '485142': import pdb; pdb.set_trace()
             continue
 
-        # # rotate camera to recenter bdb3d
-        # recentered_trans = IGTransform.level_look_at(data, obj_dict['bdb3d']['centroid'])
-        # corners = recentered_trans.world2campix(bdb3d_corners(obj_dict['bdb3d']))
-        # full_convex = MultiPoint(corners).convex_hull
+        # rotate camera to recenter bdb3d
+        # if room_id == '485142': 
+        #     import pdb; pdb.set_trace()
+        recentered_trans = IGTransform.level_look_at(data, obj_dict['bdb3d']['centroid'])
+        corners = recentered_trans.world2campix(bdb3d_corners(obj_dict['bdb3d']))
+        full_convex = MultiPoint(corners).convex_hull
 
-        # # REMOVE since positions of instance mask and annotated object don't fully match
-        # # filter out objects by ratio of visible part
-        # contour = obj_dict['contour']
-        # contour_points = np.stack([contour['x'], contour['y']]).T
-        # visible_convex = MultiPoint(contour_points).convex_hull
-        # if visible_convex.area / full_convex.area < 0.2:
-        #     continue
+        # filter out objects by ratio of visible part
+        contour = obj_dict['contour']
+        contour_points = np.stack([contour['x'], contour['y']]).T
+        visible_convex = MultiPoint(contour_points).convex_hull
+        if visible_convex.area / full_convex.area < 0.2:
+            continue
 
         data['objs'].append(obj_dict)
 
     if not data['objs']:
         print(f"{skip_info}no object in the frame")
-        # return None
+        return None
 
     # construction IGScene
     s3d_scene = IGScene(data)
@@ -289,7 +275,7 @@ def main():
     assert args.vertical_fov is not None or not any(r in args.render_type for r in ['normal']), \
         "render type 'normal' not supported for panorama"
     
-    scenes = [l.strip() for l in open("/local-scratch/qiruiw/research/DeepPanoContext/data/s3d_metadata/scenes.txt")][1:]
+    scenes = [l.strip() for l in open("/local-scratch/qiruiw/research/DeepPanoContext/data/s3d_metadata/scenes.txt")][1:3600+1]
 
     # begin rendering
     if not args.split:
