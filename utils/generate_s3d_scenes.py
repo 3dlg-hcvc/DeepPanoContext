@@ -307,7 +307,6 @@ def main():
         # split dataset
         split = {'train': [], 'test': []}
         scenes = {'train': set(), 'test': set()}
-        # cameras = glob(os.path.join(args.output, '*', '*', '*', 'data.pkl'))
         for camera in data_paths:
             if camera is None: continue
             scene_name, room_id = camera.split('/')[-3:-1]
@@ -326,7 +325,6 @@ def main():
             f"{len(scenes['test'])} test scenes, "
             f"{len(split['train'])} train cameras, "
             f"{len(split['test'])} test cameras")
-        # 761 scenes, 551 train scenes, 210 test scenes, 594 train cameras, 227 test cameras
 
         for k, v in split.items():
             v.sort()
