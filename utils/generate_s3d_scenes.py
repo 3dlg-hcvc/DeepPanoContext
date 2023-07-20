@@ -12,7 +12,7 @@ from tqdm import tqdm
 import shutil
 from shapely.geometry import Polygon, Point, MultiPoint
 import shapely
-# from glob import glob
+from glob import glob
 import traceback
 
 from configs.data_config import IG56CLASSES, NYU40_2_IG56
@@ -282,6 +282,7 @@ def main():
     scenes = [l.strip() for l in open("/local-scratch/qiruiw/research/DeepPanoContext/data/s3d_metadata/scenes.txt")][1:3600+1]
 
     # begin rendering
+    data_paths = None
     if not args.split:
         args_list = []
         args_dict = args.__dict__.copy()
@@ -301,21 +302,24 @@ def main():
                 data_paths = list(tqdm(p.imap(_render_scene_fail_remove, args_list), total=len(args_list)))
 
     if not args.skip_split:
+        if data_paths is None:
+            data_paths = glob(os.path.join(args.output, '*', '*', 'data.pkl'))
         # split dataset
         split = {'train': [], 'test': []}
         scenes = {'train': set(), 'test': set()}
         # cameras = glob(os.path.join(args.output, '*', '*', '*', 'data.pkl'))
         for camera in data_paths:
             if camera is None: continue
-            scene_name = camera.split('/')[-3]
-            is_train = hash_split(args.train, scene_name)
-            path = os.path.join(*camera.split('/')[-4:])
+            scene_name, room_id = camera.split('/')[-3:-1]
+            scene = f"{scene_name}/{room_id}"
+            is_train = hash_split(args.train, scene)
+            path = os.path.join(*camera.split('/')[-3:])
             if is_train:
                 split['train'].append(path)
-                scenes['train'].add(scene_name)
+                scenes['train'].add(scene)
             else:
                 split['test'].append(path)
-                scenes['test'].add(scene_name)
+                scenes['test'].add(scene)
 
         print(f"{len(scenes['train']) + len(scenes['test'])} scenes, "
             f"{len(scenes['train'])} train scenes, "

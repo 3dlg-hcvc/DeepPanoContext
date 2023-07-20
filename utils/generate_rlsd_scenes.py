@@ -387,6 +387,7 @@ def main():
     task_ids = list(task_pano_mapping.keys())
 
     # begin rendering
+    data_paths = None
     if not args.split:
         args_list = []
         args_dict = args.__dict__.copy()
@@ -418,10 +419,11 @@ def main():
             f.write(f"{m}\n")
 
     if not args.skip_split:
+        if data_paths is None:
+            data_paths = glob(os.path.join(args.output, '*', '*', '*', 'data.pkl'))
         # split dataset
         split = {'train': [], 'test': []}
         scenes = {'train': set(), 'test': set()}
-        # cameras = glob(os.path.join(args.output, '*', '*', '*', 'data.pkl'))
         for camera in data_paths:
             if camera is None: continue
             scene_name = camera.split('/')[-3]
