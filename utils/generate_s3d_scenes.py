@@ -76,8 +76,8 @@ def _render_scene(args):
     camera_xyz = np.loadtxt(camera_file, dtype=np.float)
     cam3d2world = np.array(
         [[1, 0, 0, camera_xyz[0]],
-        [0, 0, -1, camera_xyz[1]],
-        [0, 1, 0, camera_xyz[2]],
+        [0, 0, 1, camera_xyz[1]],
+        [0, -1, 0, camera_xyz[2]],
         [0, 0, 0, 1]]
     )
     world2cam3d = np.linalg.inv(cam3d2world)

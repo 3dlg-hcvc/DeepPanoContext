@@ -21,7 +21,7 @@ def register_igibson_detection_dataset(path, real=None):
     for d in ["train" , "test"]:
         DatasetCatalog.register(
             f"{dataset}_{d}", lambda d=d: get_dataset_dicts(path, d))
-        if dataset.startswith(('igibson', 'rlsd')) or real == False:
+        if dataset.startswith(('igibson', 'rlsd', 's3d')) or real == False:
             thing_classes = IG56CLASSES
         elif dataset.startswith(('pano_context', 'wimr')) or real == True:
             thing_classes = WIMR11CLASSES
