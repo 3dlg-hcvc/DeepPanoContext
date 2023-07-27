@@ -22,10 +22,13 @@ def visualize_camera(args):
     camera_folder = os.path.join(scene_folder, args.task_id)
     if not os.path.exists(os.path.join(camera_folder, 'data.pkl')): return
     scene = IGScene.from_pickle(camera_folder)
-    rotx90 = np.array([[1,0,0],[0,0,-1],[0,1,0]])
-    for obj in scene['objs']:
-        bdb3d = obj['bdb3d']
-        bdb3d['basis'] = bdb3d['basis'] @ rotx90
+    
+    if not ('objs' not in scene.data or not scene['objs'] or 'bdb3d' not in scene['objs'][0]):
+        rotx90 = np.array([[1,0,0],[0,0,-1],[0,1,0]])
+        for obj in scene['objs']:
+            bdb3d = obj['bdb3d']
+            bdb3d['basis'] = bdb3d['basis'] @ rotx90
+    
     visualizer = IGVisualizer(scene, gpu_id=args.gpu_id, debug=args.debug)
 
     # if not args.skip_render:
@@ -38,9 +41,9 @@ def visualize_camera(args):
         save_path = os.path.join(scene_folder, args.task_id, 'det3d.png')
         save_image(image, save_path)
         # save_image(image, './det3d.png')
-        # save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/w_pano_camera_n_anno/{args.task_id}"
-        # os.makedirs(save_dir, exist_ok=True)
-        # save_image(image, os.path.join(save_dir, f"{pano_id}.png"))
+        save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/{args.task_id}/w_pano_camera_n_anno"
+        os.makedirs(save_dir, exist_ok=True)
+        save_image(image, os.path.join(save_dir, f"{pano_id}.det3d.png"))
     # image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
     image = visualizer.bdb2d(image)
 
@@ -60,21 +63,21 @@ def visualize_camera(args):
         save_path = os.path.join(scene_folder, args.task_id, 'visual.png')
         save_image(image, save_path)
         # save_image(image, './visual.png')
-        save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/w_pano_camera_n_anno/{args.task_id}"
+        save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/{args.task_id}/w_pano_camera_n_anno"
         os.makedirs(save_dir, exist_ok=True)
-        save_image(image, os.path.join(save_dir, f"{pano_id}.png"))
+        save_image(image, os.path.join(save_dir, f"{pano_id}.visual.png"))
     
-    save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/rooms_layout2d/{args.task_id}"
+    save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/{args.task_id}/rooms_layout2d"
     os.makedirs(save_dir, exist_ok=True)
-    shutil.copy2(f"/local-scratch/qiruiw/research/DeepPanoContext/data/rlsd/{arch_id}/{pano_id}/layout2d.png", save_dir)
+    shutil.copy2(f"/project/3dlg-hcvc/rlsd/data/psu/rlsd/{arch_id}/{pano_id}/rooms.png", save_dir)
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='Visualize iGibson scenes.')
-    parser.add_argument('--dataset', type=str, default='data/rlsd',
+    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd',
                         help='The path of the rlsd dataset')
-    # parser.add_argument('--igibson_obj_dataset', type=str, default='data/igibson_obj',
+    # parser.add_argument('--igibson_obj_dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/igibson_obj',
     #                     help='The path of the iGibson object dataset')
     parser.add_argument('--full_pano_id', type=str, default=None,
                         help='The name of the scene to visualize')

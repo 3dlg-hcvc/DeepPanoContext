@@ -16,5 +16,7 @@ def get_dataloader(config, mode):
         return igibson_dataloader(config=config, mode=mode)
     elif config['data']['name'] == 'rlsd':
         return rlsd_dataloader(config=config, mode=mode)
+    elif config['data']['name'] == 's3d':
+        return igibson_dataloader(config=config, mode=mode)
     else:
         raise NotImplementedError()

@@ -152,6 +152,8 @@ def recursively_to(data, dtype=None, device=None):
         if dtype == 'list':
             new_data = data.tolist()
         elif dtype in ('tensor', 'cuda'):
+            if data.dtype == np.uint16:
+                data = data.astype(np.int16)
             new_data = torch.from_numpy(data)
             if new_data.type() == 'torch.DoubleTensor':
                 new_data = new_data.float()

@@ -2,7 +2,6 @@ import os
 import json
 import argparse
 import pickle
-# from glob import glob
 from multiprocessing import Pool
 from tqdm import tqdm
 import numpy as np
@@ -92,7 +91,7 @@ def main():
     elif args.scene_name is None and args.room_id is None:
         args_dict = args.__dict__.copy()
         args_list = []
-        scenes = glob(os.path.join(args.dataset, '*', '*'))
+        scenes = sorted(glob(os.path.join(args.dataset, '*', '*')))
         for scene in scenes:
             scene_name, room_id = scene.split('/')[-2:]
             args_dict['scene'] = f'{scene_name}/{room_id}'

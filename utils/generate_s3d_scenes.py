@@ -73,7 +73,7 @@ def _render_scene(args):
     for idx, bdb3d in enumerate(bdb3ds):
         inst_id2idx[bdb3d.get('ID')] = idx
     
-    camera_xyz = np.loadtxt(camera_file, dtype=np.float)
+    camera_xyz = np.loadtxt(camera_file, dtype=np.float) / 1000.
     cam3d2world = np.array(
         [[1, 0, 0, camera_xyz[0]],
         [0, 0, 1, camera_xyz[1]],
@@ -137,9 +137,9 @@ def _render_scene(args):
             "is_fixed": True,
         }
         obj_dict["bdb3d"] = {
-            "centroid": np.array(bdb3d["centroid"], dtype=np.float32),
+            "centroid": np.array(bdb3d["centroid"], dtype=np.float32) / 1000.,
             "basis": np.array(bdb3d["basis"], dtype=np.float32).T,
-            "size": np.array(bdb3d["coeffs"], dtype=np.float32) * 2, # scale for unit cube
+            "size": np.array(bdb3d["coeffs"], dtype=np.float32) * 2 / 1000., # scale for unit cube
         }
         objs[inst_id] = obj_dict
 
@@ -187,7 +187,7 @@ def _render_scene(args):
         return None
 
     # construction IGScene
-    s3d_scene = IGScene(data)
+    # s3d_scene = IGScene(data)
 
     # # generate relation
     # if args.relation:
@@ -279,7 +279,7 @@ def main():
     assert args.vertical_fov is not None or not any(r in args.render_type for r in ['normal']), \
         "render type 'normal' not supported for panorama"
     
-    scenes = [l.strip() for l in open("/local-scratch/qiruiw/research/DeepPanoContext/data/s3d_metadata/scenes.txt")][1:3600+1]
+    scenes = [l.strip() for l in open("/local-scratch/qiruiw/research/DeepPanoContext/data/s3d_metadata/scenes.txt")][1:]
 
     # begin rendering
     data_paths = None
@@ -303,7 +303,7 @@ def main():
 
     if not args.skip_split:
         if data_paths is None:
-            data_paths = glob(os.path.join(args.output, '*', '*', 'data.pkl'))
+            data_paths = sorted(glob(os.path.join(args.output, '*', '*', 'data.pkl')))
         # split dataset
         split = {'train': [], 'test': []}
         scenes = {'train': set(), 'test': set()}

@@ -201,6 +201,11 @@ CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation_igibson.yaml
 ```
 The checkpoint and visualization results will be saved to ```out/bdb3d_estimation/<bdb3d_estimation_id>```.
 
+Test bdb3d estimation network (BEN) with:
+```shell
+CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation_igibson.yaml --mode test --weight out/bdb3d_estimation/<bdb3d_estimation_id>/model_best.pth
+```
+
 #### Relation SGCN
    
 1. Train Relation SGCN without relation branch:

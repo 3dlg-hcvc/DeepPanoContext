@@ -64,7 +64,7 @@ def _render_scene(args):
     pano_id = scene_name.split("/")[-1]
     task_id = args.task_id
     full_task_id = f'{scene_name}/{task_id}'
-    task_file = f"/project/3dlg-hcvc/rlsd/data/annotations/task_json/{task_id}.json"
+    task_file = f"/project/3dlg-hcvc/rlsd/data/annotations/complete_task_json/{task_id}.json"
     task_json = json.load(open(task_file))
     panos = json.load(open("/project/3dlg-hcvc/rlsd/data/mp3d/pano_objects_mapping.json"))
     
@@ -303,7 +303,7 @@ def main():
     parser.add_argument('--source', dest='scene_source',
                         type=str, default='IG',
                         help='The name of the source dataset, among [IG,CUBICASA,THREEDFRONT]')
-    parser.add_argument('--output', type=str, default='data/rlsd',
+    parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd',
                         help='The path of the output folder')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed for generating camera pose')
@@ -366,22 +366,6 @@ def main():
         "please check render type setting"
     assert args.vertical_fov is not None or not any(r in args.render_type for r in ['normal']), \
         "render type 'normal' not supported for panorama"
-
-    # prepare arguments
-    # scene_names = []
-    # if args.scene_name is None:
-    #     dataset_path = {'IG': gibson2.ig_dataset_path,
-    #                     'CUBICASA': gibson2.cubicasa_dataset_path,
-    #                     'THREEDFRONT': gibson2.threedfront_dataset_path}
-    #     dataset_path = dataset_path[args.scene_source]
-    #     dataset_path = os.path.join(dataset_path, "scenes")
-    #     for n in os.listdir(dataset_path):
-    #         if n != 'background' \
-    #                 and os.path.isdir(os.path.join(dataset_path, n)) \
-    #                 and n.endswith('_int'):
-    #             scene_names.append(n)
-    # else:
-    #     scene_names = [args.scene_name]
         
     task_pano_mapping = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/task_pano_mapping.json"))
     task_ids = list(task_pano_mapping.keys())
@@ -420,7 +404,7 @@ def main():
 
     if not args.skip_split:
         if data_paths is None:
-            data_paths = glob(os.path.join(args.output, '*', '*', '*', 'data.pkl'))
+            data_paths = sorted(glob(os.path.join(args.output, '*', '*', '*', 'data.pkl')))
         # split dataset
         split = {'train': [], 'test': []}
         scenes = {'train': set(), 'test': set()}
