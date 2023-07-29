@@ -142,6 +142,8 @@ def _render_scene(args):
         issues["close_to_wall"]["0.3"].append(f"{full_task_id}/{distance_wall}")
     if distance_wall < 0.1:
         issues["close_to_wall"]["0.1"].append(f"{full_task_id}/{distance_wall}")
+        print(skip_info + "room layout generation failed")
+        return
     data['room'] = room
     
     # generate camera layout and check if the camaera is valid
@@ -368,6 +370,12 @@ def main():
         "render type 'normal' not supported for panorama"
         
     task_pano_mapping = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/task_pano_mapping.json"))
+    
+    invalid_rt_anno = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/invalid_room_type_annotation.json"))
+    invalid_tasks = invalid_rt_anno["stairs"] + invalid_rt_anno["outdoor"]
+    for full_task_id in invalid_tasks:
+        del task_pano_mapping[full_task_id.split('/')[1]]
+    
     task_ids = list(task_pano_mapping.keys())
 
     # begin rendering
