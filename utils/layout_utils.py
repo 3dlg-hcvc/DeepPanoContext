@@ -171,12 +171,14 @@ def room_layout_from_scene_layout(camera, scene_layout):
 
 def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
     cam_id = camera["id"]
-    cam_point = Point(*camera["pos"])
+    cam_point = Point(*camera["pos"][:2])
+    cam_height = camera["pos"][-1]
     room_id = f"{panos[cam_id]['level_id']}_{panos[cam_id]['region_index']}"
     if not rooms[room_id]["room"].contains(cam_point):
         outside = True
         for room in rooms.values():
-            if room["room"].contains(cam_point):
+            ceil_height = room['wall_height'] + room['floor_height']
+            if cam_height > room['floor_height'] and cam_height <= ceil_height and room["room"].contains(cam_point):
                 room_id = room["id"]
                 outside = False
                 break
@@ -196,8 +198,6 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
 
     nearest_point, _ = shapely.ops.nearest_points(layout2d.boundary, cam_point)
     distance_wall = cam_point.distance(nearest_point)
-    # if distance_wall < 0.5:
-    #     print(f"{cam_id} close to wall ({distance_wall:.3f} < 0.5)")
 
     return room, distance_wall
 
