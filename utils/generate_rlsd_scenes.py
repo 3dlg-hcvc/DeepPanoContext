@@ -14,7 +14,7 @@ import shapely
 from glob import glob
 import traceback
 
-from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, RLSD32CLASSES
+from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, RLSD32CLASSES, PSU45CLASSES
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
 from .igibson_utils import hash_split, IGScene
@@ -194,9 +194,9 @@ def _render_scene(args):
                     cat = CUSTOM2RLSD[cat]
                 except:
                     continue
-                    # import pdb; pdb.set_trace()
-            igibson_cat = RLSD32_2_IG56[cat]
-            categories.append(igibson_cat)
+            # igibson_cat = RLSD32_2_IG56[cat]
+            # categories.append(igibson_cat)
+            categories.append(cat)
         if not categories:
             continue
         model_source, model_name = obj["modelId"].split('.')
@@ -215,7 +215,7 @@ def _render_scene(args):
             "mask_ids": mask_ids,
             "index": obj["index"],
             "classname": categories,
-            "label": [IG56CLASSES.index(cat) for cat in categories],
+            "label": [PSU45CLASSES.index(cat) for cat in categories],
             "model_name": obj["modelId"],
             "model_path": model_path,
             "is_fixed": True,

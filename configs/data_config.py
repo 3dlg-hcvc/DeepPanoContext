@@ -35,6 +35,22 @@ NYU40_2_IG56 = {'bathtub': 'bathtub', 'bed':'bed', 'blinds': 'fence',
                 'sofa': 'sofa', 'table': 'table', 'television': 'monitor', 'toilet': 'toilet',
                 'towel': 'towel_rack', 'window': 'window'}
 
+NYU40_2_PSU44 = {'bookshelf': 'shelving', 'desk': 'table', 'dresser': 'chest_of_drawers', 'floor mat': 'carpet',
+                 'lamp': 'lighting', 'nightstand': 'table', 'pillow': 'cushion', 'shelves': 'shelving',
+                 'shower curtain': 'curtain', 'television': 'tv_monitor'}
+
+
+PSU45CLASSES = RLSD32CLASSES + \
+               ['basket', 'range_hood', 'carpet', 'piano', 'coffee_machine', 'clock', 'guitar', 'heater', 'laptop', 'speaker', 'towel_rack', 'trash_can', 'treadmill']
+
+IG56_2_PSU45 = {'bench': 'seating', 'bottom_cabinet': 'cabinet', 'bottom_cabinet_no_top': 'cabinet',
+           'chest': 'chest_of_drawers', 'coffee_table': 'table', 'console_table': 'table',
+           'cooktop': 'stove', 'crib': 'bed', 'dryer': 'clothes dryer', 'floor_lamp': 'lighting',
+           'fridge': 'refrigerator', 'grandfather_clock': 'clock', 'loudspeaker': 'speaker',
+           'monitor': 'tv_monitor', 'office_chair': 'chair', 'pool_table': 'table', 'shelf': 'shelving',
+           'sofa_chair': 'chair', 'speaker_system': 'speaker', 'standing_tv': 'tv_monitor',
+           'table_lamp': 'lighting', 'top_cabinet': 'cabinet', 'wall_clock': 'clock', 'wall_mounted_tv': 'tv_monitor',
+           'washer': 'washing machine'}
 
 IG56CLASSES = [
     'basket', 'bathtub', 'bed', 'bench', 'bottom_cabinet',
