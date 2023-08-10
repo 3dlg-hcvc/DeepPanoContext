@@ -83,12 +83,9 @@ def _render_scene(args):
         Image.open(depth_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, scene_name, "depth.png"))
 
     # generate scene layout
-    rooms = scene_layout_from_rlsd_arch(args)
+    rooms, rooms_scale = scene_layout_from_rlsd_arch(args)
     if not rooms:
         raise Exception('Layout not valid!')
-    rooms_bounds = shapely.ops.cascaded_union([r['room'] for r in rooms.values()]).bounds
-    rooms_height = max([r['wall_height']+r['floor_height'] for r in rooms.values()])
-    rooms_scale = (rooms_bounds[2]-rooms_bounds[0], rooms_bounds[3]-rooms_bounds[1], rooms_height)
     
     with jsonlines.open(f"/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_camera_poses/{house_id}.jsonl") as cameras:
         for c in cameras:
@@ -129,7 +126,7 @@ def _render_scene(args):
             }
         }
     skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
-    plot_path = os.path.join(args.output, scene_name, "rooms.png")
+    plot_path = os.path.join(args.output, scene_name)
     room, distance_wall = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
     if room is None:
         issues["outside_house"].append(full_task_id)
@@ -147,7 +144,7 @@ def _render_scene(args):
     data['room'] = room
     
     # generate camera layout and check if the camaera is valid
-    layout = {'manhattan_pix': manhattan_pix_layout_from_rlsd_room(camera, room, full_task_id, issues)}
+    layout = {'manhattan_pix': manhattan_pix_layout_from_rlsd_room(camera, room, args.room_mode, full_task_id, issues)}
     data['layout'] = layout
     if layout['manhattan_pix'] is None:
         print(skip_info + "manhattan pixel layout generation failed")
@@ -347,6 +344,8 @@ def main():
                         help='ID of GPU used for rendering')
     parser.add_argument('--split', default=False, action='store_true',
                         help='Split train/test dataset without rendering')
+    parser.add_argument('--room_mode', type=str, default='regions',
+                        help='Types of room layout')
     # parser.add_argument('--random_obj', default=None, action='store_true',
     #                     help='Use the 10 objects randomization for each scene')
     parser.add_argument('--resume', default=False, action='store_true',

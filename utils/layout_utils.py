@@ -5,7 +5,7 @@ from scipy.spatial.distance import cdist
 from glob import glob
 import shapely
 from shapely.geometry import Polygon, Point, MultiPolygon
-from matplotlib import pyplot
+import matplotlib.pyplot as plt
 import cv2
 
 from gibson2.utils.assets_utils import get_ig_scene_path, get_cubicasa_scene_path, get_3dfront_scene_path
@@ -18,9 +18,9 @@ from utils.image_utils import show_image
 
 def plot_layout(layout, cameras=None):
     def plot_poly(poly):
-        pyplot.plot(*poly.exterior.xy)
+        plt.plot(*poly.exterior.xy)
         for i in poly.interiors:
-            pyplot.plot(*i.xy)
+            plt.plot(*i.xy)
 
     if isinstance(layout, Polygon):
         plot_poly(layout)
@@ -31,8 +31,8 @@ def plot_layout(layout, cameras=None):
     def plot_camera(camera):
         pos = camera['pos'][:2]
         target = camera['target'][:2]
-        pyplot.arrow(*pos, target[0] - pos[0], target[1] - pos[1], width=0.1)
-        pyplot.text(*pos, camera['name'], fontsize=12)
+        plt.arrow(*pos, target[0] - pos[0], target[1] - pos[1], width=0.1)
+        plt.text(*pos, camera['name'], fontsize=12)
 
     if cameras:
         if isinstance(cameras, dict):
@@ -41,8 +41,8 @@ def plot_layout(layout, cameras=None):
             for camera in cameras:
                 plot_camera(camera)
 
-    pyplot.axis('equal')
-    pyplot.show()
+    plt.axis('equal')
+    plt.show()
 
 
 def scene_layout_from_mesh(args):
@@ -104,12 +104,31 @@ def scene_layout_from_rlsd_arch(args):
     house_id = scene_name.split('_')[0]
     
     arch = json.load(open(f"/project/3dlg-hcvc/rlsd/data/mp3d/arch_refined_clean/{house_id}.arch.json"))
+    elements = arch["elements"]
     regions = arch["regions"]
     
     rooms = {}
+    # elif mode == "element":
+    types = ['Floor', 'Ceiling', 'Wall']
+    region_walls = []
+    # ceiling_heights = []
+    for ele in elements:
+        room_id = ele['roomId']
+        level = int(ele['roomId'].split('_')[0])
+        ele_id = ele['id']
+        ele_type = ele['type']
+        if ele_type not in types: continue
+        if room_id not in rooms:
+            rooms[room_id] = {t: [] for t in types}
+        rooms[room_id][ele_type].append(ele)
+        if ele_type == 'Wall':
+            region_walls.extend(ele['points'])
+            # ceiling_heights.append(ele['points'][0][-1] + ele['height'])
+    rooms[room_id]["region_walls"] = np.unique(np.asarray(region_walls), axis=0)
+    # if mode == "region":
     for region in regions:
         region_xy = np.asarray(region["points"])[:, :-1]
-        rooms[region["id"]] = {
+        region_dict = {
             "id": region["id"],
             "level": region["level"],
             "type": region["type"],
@@ -117,9 +136,27 @@ def scene_layout_from_rlsd_arch(args):
             "floor_height": region["points"][0][-1],
             "room": Polygon(region_xy),
         }
+        assert region["id"] in rooms
+        rooms[region["id"]].update(region_dict)
+        # rooms[region["id"]] = {
+        #     "id": region["id"],
+        #     "level": region["level"],
+        #     "type": region["type"],
+        #     "wall_height": region["height"],
+        #     "floor_height": region["points"][0][-1],
+        #     "room": Polygon(region_xy),
+        # }
+    rooms_bounds = shapely.ops.cascaded_union([r['room'] for r in rooms.values()]).bounds
+    rooms_height = max([r['wall_height']+r['floor_height'] for r in rooms.values()]) - min([r['floor_height'] for r in rooms.values()])
+    rooms_scale = (rooms_bounds[2]-rooms_bounds[0], rooms_bounds[3]-rooms_bounds[1], rooms_height)
+    # walls_scale = np.max(region_walls, axis=0) - np.min(region_walls, axis=0)
+    # min_floor = np.min(np.array(region_walls)[:, -1])
+    # max_ceiling = max(ceiling_heights)
+    # rooms_scale = (walls_scale[0], walls_scale[1], max_ceiling - min_floor)
+    # else:
+    #     raise NotImplemented
 
-    # return {'rooms': rooms, 'height': wall_height}
-    return rooms
+    return rooms, rooms_scale
 
 
 def scene_layout_from_scene(scene):
@@ -187,7 +224,8 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
     room = rooms[room_id]
     layout2d = room["room"]
     level = room["level"]
-    plot_2d_layout(rooms, room_id, level, camera, plot_path)
+    plot_2d_regions_layout(rooms, room_id, level, camera, os.path.join(plot_path, "regions.png"))
+    plot_2d_walls_layout(rooms, level, camera, os.path.join(plot_path, "walls.png"))
 
     # sort boundary points in clockwise order
     layout2d = shapely.geometry.polygon.orient(layout2d, -1)
@@ -202,14 +240,10 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
     return room, distance_wall
 
 
-def plot_2d_layout(rooms, room_id, level=0, cameras=[], output_path=None):
-    # if isinstance(rooms, dict):
-    #     rooms = [rooms]
-    # elif isinstance(rooms, Polygon):
-    #     rooms = []
+def plot_2d_regions_layout(rooms, room_id, level=0, cameras=[], output_path=None):
     if isinstance(cameras, dict):
         cameras = [cameras]
-    _, ax = pyplot.subplots(figsize=(8,8))
+    _, ax = plt.subplots(figsize=(8,8))
     for id, room in rooms.items():
         if room["level"] == level:
             ax.plot(*room["room"].exterior.xy)
@@ -221,10 +255,30 @@ def plot_2d_layout(rooms, room_id, level=0, cameras=[], output_path=None):
         cam_point = Point(*pos).buffer(0.2)
         ax.plot(*cam_point.exterior.xy) 
         ax.arrow(*pos, *view_dir, width=0.1)
-    pyplot.axis('equal')
-    pyplot.savefig(output_path)
-    pyplot.close()
-    # pyplot.show()
+    plt.axis('equal')
+    plt.savefig(output_path)
+    plt.close()
+
+
+def plot_2d_walls_layout(rooms, level=0, cameras=[], output_path=None):
+    if isinstance(cameras, dict):
+        cameras = [cameras]
+    level_rooms = {id: r for id, r in rooms.items() if int(id.split('_')[0]) == level}
+    _, ax = plt.subplots(figsize=(8,8))
+    colors = plt.cm.jet(np.linspace(0, 1, len(level_rooms)))
+    for idx, (room_id, room) in enumerate(level_rooms.items()):
+        for wall in room['Wall']:
+            wall_points = np.asarray(wall["points"])[:, :-1]
+            ax.plot(wall_points[:,0], wall_points[:,1], color=colors[idx])
+    for cam in cameras:
+        pos = cam["pos"][:2]
+        view_dir = cam["view_dir"][:2]
+        cam_point = Point(*pos).buffer(0.2)
+        ax.plot(*cam_point.exterior.xy) 
+        ax.arrow(*pos, *view_dir, width=0.1)
+    plt.axis('equal')
+    plt.savefig(output_path)
+    plt.close()
 
 
 def manhattan_pix_layout_from_room_layout(camera, room_layout):
@@ -266,13 +320,18 @@ def manhattan_pix_layout_from_room_layout(camera, room_layout):
     return points.astype(np.int32)
 
 
-def manhattan_pix_layout_from_rlsd_room(camera, room, full_task_id, issues):
+def manhattan_pix_layout_from_rlsd_room(camera, room, room_mode, full_task_id, issues):
     if room is None:
         return
-    
+    if room_mode == "regions":
+        boundary = np.array(room['room'].boundary.xy)[:, :-1].T
+    elif room_mode == "walls":
+        boundary = room['region_walls'][:, :-1]
+    else:
+        raise NotImplemented
+        
     # generate pano Manhattan layout from room layout
     height, width = camera['height'], camera['width']
-    boundary = np.array(room['room'].boundary.xy)[:, :-1].T
     camera_height = camera['pos'][-1] - room["floor_height"]
     directions = []
     camera_point = np.array(camera['pos'][:2])
@@ -390,9 +449,9 @@ def wall_contour_from_manhattan_pix_layout(layout, transform: IGTransform):
             contour_ext.append(p2)
         contour = np.stack(contour_ext)
         poly = Polygon(contour)
-        # pyplot.plot(*poly.exterior.xy)
-        # pyplot.axis('equal')
-        # pyplot.show()
+        # plt.plot(*poly.exterior.xy)
+        # plt.axis('equal')
+        # plt.show()
 
         walls.append({'contour': {
             'x': contour[..., 0].astype(np.int32),
