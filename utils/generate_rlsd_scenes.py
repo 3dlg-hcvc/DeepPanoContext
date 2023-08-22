@@ -5,12 +5,13 @@ import argparse
 import math
 import pickle
 import numpy as np
+import pandas as pd
 from PIL import Image
 from multiprocessing import Pool
 from tqdm import tqdm
 import shutil
-from shapely.geometry import Polygon, Point, MultiPoint
 import shapely
+from shapely.geometry import Polygon, Point, MultiPoint
 from glob import glob
 import traceback
 
@@ -22,11 +23,17 @@ from .layout_utils import scene_layout_from_rlsd_arch, room_layout_from_rlsd_sce
     manhattan_pix_layout_from_rlsd_room, \
     manhattan_world_layout_from_room_layout, horizon_layout_gt_from_scene_data
 from .transform_utils import bdb3d_corners, IGTransform
-# from utils.basic_utils import write_json, read_pkl, write_pkl
 
-
-rgb_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_rgb_panos"
-inst_dir = "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_instance_panos"
+data_dirs = {
+    "real": {
+        "rgb": "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_rgb_panos",
+        "inst": "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_instance_panos"
+    },
+    "syn": {
+        "rgb": "/project/3dlg-hcvc/rlsd/data/annotations/equirectangular_objects_arch",
+        "inst": "/project/3dlg-hcvc/rlsd/data/annotations/equirectangular_instance"
+    }
+}
 
 issues = {key:[] for key in ["duplicate_points", "duplicate_x", "over_large_objects", "outside_house", "mask_missing", "close_to_wall"]}
 issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
@@ -57,6 +64,24 @@ def encode_rgba(arr):
     return arr
 
 
+def prepare_images(args):
+    if os.path.exists(os.path.join(args.output, args.scene_name, "rgb.png")):
+        return
+    house_id = args.scene_name.split("_")[0]
+    pano_id = args.scene_name.split("/")[-1]
+    task_id = args.task_id
+    if args.img_mode == "real":
+        rgb_path = f"{data_dirs[args.img_mode]['rgb']}/{house_id}/{pano_id}.png"
+        inst_path = f"{data_dirs[args.img_mode]['inst']}/{house_id}/{pano_id}.objectId.encoded.png"
+    elif args.img_mode == "syn":
+        rgb_path = f"{data_dirs[args.img_mode]['rgb']}/{task_id}/{pano_id}.png"
+        inst_path = f"{data_dirs[args.img_mode]['inst']}/{task_id}/{pano_id}.objectId.encoded.png"
+    else:
+        raise NotImplemented
+    Image.open(rgb_path).convert("RGB").resize((1024, 512)).save(os.path.join(args.output, args.scene_name, "rgb.png"))
+    Image.open(inst_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, args.scene_name, "seg.png"))
+
+
 def _render_scene(args):
     # preparation
     scene_name, scene_source = args.scene_name, args.scene_source
@@ -70,17 +95,8 @@ def _render_scene(args):
     
     output_folder = os.path.join(args.output, scene_name, task_id)
     os.makedirs(output_folder, exist_ok=True)
-    
     # resize images
-    if not os.path.exists(os.path.join(args.output, scene_name, "rgb.png")):
-        rgb_path = f"{rgb_dir}/{house_id}/{pano_id}.png"
-        Image.open(rgb_path).convert("RGB").resize((1024, 512)).save(os.path.join(args.output, scene_name, "rgb.png"))
-        
-        inst_path = f"{inst_dir}/{house_id}/{pano_id}.objectId.encoded.png"
-        Image.open(inst_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, scene_name, "seg.png"))
-        
-        depth_path = f"{inst_dir}/{house_id}/{pano_id}.depth.png"
-        Image.open(depth_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, scene_name, "depth.png"))
+    prepare_images(args)
 
     # generate scene layout
     rooms, rooms_scale = scene_layout_from_rlsd_arch(args)
@@ -122,7 +138,6 @@ def _render_scene(args):
             'image_path': {
                 'rgb': os.path.join(args.output, scene_name, "rgb.png"),
                 'seg': os.path.join(args.output, scene_name, "seg.png"),
-                'depth': os.path.join(args.output, scene_name, "depth.png")
             }
         }
     skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
@@ -158,16 +173,13 @@ def _render_scene(args):
     scene_json = task_json["sceneJson"]
     objects = scene_json["scene"]["object"]
     objects = {obj["id"]: obj for obj in objects}
-    mask_infos = {mask_info["id"]: mask_info for mask_info in scene_json["maskInfos"]}
+    mask_infos = {mask_info["id"]: mask_info for mask_info in scene_json["maskInfos"] if mask_info}
     mask_assignments = scene_json["maskObjectAssignments"]
-    # obj2masks = {assign["objectInstanceId"]: assign["maskId"] for assign in mask_assignments}
     obj2masks = {}
     for assign in mask_assignments:
         obj_id = assign["objectInstanceId"]
-        if obj_id not in obj2masks:
-            obj2masks[obj_id] = [assign["maskId"]]
-        else:
-            obj2masks[obj_id].append(assign["maskId"])
+        obj_masks = obj2masks.setdefault(obj_id, [])
+        obj_masks.append(assign["maskId"])
     objs = {}
     rotx90 = np.array([[1,0,0],[0,0,1],[0,-1,0]])
     for obj_id in objects:
@@ -224,32 +236,39 @@ def _render_scene(args):
         }
         objs[obj_id] = obj_dict
 
-    # get object layout
-    object_layout = []
-    for obj in objs.values():
-        corners = bdb3d_corners(obj['bdb3d'])
-        corners2d = corners[(0, 1, 3, 2), :2]
-        obj2d = Polygon(corners2d)
-        object_layout.append(obj2d)
-    object_layout = shapely.ops.cascaded_union(object_layout)
-    # plot_layout(object_layout)
+    # # get object layout
+    # object_layout = []
+    # for obj in objs.values():
+    #     corners = bdb3d_corners(obj['bdb3d'])
+    #     corners2d = corners[(0, 1, 3, 2), :2]
+    #     obj2d = Polygon(corners2d)
+    #     object_layout.append(obj2d)
+    # object_layout = shapely.ops.cascaded_union(object_layout)
+    # # plot_layout(object_layout)
 
-    # # extract object params
+    # extract object params
     data['objs'] = []
     inst_path = os.path.join(args.output, scene_name, "seg.png")
     inst_seg = encode_rgba(np.array(Image.open(inst_path)))
+    if args.img_mode == 'syn':
+        obj2insts = {}
+        label_csv_path = f"/project/3dlg-hcvc/rlsd/data/annotations/equirectangular_instance/{task_id}/{task_id}.scene.objectId.csv"
+        label_df = pd.read_csv(label_csv_path)
+        for obj_id in obj2masks:
+            obj2insts[obj_id] = label_df[label_df.label == obj_id].index.tolist()
+    else:
+        obj2insts = obj2masks
     for obj_id in objs:
-        # if obj_id not in objs.keys():
-        #     continue
         obj_dict = objs[obj_id].copy()
-        mask_ids = obj_dict["mask_ids"]
-        valid_mask_ids = [mask_id for mask_id in mask_ids if mask_id in mask_infos and mask_infos[mask_id]["type"] == "mask"]
+        valid_mask_ids = [mask_id for mask_id in obj_dict["mask_ids"] if mask_id in mask_infos and "type" in mask_infos[mask_id] and mask_infos[mask_id]["type"] == "mask"]
         if not valid_mask_ids:
             continue
 
         # get object bdb2d
-        encode_mask_ids = [mask_id*256+255 for mask_id in mask_ids]
-        seg_obj_info = seg2obj(inst_seg, encode_mask_ids)
+        encode_inst_ind = [inst_idx*256+255 for inst_idx in obj2insts[obj_id]]
+        seg_obj_info = seg2obj(inst_seg, encode_inst_ind)
+        if not seg_obj_info:
+            continue
         obj_dict.update(seg_obj_info)
         if not is_obj_valid(obj_dict):
             continue
@@ -274,7 +293,7 @@ def _render_scene(args):
         # return None
 
     # construction IGScene
-    rlsd_scene = IGScene(data)
+    # rlsd_scene = IGScene(data)
 
     # # generate relation
     # if args.relation:
@@ -346,8 +365,8 @@ def main():
                         help='Split train/test dataset without rendering')
     parser.add_argument('--room_mode', type=str, default='regions',
                         help='Types of room layout')
-    # parser.add_argument('--random_obj', default=None, action='store_true',
-    #                     help='Use the 10 objects randomization for each scene')
+    parser.add_argument('--img_mode', type=str, default='real',
+                        help='Types of images: real/syn/mix')
     parser.add_argument('--resume', default=False, action='store_true',
                         help='Resume from existing renders')
     parser.add_argument('--expand_dis', type=float, default=0.1,
@@ -360,6 +379,7 @@ def main():
     parser.add_argument('--skip_split', default=False, action='store_true',
                         help='Skip train/test split')
     args = parser.parse_args()
+    args.output = f"{args.output}_{args.img_mode}"
 
     assert args.vertical_fov is not None or args.cam_pitch != 0, \
         "cam_pitch not supported for panorama rendering"
@@ -398,16 +418,15 @@ def main():
             with Pool(processes=args.processes) as p:
                 data_paths = list(tqdm(p.imap(_render_scene_fail_remove, args_list), total=len(args_list)))
 
-    with open("/project/3dlg-hcvc/rlsd/data/annotations/annotation_issues.json", 'w') as f:
-        json.dump(issues, f, indent=4)
-    
-    with open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt", 'w') as f:
-        for p in model_paths:
-            f.write(f"{p}\n")
-            
-    with open("/project/3dlg-hcvc/rlsd/data/annotations/missing_3dw.txt", 'w') as f:
-        for m in missing_3dw:
-            f.write(f"{m}\n")
+    if args.img_mode == 'real':
+        with open("/project/3dlg-hcvc/rlsd/data/annotations/annotation_issues.json", 'w') as f:
+            json.dump(issues, f, indent=4)
+        with open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt", 'w') as f:
+            for p in model_paths:
+                f.write(f"{p}\n")
+        with open("/project/3dlg-hcvc/rlsd/data/annotations/missing_3dw.txt", 'w') as f:
+            for m in missing_3dw:
+                f.write(f"{m}\n")
 
     if not args.skip_split:
         if data_paths is None:
@@ -417,7 +436,7 @@ def main():
         scenes = {'train': set(), 'test': set()}
         for camera in data_paths:
             if camera is None: continue
-            scene_name = camera.split('/')[-3]
+            scene_name = camera.split('/')[-3] # based on panorama id
             is_train = hash_split(args.train, scene_name)
             path = os.path.join(*camera.split('/')[-4:])
             if is_train:
@@ -432,7 +451,7 @@ def main():
             f"{len(scenes['test'])} test scenes, "
             f"{len(split['train'])} train cameras, "
             f"{len(split['test'])} test cameras")
-        # 710 scenes, 515 train scenes, 195 test scenes, 564 train cameras, 212 test cameras
+        # 712 scenes, 516 train scenes, 196 test scenes, 566 train cameras, 213 test cameras
 
         for k, v in split.items():
             v.sort()
