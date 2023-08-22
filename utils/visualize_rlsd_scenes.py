@@ -40,10 +40,6 @@ def visualize_camera(args):
     if not args.show:
         save_path = os.path.join(scene_folder, args.task_id, 'det3d.png')
         save_image(image, save_path)
-        # save_image(image, './det3d.png')
-        save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v3/{args.task_id}/w_pano_camera_n_anno"
-        os.makedirs(save_dir, exist_ok=True)
-        save_image(image, os.path.join(save_dir, f"{pano_id}.det3d.png"))
     # image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
     image = visualizer.bdb2d(image)
 
@@ -62,15 +58,11 @@ def visualize_camera(args):
         #     save_image(render, save_path)
         save_path = os.path.join(scene_folder, args.task_id, 'visual.png')
         save_image(image, save_path)
-        # save_image(image, './visual.png')
-        save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v3/{args.task_id}/w_pano_camera_n_anno"
-        os.makedirs(save_dir, exist_ok=True)
-        save_image(image, os.path.join(save_dir, f"{pano_id}.visual.png"))
     
-    save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v3/{args.task_id}/rooms_layout2d"
-    os.makedirs(save_dir, exist_ok=True)
-    shutil.copy2(f"/project/3dlg-hcvc/rlsd/data/psu/rlsd/{arch_id}/{pano_id}/regions.png", save_dir)
-    shutil.copy2(f"/project/3dlg-hcvc/rlsd/data/psu/rlsd/{arch_id}/{pano_id}/walls.png", save_dir)
+    # save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v3/{args.task_id}/rooms_layout2d"
+    # os.makedirs(save_dir, exist_ok=True)
+    # shutil.copy2(f"/project/3dlg-hcvc/rlsd/data/psu/rlsd/{arch_id}/{pano_id}/regions.png", save_dir)
+    # shutil.copy2(f"/project/3dlg-hcvc/rlsd/data/psu/rlsd/{arch_id}/{pano_id}/walls.png", save_dir)
 
 
 def main():
@@ -97,7 +89,6 @@ def main():
     args = parser.parse_args()
     register_igibson_detection_dataset(args.dataset)
     
-
     if args.full_pano_id is not None and args.task_id is not None:
         args_dict = args.__dict__.copy()
         house_id, level_id, pano_id = args.full_pano_id.split('_')
