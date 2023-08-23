@@ -58,11 +58,6 @@ def visualize_camera(args):
         #     save_image(render, save_path)
         save_path = os.path.join(scene_folder, args.task_id, 'visual.png')
         save_image(image, save_path)
-    
-    # save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v3/{args.task_id}/rooms_layout2d"
-    # os.makedirs(save_dir, exist_ok=True)
-    # shutil.copy2(f"/project/3dlg-hcvc/rlsd/data/psu/rlsd/{arch_id}/{pano_id}/regions.png", save_dir)
-    # shutil.copy2(f"/project/3dlg-hcvc/rlsd/data/psu/rlsd/{arch_id}/{pano_id}/walls.png", save_dir)
 
 
 def main():

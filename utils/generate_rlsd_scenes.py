@@ -18,22 +18,13 @@ import traceback
 from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, RLSD32CLASSES, PSU45CLASSES
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
-from .igibson_utils import hash_split, IGScene
+from .rlsd_utils import create_data_splits, encode_rgba, prepare_images
+from .igibson_utils import IGScene
 from .layout_utils import scene_layout_from_rlsd_arch, room_layout_from_rlsd_scene, \
     manhattan_pix_layout_from_rlsd_room, \
     manhattan_world_layout_from_room_layout, horizon_layout_gt_from_scene_data
 from .transform_utils import bdb3d_corners, IGTransform
 
-data_dirs = {
-    "real": {
-        "rgb": "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_rgb_panos",
-        "inst": "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_instance_panos"
-    },
-    "syn": {
-        "rgb": "/project/3dlg-hcvc/rlsd/data/annotations/equirectangular_objects_arch",
-        "inst": "/project/3dlg-hcvc/rlsd/data/annotations/equirectangular_instance"
-    }
-}
 
 issues = {key:[] for key in ["duplicate_points", "duplicate_x", "over_large_objects", "outside_house", "mask_missing", "close_to_wall"]}
 issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
@@ -57,29 +48,6 @@ def _render_scene_fail_remove(args):
             shutil.rmtree(output_folder)
     else:
         return data_path
-
-
-def encode_rgba(arr):
-    arr = arr[:,:,0]*(pow(2,24)) + arr[:,:,1]*(pow(2,16)) + arr[:,:,2]*(pow(2,8)) + arr[:,:,3]
-    return arr
-
-
-def prepare_images(args):
-    if os.path.exists(os.path.join(args.output, args.scene_name, "rgb.png")):
-        return
-    house_id = args.scene_name.split("_")[0]
-    pano_id = args.scene_name.split("/")[-1]
-    task_id = args.task_id
-    if args.img_mode == "real":
-        rgb_path = f"{data_dirs[args.img_mode]['rgb']}/{house_id}/{pano_id}.png"
-        inst_path = f"{data_dirs[args.img_mode]['inst']}/{house_id}/{pano_id}.objectId.encoded.png"
-    elif args.img_mode == "syn":
-        rgb_path = f"{data_dirs[args.img_mode]['rgb']}/{task_id}/{pano_id}.png"
-        inst_path = f"{data_dirs[args.img_mode]['inst']}/{task_id}/{pano_id}.objectId.encoded.png"
-    else:
-        raise NotImplemented
-    Image.open(rgb_path).convert("RGB").resize((1024, 512)).save(os.path.join(args.output, args.scene_name, "rgb.png"))
-    Image.open(inst_path).resize((1024, 512), Image.NEAREST).save(os.path.join(args.output, args.scene_name, "seg.png"))
 
 
 def _render_scene(args):
@@ -349,7 +317,7 @@ def main():
                         help='Set to greater than 1 to use super_sample')
     parser.add_argument('--no_physim', default=False, action='store_true',
                         help='Do physical simulation before rendering')
-    parser.add_argument('--train', type=float, default=0.7,
+    parser.add_argument('--train', type=float, default=0.8,
                         help='Ratio of train split')
     parser.add_argument('--horizon_lo', default=False, action='store_true',
                         help='Generate Horizon format layout GT from manhattan layout')
@@ -363,6 +331,8 @@ def main():
                         help='ID of GPU used for rendering')
     parser.add_argument('--split', default=False, action='store_true',
                         help='Split train/test dataset without rendering')
+    parser.add_argument('--split_by', default='pano',
+                        help='Specify split strategy: house/region/pano')
     parser.add_argument('--room_mode', type=str, default='regions',
                         help='Types of room layout')
     parser.add_argument('--img_mode', type=str, default='real',
@@ -432,26 +402,13 @@ def main():
         if data_paths is None:
             data_paths = sorted(glob(os.path.join(args.output, '*', '*', '*', 'data.pkl')))
         # split dataset
-        split = {'train': [], 'test': []}
-        scenes = {'train': set(), 'test': set()}
-        for camera in data_paths:
-            if camera is None: continue
-            scene_name = camera.split('/')[-3] # based on panorama id
-            is_train = hash_split(args.train, scene_name)
-            path = os.path.join(*camera.split('/')[-4:])
-            if is_train:
-                split['train'].append(path)
-                scenes['train'].add(scene_name)
-            else:
-                split['test'].append(path)
-                scenes['test'].add(scene_name)
+        split, scenes = create_data_splits(args, data_paths)
 
         print(f"{len(scenes['train']) + len(scenes['test'])} scenes, "
             f"{len(scenes['train'])} train scenes, "
             f"{len(scenes['test'])} test scenes, "
             f"{len(split['train'])} train cameras, "
             f"{len(split['test'])} test cameras")
-        # 712 scenes, 516 train scenes, 196 test scenes, 566 train cameras, 213 test cameras
 
         for k, v in split.items():
             v.sort()
