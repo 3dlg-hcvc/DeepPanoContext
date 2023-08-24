@@ -132,7 +132,7 @@ Please follow Demo section to download weights for detector before we release fu
 
 1. Train 2D detector (Mask RCNN) with:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python train_detector.py
+    CUDA_VISIBLE_DEVICES=0 python train_detector.py --dataset /path/to/dataset --out /path/to/out
     ```
    The trained weights will be saved to ```out/detector/detector_mask_rcnn```
       
@@ -162,6 +162,10 @@ Please follow Demo section to download weights for detector before we release fu
 Train layout estimation network (HorizonNet) with:
 ```shell
 CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_igibson.yaml
+```
+Finetune layout estimation network (HorizonNet) with pretrained weight:
+```shell
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_rlsd.yaml --weight out/layout_estimation/<layout_estimation_id>/model_best.pth
 ```
 The checkpoint and visualization results will be saved to ```out/layout_estimation/<layout_estimation_id>/model_best.pth```
 
