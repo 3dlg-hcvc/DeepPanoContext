@@ -56,7 +56,7 @@ class HorizonNet(nn.Module):
         '''Optimizer parameters used in training'''
         self.optim_spec = optim_spec
 
-    def forward(self, x):
+    def forward(self, x, data=None):
         bon, cor = self.horizon_net(x)
         horizon_layout = {'bon': bon, 'cor': cor}
 
@@ -67,10 +67,10 @@ class HorizonNet(nn.Module):
             # transform pixel layout estimation to pixel manhattan world layout
             manhattan_pix = []
             layout_scenes = dict_of_array_to_list_of_dict(horizon_layout)
-            for layout_scene in layout_scenes:
+            for i, layout_scene in enumerate(layout_scenes):
                 try:
                     dt_cor_id, z0, z1 = horizon_to_manhattan_layout(
-                        layout_scene, height, width, force_cuboid=False)
+                        layout_scene, height, width, force_cuboid=False, scene_name=data['scene'][i], cfg=self.cfg)
                 except:
                     dt_cor_id = np.array([
                         [k // 2 * 1024, 256 - ((k % 2) * 2 - 1) * 120]
@@ -80,7 +80,7 @@ class HorizonNet(nn.Module):
             return horizon_layout, manhattan_pix
 
 
-def horizon_to_manhattan_layout(horizon_layout, H, W, force_cuboid=True, min_v=None, r=0.05):
+def horizon_to_manhattan_layout(horizon_layout, H, W, force_cuboid=True, min_v=None, r=0.05, scene_name=None, cfg=None):
     y_bon_, y_cor_  = horizon_layout['bon'], horizon_layout['cor']
 
     y_bon_ = (y_bon_ / np.pi + 0.5) * H - 0.5
@@ -106,10 +106,7 @@ def horizon_to_manhattan_layout(horizon_layout, H, W, force_cuboid=True, min_v=N
             xy2d[i, xy_cor[i]['type']] = xy_cor[i]['val']
             xy2d[i, xy_cor[i - 1]['type']] = xy_cor[i - 1]['val']
         if not Polygon(xy2d).is_valid:
-            print(
-                'Fail to generate valid general layout!! '
-                'Generate cuboid as fallback.',
-                file=sys.stderr)
+            cfg.log_string(f'Fail to generate valid general layout!! for {scene_name}. Generate cuboid as fallback.')
             xs_ = find_N_peaks(y_cor_, r=r, min_v=0, N=4)[0]
             cor, xy_cor = post_proc.gen_ww(xs_, y_bon_[0], z0, tol=abs(0.16 * z1 / 1.6), force_cuboid=True)
 
