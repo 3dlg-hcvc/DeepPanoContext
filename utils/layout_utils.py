@@ -108,14 +108,11 @@ def scene_layout_from_rlsd_arch(args):
     regions = arch["regions"]
     
     rooms = {}
-    # elif mode == "element":
     types = ['Floor', 'Ceiling', 'Wall']
     region_walls = []
-    # ceiling_heights = []
     for ele in elements:
         room_id = ele['roomId']
         level = int(ele['roomId'].split('_')[0])
-        ele_id = ele['id']
         ele_type = ele['type']
         if ele_type not in types: continue
         if room_id not in rooms:
@@ -123,9 +120,7 @@ def scene_layout_from_rlsd_arch(args):
         rooms[room_id][ele_type].append(ele)
         if ele_type == 'Wall':
             region_walls.extend(ele['points'])
-            # ceiling_heights.append(ele['points'][0][-1] + ele['height'])
     rooms[room_id]["region_walls"] = np.unique(np.asarray(region_walls), axis=0)
-    # if mode == "region":
     for region in regions:
         region_xy = np.asarray(region["points"])[:, :-1]
         region_dict = {
@@ -138,23 +133,9 @@ def scene_layout_from_rlsd_arch(args):
         }
         assert region["id"] in rooms
         rooms[region["id"]].update(region_dict)
-        # rooms[region["id"]] = {
-        #     "id": region["id"],
-        #     "level": region["level"],
-        #     "type": region["type"],
-        #     "wall_height": region["height"],
-        #     "floor_height": region["points"][0][-1],
-        #     "room": Polygon(region_xy),
-        # }
     rooms_bounds = shapely.ops.cascaded_union([r['room'] for r in rooms.values()]).bounds
     rooms_height = max([r['wall_height']+r['floor_height'] for r in rooms.values()]) - min([r['floor_height'] for r in rooms.values()])
     rooms_scale = (rooms_bounds[2]-rooms_bounds[0], rooms_bounds[3]-rooms_bounds[1], rooms_height)
-    # walls_scale = np.max(region_walls, axis=0) - np.min(region_walls, axis=0)
-    # min_floor = np.min(np.array(region_walls)[:, -1])
-    # max_ceiling = max(ceiling_heights)
-    # rooms_scale = (walls_scale[0], walls_scale[1], max_ceiling - min_floor)
-    # else:
-    #     raise NotImplemented
 
     return rooms, rooms_scale
 
