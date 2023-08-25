@@ -312,6 +312,36 @@ class IGVisualizer:
             if info:
                 self._objinfo(image, bdb3d, color)
         return image
+    
+    def holes(self, image, thickness=2):
+        room = self.scene['room']
+        holes = []
+        for wall in room['Wall']:
+            if not 'holes' in wall or not wall['holes']: continue
+            wall_p1, wall_p2 = np.array(wall['points'])
+            wall_len = np.linalg.norm(wall_p2 - wall_p1)
+            for hole in wall['holes']:
+                disp_min, hh_min = hole['box']['min']
+                disp_max, hh_max = hole['box']['max']
+                hp_min = disp_min / wall_len * (wall_p2 - wall_p1) + wall_p1
+                hp_min[-1] += hh_min
+                hp_max = disp_max / wall_len * (wall_p2 - wall_p1) + wall_p1
+                hp_max[-1] += hh_max
+                hole_points = [
+                    [*hp_min], 
+                    [*hp_min[:2], hp_max[-1]],
+                    [*hp_max],
+                    [*hp_max[:2], hp_min[-1]], 
+                ]
+                hole_points = np.array(hole_points)
+                holes.append((hole['id'], hole['type'], hole_points))
+        if not holes: return image
+        image = image.copy()
+        colors = {'Door': (255, 0, 255), 'Window': (0, 255, 255)}
+        for _, hole_type, hole_points in holes:
+            color = colors.setdefault(hole_type, (169, 10, 252))
+            self._hole(image, hole_points, color, thickness=2)
+        return image
 
     def wall3d(self, image, color=100, thickness=2):
         for wall in self.scene['walls']:
@@ -432,6 +462,12 @@ class IGVisualizer:
                     self._line3d(image, corners_box[idx1], corners_box[idx2], color, thickness=thickness, frame='cam3d')
         # for idx1, idx2 in [(0, 5), (1, 4)]:
         #     self._line3d(image, corners[idx1], corners[idx2], color, thickness=thickness, frame='cam3d')
+    
+    def _hole(self, image, hole, color, thickness=2):
+        corners = self.transform.world2cam3d(hole)
+        hole_lines = [[i, (i + 1) % 4] for i in range(4)]
+        for idx1, idx2 in hole_lines:
+            self._line3d(image, corners[idx1], corners[idx2], color, thickness=thickness, frame='cam3d')
 
     def _contour(self, image, contour, color, thickness=1):
         contour_pix = np.stack([contour['x'], contour['y']], -1)

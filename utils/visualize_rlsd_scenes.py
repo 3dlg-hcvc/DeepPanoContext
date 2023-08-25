@@ -37,9 +37,10 @@ def visualize_camera(args):
     image = visualizer.image('rgb')
     image = visualizer.layout(image, total3d=False)
     image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
+    det_image = visualizer.holes(image)
     if not args.show:
         save_path = os.path.join(scene_folder, args.task_id, 'det3d.png')
-        save_image(image, save_path)
+        save_image(det_image, save_path)
     # image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
     image = visualizer.bdb2d(image)
 
