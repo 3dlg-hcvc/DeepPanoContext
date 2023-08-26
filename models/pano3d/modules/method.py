@@ -48,7 +48,7 @@ class Pano3D(BaseMethod):
         est_data, gt_data, est_scenes, gt_scenes = data
 
         if hasattr(self, 'layout_estimation'):
-            layout_output = self.layout_estimation(gt_data['image_tensor']['rgb'])
+            layout_output = self.layout_estimation(gt_data['image_tensor']['rgb'], gt_data)
             if isinstance(layout_output, dict):
                 layout_output = (layout_output, )
             est_data['layout'] = {k: v for k, v in zip(('horizon', 'manhattan_pix'), layout_output)}
