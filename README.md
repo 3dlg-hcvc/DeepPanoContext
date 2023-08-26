@@ -132,7 +132,7 @@ Please follow Demo section to download weights for detector before we release fu
 
 1. Train 2D detector (Mask RCNN) with:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python train_detector.py --dataset /path/to/dataset --out /path/to/out
+    CUDA_VISIBLE_DEVICES=0 python train_detector.py --dataset /path/to/data --out /path/to/out
     ```
    The trained weights will be saved to ```out/detector/detector_mask_rcnn```
       
@@ -142,7 +142,7 @@ Please follow Demo section to download weights for detector before we release fu
     ```
 3. (Optional) Evaluate with:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python test_detector.py
+    CUDA_VISIBLE_DEVICES=0 python test_detector.py --dataset /path/to/data --weights out/detector/<detection_mask_rcnn_id>/model_final.pth --split test
     ```
    The results will be saved to ```out/detector/detector_mask_rcnn/evaluation_{train/test}```.
    Alternatively, you can visualize the prediction results on test set with:
@@ -161,30 +161,30 @@ Please follow Demo section to download weights for detector before we release fu
 
 Train layout estimation network (HorizonNet) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_igibson.yaml
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml
 ```
 Finetune layout estimation network (HorizonNet) with pretrained weight:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_rlsd.yaml --weight out/layout_estimation/<layout_estimation_id>/model_best.pth
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data
 ```
 The checkpoint and visualization results will be saved to ```out/layout_estimation/<layout_estimation_id>/model_best.pth```
 
 Test layout estimation network (HorizonNet) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_igibson.yaml --mode test --weight out/layout_estimation/<layout_estimation_id>/model_best.pth
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --mode test --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data
 ```
    
 #### Save First Stage Outputs
 
 1. Save predictions of 2D detector and LEN as dateset for stage 2 training:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 WANDB_MODE=dryrun python main.py configs/first_stage_igibson.yaml --mode qtest --weight out/layout_estimation/<layout_estimation_id>/model_best.pth
+    CUDA_VISIBLE_DEVICES=0 WANDB_MODE=dryrun python main.py configs/first_stage_<data>.yaml --mode qtest --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --model.detector.weight out/detector/<detection_mask_rcnn_id>/model_final.pth --data.split /path/to/data --log.save_as_dataset /path/to/out_data
     ```
-   The first stage outputs should be saved to ```data/igibson_stage1```
+   The first stage outputs should be saved to ```</path/to/data>_stage1```
    
 2. (Optional) Visualize stage 1 dataset with:
     ```shell
-    python -m utils.visualize_igibson --dataset data/igibson_stage1 --skip_render
+    python -m utils.visualize_igibson --dataset /path/to/data --skip_render
     ```
 
 ### Second Stage
