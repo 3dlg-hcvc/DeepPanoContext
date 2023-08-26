@@ -211,6 +211,10 @@ class RLSDSceneDataset(IGSceneDataset):
                 est_scene = None
                 gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset) if 'gt' in stype else None
 
+        room = gt_scene.data['room']['id']
+        del gt_scene.data['room']
+        gt_scene.data['room'] = room
+        
         for obj in gt_scene.data['objs']:
             for k in ["mask_ids", "classname", "label"]:
                 if isinstance(obj[k], list):
