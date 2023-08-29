@@ -314,6 +314,8 @@ class IGVisualizer:
         return image
     
     def holes(self, image, thickness=2):
+        if 'room' not in self.scene.data or not self.scene['room'] or 'Wall' not in self.scene['room']:
+            return image
         room = self.scene['room']
         holes = []
         for wall in room['Wall']:
