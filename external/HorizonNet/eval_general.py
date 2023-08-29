@@ -53,7 +53,7 @@ def layout_2_depth(cor_id, h, w, return_mask=False):
     return depth
 
 
-def test_general(dt_cor_id, gt_cor_id, w, h, losses):
+def test_general(dt_cor_id, gt_cor_id, w, h, losses, dt_data=None, gt_data=None):
     dt_floor_coor = dt_cor_id[1::2]
     dt_ceil_coor = dt_cor_id[0::2]
     gt_floor_coor = gt_cor_id[1::2]
@@ -69,7 +69,8 @@ def test_general(dt_cor_id, gt_cor_id, w, h, losses):
     dt_poly = Polygon(dt_floor_xy)
     gt_poly = Polygon(gt_floor_xy)
     if not gt_poly.is_valid:
-        print('Skip ground truth invalid (%s)' % gt_path)
+        print(f"Skip ground truth invalid {gt_data['scene']} {gt_data['name']}")
+        # 5ZKStnWn8Zo_L1/33c12ee1d66445ecb6e12d0102f3f18e, approx duplicated points -> self-intersection
         return
 
     # 2D IoU
