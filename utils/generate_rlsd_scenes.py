@@ -388,7 +388,7 @@ def main():
             with Pool(processes=args.processes) as p:
                 data_paths = list(tqdm(p.imap(_render_scene_fail_remove, args_list), total=len(args_list)))
 
-    if args.img_mode == 'real':
+    if args.img_mode == 'real' and not args.split:
         with open("/project/3dlg-hcvc/rlsd/data/annotations/annotation_issues.json", 'w') as f:
             json.dump(issues, f, indent=4)
         with open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt", 'w') as f:
