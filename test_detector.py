@@ -11,7 +11,7 @@ from detectron2.engine import DefaultPredictor
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
 
-from models.detector.dataset import register_igibson_detection_dataset, \
+from models.detector.dataset import register_detection_dataset, \
     get_cfg, DatasetCatalog
 from configs.data_config import get_dataset_name
 
@@ -44,7 +44,7 @@ def main():
         args.visualize=True
 
     dataset = get_dataset_name(args.dataset)
-    register_igibson_detection_dataset(args.dataset)
+    register_detection_dataset(args.dataset)
     cfg = get_cfg(args.dataset, args.config)
     cfg.MODEL.WEIGHTS = args.weights
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.score_thresh

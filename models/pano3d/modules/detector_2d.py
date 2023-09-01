@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from detectron2.engine import DefaultPredictor
 
-from models.detector.dataset import get_cfg, register_igibson_detection_dataset
+from models.detector.dataset import get_cfg, register_detection_dataset
 from configs.data_config import IG56CLASSES, PC2IG, WIMR11CLASSES
 from models.registers import MODULES
 from utils.render_utils import is_obj_valid, seg2obj
@@ -27,7 +27,7 @@ class Detector2D:
         self.nms_all_thresh = model_config['nms_all_thresh']
 
         # configs for detectron
-        register_igibson_detection_dataset(cfg.config['data']['split'], real=model_config['real'])
+        register_detection_dataset(cfg.config['data']['split'], real=model_config['real'])
         cfg_detectron = get_cfg(cfg.config['data']['split'], model_config['config'])
         cfg_detectron.MODEL.WEIGHTS = model_config['weight']
         cfg_detectron.MODEL.ROI_HEADS.SCORE_THRESH_TEST = model_config['score_thresh']

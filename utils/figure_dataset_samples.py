@@ -4,14 +4,14 @@ import shutil
 from scipy.io import savemat
 from collections import defaultdict
 
-from models.detector.dataset import register_igibson_detection_dataset
+from models.detector.dataset import register_detection_dataset
 from utils.igibson_utils import IGScene
 from utils.visualize_igibson import IGVisualizer
 from utils.image_utils import save_image
 
 
 dataset = 'data/igibson'
-register_igibson_detection_dataset(dataset)
+register_detection_dataset(dataset)
 igibson_obj_dataset = '/project/3dlg-hcvc/rlsd/data/psu/igibson_obj'
 dataset_samples = {
     'Beechwood_0_int': '00009',

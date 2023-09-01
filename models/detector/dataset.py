@@ -16,7 +16,7 @@ from utils.image_utils import show_image
 from models.pano3d.dataloader import IGSceneDataset, RLSDSceneDataset
 
 
-def register_igibson_detection_dataset(path, real=None):
+def register_detection_dataset(path, real=None):
     dataset = get_dataset_name(path)
     for d in ["train" , "test"]:
         DatasetCatalog.register(
@@ -76,7 +76,7 @@ def main():
                         help='The path of the dataset')
     args = parser.parse_args()
 
-    register_igibson_detection_dataset(args.dataset)
+    register_detection_dataset(args.dataset)
     dataset_dicts = DatasetCatalog.get(f"{get_dataset_name(args.dataset)}_train")
     for sample in random.sample(dataset_dicts, 3):
         image = visualize_igibson_detectron_gt(sample)

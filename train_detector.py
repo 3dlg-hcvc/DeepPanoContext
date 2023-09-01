@@ -1,7 +1,7 @@
 import os
 import argparse
 
-from models.detector.dataset import register_igibson_detection_dataset, get_cfg
+from models.detector.dataset import register_detection_dataset, get_cfg
 from models.detector.training import Trainer
 
 
@@ -28,7 +28,7 @@ def main():
                         help='Detectron yaml configuration file')
     args = parser.parse_args()
 
-    register_igibson_detection_dataset(args.dataset)
+    register_detection_dataset(args.dataset)
     cfg = get_cfg(args.dataset, args.config)
     cfg.SOLVER.IMS_PER_BATCH = args.batchsize
     cfg.SOLVER.BASE_LR = args.lr

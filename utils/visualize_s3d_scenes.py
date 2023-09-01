@@ -9,7 +9,7 @@ from PIL import Image
 import shutil
 from glob import glob
 
-from models.detector.dataset import register_igibson_detection_dataset
+from models.detector.dataset import register_detection_dataset
 from .igibson_utils import IGScene
 from .image_utils import save_image, show_image
 # from models.pano3d.dataloader import IGSceneDataset
@@ -81,7 +81,7 @@ def main():
     parser.add_argument('--show', default=False, action='store_true',
                         help='Show visualization results instead of saving')
     args = parser.parse_args()
-    register_igibson_detection_dataset(args.dataset)
+    register_detection_dataset(args.dataset)
     
 
     if args.scene_name is not None and args.room_id is not None:

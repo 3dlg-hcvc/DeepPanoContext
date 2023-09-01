@@ -4,7 +4,7 @@ from glob import glob
 from multiprocessing import Pool
 from tqdm import tqdm
 
-from models.detector.dataset import register_igibson_detection_dataset
+from models.detector.dataset import register_detection_dataset
 from utils.igibson_utils import IGScene
 from utils.image_utils import save_image, show_image
 from models.pano3d.dataloader import IGSceneDataset
@@ -68,7 +68,7 @@ def main():
     parser.add_argument('--show', default=False, action='store_true',
                         help='Show visualization results instead of saving')
     args = parser.parse_args()
-    register_igibson_detection_dataset(args.dataset)
+    register_detection_dataset(args.dataset)
 
 
     if args.scene is not None and args.id is not None:
