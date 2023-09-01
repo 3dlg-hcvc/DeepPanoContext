@@ -12,7 +12,6 @@ from torchvision import transforms
 
 from ..pano3d.dataloader import IGSceneDataset, collate_fn
 from models.datasets import Pano3DDataset
-from configs.data_config import IG56CLASSES
 from utils.igibson_utils import IGScene
 from utils.basic_utils import list_of_dict_to_dict_of_array, read_json, write_json, recursively_to, get_any_array
 from configs import data_config

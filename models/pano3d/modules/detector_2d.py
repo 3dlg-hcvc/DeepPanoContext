@@ -17,6 +17,7 @@ from utils.detector_utils import nms, nms_all_class
 class Detector2D:
     def __init__(self, cfg, _):
         self.cfg = cfg
+        self.OBJCLASSES = cfg.config["OBJCLASSES"]
         model_config = cfg.config['model']['detector']
         self.min_iou = model_config.get('min_iou', 0.1)
         self.real = model_config['real']
@@ -70,7 +71,7 @@ class Detector2D:
                         obj = {}
 
                     obj.update({
-                        'classname': IG56CLASSES[label],
+                        'classname': self.OBJCLASSES[label],
                         'label': label,
                         'score': score,
                     })

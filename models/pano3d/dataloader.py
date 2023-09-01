@@ -10,7 +10,6 @@ import torch.utils.data
 from torchvision import transforms
 
 from models.datasets import Pano3DDataset
-from configs.data_config import IG56CLASSES
 from utils.igibson_utils import IGScene
 from utils.basic_utils import list_of_dict_to_dict_of_array, read_json, write_json, recursively_to, get_any_array
 from configs import data_config
@@ -86,7 +85,7 @@ class IGSceneDataset(Pano3DDataset):
         if has_bdb3d and len(self.split):
             size_avg = {k: np.mean(np.stack(v), axis=0) for k, v in size_avg.items()}
             default_size = np.mean(np.stack(size_avg.values()), axis=0)
-            size_avg = np.stack([size_avg.get(k, default_size.copy()) for k in IG56CLASSES])
+            size_avg = np.stack([size_avg.get(k, default_size.copy()) for k in self.OBJCLASSES])
             data_config.metadata.update({
                 'size_avg': size_avg,
                 'dis_max': float(dis_max)
@@ -188,7 +187,7 @@ class RLSDSceneDataset(IGSceneDataset):
         if has_bdb3d and len(self.split):
             size_avg = {k: np.mean(np.stack(v), axis=0) for k, v in size_avg.items()}
             default_size = np.mean(np.stack(size_avg.values()), axis=0)
-            size_avg = np.stack([size_avg.get(k, default_size.copy()) for k in IG56CLASSES])
+            size_avg = np.stack([size_avg.get(k, default_size.copy()) for k in self.OBJCLASSES])
             data_config.metadata.update({
                 'size_avg': size_avg,
                 'dis_max': float(dis_max)
@@ -211,9 +210,10 @@ class RLSDSceneDataset(IGSceneDataset):
                 est_scene = None
                 gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset) if 'gt' in stype else None
 
-        room = gt_scene.data['room']['id']
-        del gt_scene.data['room']
-        gt_scene.data['room'] = room
+        if isinstance(gt_scene.data['room'], dict):
+            room = gt_scene.data['room']['id']
+            del gt_scene.data['room']
+            gt_scene.data['room'] = room
         
         for obj in gt_scene.data['objs']:
             for k in ["mask_ids", "classname", "label"]:

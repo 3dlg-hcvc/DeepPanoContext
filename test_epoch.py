@@ -3,6 +3,7 @@
 # date: April, 2020
 from utils.project_utils import ETA
 from models.eval_metrics import ClassMeanMeter, MetricRecorder, AverageMeter
+from models.detector.dataset import register_igibson_detection_dataset
 from time import time
 import torch
 import wandb
@@ -18,6 +19,8 @@ def test_func(cfg, tester, test_loader):
     :return:
     '''
     metric_recorder = MetricRecorder()
+    if cfg.config['log'].get('vis_step'):
+        register_igibson_detection_dataset(cfg.config['data'].get('split'))
     cfg.log_string('-' * 100)
     eta_calc = ETA(smooth=0.99, ignore_first=True)
     for iter, data in enumerate(tqdm(test_loader)):

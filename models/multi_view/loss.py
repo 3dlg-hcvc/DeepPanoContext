@@ -3,7 +3,6 @@ from torch import nn
 import torch.nn.functional as F
 import numpy as np
 
-from configs.data_config import IG56CLASSES
 from models.loss import BaseLoss
 from models.registers import LOSSES
 from utils.basic_utils import list_of_dict_to_dict_of_array, recursively_to

@@ -7,6 +7,7 @@ class BaseLoss(object):
     def __init__(self, config=None):
         '''initialize loss module'''
         self.config = config
+        self.OBJCLASSES = config["OBJCLASSES"]
 
     def __call__(self, est_data, gt_data):
         return {}

@@ -9,7 +9,6 @@ from models.modules import resnet
 from models.modules.resnet import model_urls
 import torch.utils.model_zoo as model_zoo
 from models.pano3d.modules.relation_net import RelationNet
-from configs.data_config import IG56CLASSES
 from configs import data_config
 
 
@@ -24,6 +23,7 @@ class Bdb3DNet(nn.Module):
         '''Module parameters'''
         self.OBJ_ORI_BIN = len(data_config.metadata['ori_bins'])
         self.OBJ_CENTER_BIN = len(data_config.metadata['dis_bins'])
+        self.OBJCLASSES = cfg.config["OBJCLASSES"]
 
         # set up neural network blocks
         self.resnet = nn.DataParallel(resnet.resnet34(pretrained=False))
@@ -32,19 +32,19 @@ class Bdb3DNet(nn.Module):
         self.relnet = RelationNet(cfg)
 
         # branch to predict the size
-        self.fc1 = nn.Linear(2048 + len(IG56CLASSES), 128)
+        self.fc1 = nn.Linear(2048 + len(self.OBJCLASSES), 128)
         self.fc2 = nn.Linear(128, 3)
 
         # branch to predict the orientation
-        self.fc3 = nn.Linear(2048 + len(IG56CLASSES), 128)
+        self.fc3 = nn.Linear(2048 + len(self.OBJCLASSES), 128)
         self.fc4 = nn.Linear(128, self.OBJ_ORI_BIN * 2)
 
         # branch to predict the centroid
-        self.fc5 = nn.Linear(2048 + len(IG56CLASSES), 128)
+        self.fc5 = nn.Linear(2048 + len(self.OBJCLASSES), 128)
         self.fc_centroid = nn.Linear(128, self.OBJ_CENTER_BIN * 2)
 
         # branch to predict the 2D offset
-        self.fc_off_1 = nn.Linear(2048 + len(IG56CLASSES), 128)
+        self.fc_off_1 = nn.Linear(2048 + len(self.OBJCLASSES), 128)
         self.fc_off_2 = nn.Linear(128, 2)
 
         self.relu_1 = nn.LeakyReLU(0.2)

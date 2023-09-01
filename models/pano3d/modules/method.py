@@ -15,7 +15,6 @@ from utils.layout_utils import manhattan_world_layout_from_pix_layout, wall_cont
     wall_bdb3d_from_manhattan_world_layout
 from utils.relation_utils import RelationOptimization
 from utils.basic_utils import dict_of_array_to_list_of_dict, recursively_to
-from configs.data_config import IG56CLASSES
 from utils.transform_utils import IGTransform, bdb3d_corners, points2bdb2d, size2reg, num2bins, contour2bfov, bins2bdb3d
 from configs import data_config
 
@@ -160,7 +159,7 @@ class Pano3D(BaseMethod):
 
             # encode class as one-hot
             for i_est, est_obj in enumerate(est_scene['objs']):
-                cls_code = np.zeros(len(IG56CLASSES), dtype=np.float32)
+                cls_code = np.zeros(len(self.OBJCLASSES), dtype=np.float32)
                 cls_code[est_obj['label']] = 1.
                 est_obj['cls_code'] = cls_code
 

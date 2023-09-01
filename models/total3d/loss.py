@@ -3,7 +3,6 @@ from torch import nn
 import torch.nn.functional as F
 import numpy as np
 
-from configs.data_config import IG56CLASSES
 from models.loss import BaseLoss
 from models.pano3d.loss import cls_reg_loss
 from models.registers import LOSSES

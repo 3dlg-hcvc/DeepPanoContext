@@ -15,7 +15,7 @@ from shapely.geometry import Polygon, Point, MultiPoint
 from glob import glob
 import traceback
 
-from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, RLSD32CLASSES, PSU45CLASSES
+from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, COMMON23CLASSES, RLSD32CLASSES, PSU45CLASSES
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
 from .rlsd_utils import create_data_splits, encode_rgba, prepare_images
@@ -31,6 +31,7 @@ issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
 model_paths = set()
 missing_3dw = set()
 model2cat = {}
+OBJCLASSES = None
 
 
 def _render_scene_fail_remove(args):
@@ -171,9 +172,14 @@ def _render_scene(args):
                     cat = CUSTOM2RLSD[cat]
                 except:
                     continue
-            # igibson_cat = RLSD32_2_IG56[cat]
-            # categories.append(igibson_cat)
-            categories.append(cat)
+            if args.cls_mode == 'cls23':
+                if cat not in COMMON23CLASSES: 
+                    continue
+            if args.model_mode == 'ig':
+                igibson_cat = RLSD32_2_IG56[cat]
+                categories.append(igibson_cat)
+            else:
+                categories.append(cat)
         if not categories:
             continue
         model_source, model_name = obj["modelId"].split('.')
@@ -192,7 +198,7 @@ def _render_scene(args):
             "mask_ids": mask_ids,
             "index": obj["index"],
             "classname": categories,
-            "label": [PSU45CLASSES.index(cat) for cat in categories],
+            "label": [OBJCLASSES.index(cat) for cat in categories],
             "model_name": obj["modelId"],
             "model_path": model_path,
             "is_fixed": True,
@@ -337,6 +343,10 @@ def main():
                         help='Types of room layout')
     parser.add_argument('--img_mode', type=str, default='real',
                         help='Types of images: real/syn/mix')
+    parser.add_argument('--cls_mode', type=str, default='cls45',
+                        help='Types of object classes: cls45/cls23')
+    parser.add_argument('--model_mode', type=str, default='rlsd',
+                        help='Types of images: rlsd/ig')
     parser.add_argument('--resume', default=False, action='store_true',
                         help='Resume from existing renders')
     parser.add_argument('--expand_dis', type=float, default=0.1,
@@ -350,7 +360,16 @@ def main():
                         help='Skip train/test split')
     args = parser.parse_args()
     args.output = f"{args.output}_{args.img_mode}"
+    global OBJCLASSES
+    if args.cls_mode == 'cls23':
+        args.output = f"{args.output}_{args.cls_mode}"
+    if args.model_mode == 'ig':
+        args.output = f"{args.output}_{args.model_mode}"
+        OBJCLASSES = IG56CLASSES
+    else:
+        OBJCLASSES = PSU45CLASSES
 
+    # import pdb; pdb.set_trace()
     assert args.vertical_fov is not None or args.cam_pitch != 0, \
         "cam_pitch not supported for panorama rendering"
     assert all(r in ['rgb', 'normal', 'seg', 'sem', 'depth', '3d'] for r in args.render_type), \
@@ -388,7 +407,10 @@ def main():
             with Pool(processes=args.processes) as p:
                 data_paths = list(tqdm(p.imap(_render_scene_fail_remove, args_list), total=len(args_list)))
 
-    if args.img_mode == 'real' and not args.split:
+    if args.img_mode == 'real' and \
+        args.model_mode == 'rlsd' and \
+        args.cls_mode == 'cls45' and \
+        not args.split:
         with open("/project/3dlg-hcvc/rlsd/data/annotations/annotation_issues.json", 'w') as f:
             json.dump(issues, f, indent=4)
         with open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt", 'w') as f:

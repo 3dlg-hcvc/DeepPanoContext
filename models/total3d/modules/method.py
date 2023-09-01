@@ -6,7 +6,6 @@ from external.ldif.representation.structured_implicit_function import Structured
 from models.mgnet.modules.mgn import MGNetMeshExtractor
 from models.pano3d.modules.detector_2d import bdb2d_geometric_feature
 from models.registers import METHODS
-from models.method import BaseMethod
 from models.datasets import Pano3DDataset
 from models.eval_metrics import contour_iou
 from models.pano3d.dataloader import collate_fn
@@ -15,7 +14,6 @@ from utils.layout_utils import manhattan_world_layout_from_pix_layout, wall_cont
     wall_bdb3d_from_manhattan_world_layout
 from utils.relation_utils import RelationOptimization
 from utils.basic_utils import dict_of_array_to_list_of_dict, recursively_to
-from configs.data_config import IG56CLASSES
 from utils.transform_utils import IGTransform, bdb3d_corners, points2bdb2d, size2reg, num2bins, contour2bfov, \
     bins2bdb3d, bins2layout, bins2camera
 from configs import data_config

@@ -18,10 +18,10 @@ CUSTOM2RLSD = {'pictures': 'picture', 'platn': 'plant', 'light': 'lighting', 'pa
 
 common_objects = ['counter', 'picture', 'microwave', 'sink', 'oven', 'dishwasher', 'chair', 'mirror', 'shower', 'table', 'stove', 'stool', 'bed', 'plant', 'door', 'bathtub', 'sofa', 'cushion', 'toilet', 'window']
 rlsd_common_mapping = {k:k for k in common_objects}
-
 RLSD32_2_IG56 = {'washing machine': 'washer', 'towel': 'towel_rack', 'cabinet': 'bottom_cabinet', 'tv_monitor': 'monitor', 'lighting': 'floor_lamp', 'blinds': 'fence', 'seating': 'bench', 'refrigerator': 'fridge', 'chest_of_drawers': 'counter', 'clothes dryer': 'dryer', 'shelving': 'shelf', 'curtain': 'fence'}
 RLSD32_2_IG56.update(rlsd_common_mapping)
 
+COMMON23CLASSES = ['counter', 'picture', 'microwave', 'sink', 'oven', 'dishwasher', 'chair', 'mirror', 'shower', 'table', 'stove', 'stool', 'bed', 'plant', 'bathtub', 'sofa', 'cushion', 'toilet', 'washing machine', 'tv_monitor', 'refrigerator', 'clothes dryer', 'shelving']
 
 NYU40CLASSES = ['bag', 'bathtub', 'bed', 'blinds', 'books', 'bookshelf', 'box', 'cabinet', 'ceiling', 'chair', 'clothes', 'counter', 'curtain', 'desk', 'door', 'dresser', 'floor', 'floor mat', 'lamp', 'mirror', 'nightstand', 'otherfurniture', 'otherprop', 'otherstructure', 'paper', 'person', 'picture', 'pillow', 'refrigerator', 'shelves', 'shower curtain', 'sink', 'sofa', 'table', 'television', 'toilet', 'towel', 'unknown', 'wall', 'whiteboard', 'window']
 
@@ -35,7 +35,7 @@ NYU40_2_IG56 = {'bathtub': 'bathtub', 'bed':'bed', 'blinds': 'fence',
                 'sofa': 'sofa', 'table': 'table', 'television': 'monitor', 'toilet': 'toilet',
                 'towel': 'towel_rack', 'window': 'window'}
 
-NYU40_2_PSU44 = {'bookshelf': 'shelving', 'desk': 'table', 'dresser': 'chest_of_drawers', 'floor mat': 'carpet',
+NYU40_2_PSU45 = {'bookshelf': 'shelving', 'desk': 'table', 'dresser': 'chest_of_drawers', 'floor mat': 'carpet',
                  'lamp': 'lighting', 'nightstand': 'table', 'pillow': 'cushion', 'shelves': 'shelving',
                  'shower curtain': 'curtain', 'television': 'tv_monitor'}
 

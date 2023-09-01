@@ -10,7 +10,7 @@ from detectron2.config import get_cfg as default_cfg
 from detectron2.data import DatasetCatalog
 from detectron2.data import MetadataCatalog
 
-from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name
+from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name, PSU45CLASSES
 from utils.visualize_utils import detectron_gt_sample, visualize_igibson_detectron_gt
 from utils.image_utils import show_image
 from models.pano3d.dataloader import IGSceneDataset, RLSDSceneDataset
@@ -21,8 +21,13 @@ def register_igibson_detection_dataset(path, real=None):
     for d in ["train" , "test"]:
         DatasetCatalog.register(
             f"{dataset}_{d}", lambda d=d: get_dataset_dicts(path, d))
-        if dataset.startswith(('igibson', 'rlsd', 's3d')) or real == False:
+        if dataset.startswith(('igibson',)) or real == False:
             thing_classes = IG56CLASSES
+        elif dataset.startswith(('rlsd', 's3d')) or real == False:
+            if 'ig' in dataset:
+                thing_classes = IG56CLASSES
+            else:
+                thing_classes = PSU45CLASSES
         elif dataset.startswith(('pano_context', 'wimr')) or real == True:
             thing_classes = WIMR11CLASSES
         else:
@@ -34,7 +39,7 @@ def get_dataset_dicts(folder, mode):
     dataset_name = get_dataset_name(folder)
     if dataset_name == 'igibson':
         dataset = IGSceneDataset({'data': {'split': folder}}, mode)
-    elif dataset_name == 'rlsd':
+    elif dataset_name.startswith(('rlsd',)):
         dataset = RLSDSceneDataset({'data': {'split': folder}}, mode)
     else:
             raise NotImplementedError

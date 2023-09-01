@@ -12,7 +12,6 @@ from external.ldif.representation.structured_implicit_function import Structured
 from models.eval_metrics import bdb2d_iou
 from models.pano3d.modules.detector_2d import bdb2d_geometric_feature
 from models.registers import MODULES
-from configs.data_config import IG56CLASSES
 from configs import data_config
 from utils.igibson_utils import split_batch_into_patches
 from utils.layout_utils import manhattan_2d_from_manhattan_world_layout
@@ -88,6 +87,7 @@ class FeatureExtractor:
     def __init__(self, cfg, model_name):
         model_config = cfg.config['model'][model_name]
         width = cfg.config['data'].get('width', 0)
+        self.OBJCLASSES = cfg.config["OBJCLASSES"]
         self.OBJ_ORI_BIN = len(data_config.metadata['ori_bins'])
         self.OBJ_CENTER_BIN = len(data_config.metadata['dis_bins'])
         self.PITCH_BIN = len(data_config.metadata['pitch_bins'])
@@ -121,7 +121,7 @@ class FeatureExtractor:
             'walls.bfov.x_fov': 1,
             'walls.bfov.y_fov': 1,
             # for object/relation node
-            'objs.cls_code': len(IG56CLASSES),
+            'objs.cls_code': len(self.OBJCLASSES),
             'objs.bdb2d': 4,
             'objs.bdb3d.size_reg': 3,
             'objs.bdb3d.ori_reg': self.OBJ_ORI_BIN,
@@ -630,7 +630,7 @@ class RelationSGCN(SceneGCN):
     def construct_label_branch(self):
         '''representation to object label'''
         self.fc_obj_label_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
-        self.fc_obj_label_2 = nn.Linear(self.feature_dim // 2, len(IG56CLASSES) + 1)
+        self.fc_obj_label_2 = nn.Linear(self.feature_dim // 2, len(self.OBJCLASSES) + 1)
 
     def construct_relation_branch(self):
         '''representation to relation output'''

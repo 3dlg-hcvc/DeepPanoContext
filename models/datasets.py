@@ -7,7 +7,7 @@ from glob import glob
 import shutil
 from torch.utils.data import Dataset
 
-from configs.data_config import IG56CLASSES
+from configs.data_config import IG56CLASSES, PSU45CLASSES, get_dataset_name
 from utils.basic_utils import read_json
 from utils.image_utils import load_image
 from utils.mesh_utils import load_mesh
@@ -39,7 +39,7 @@ class Pano3DDataset(Dataset):
         self.mode = mode
         if mode == 'val':
             mode = ['test']
-        elif mode is None:
+        elif mode is None or config['test_all']:
             mode = ['train', 'test']
         elif mode in ['train', 'test']:
             mode = [mode]
@@ -48,6 +48,16 @@ class Pano3DDataset(Dataset):
 
         # load split from json file
         split = config['data']['split']
+        dataset = get_dataset_name(split)
+        if dataset.startswith(('igibson')):
+            self.OBJCLASSES = IG56CLASSES
+        if dataset.startswith(('rlsd', 's3d')):
+            if 'ig' in dataset:
+                self.OBJCLASSES = IG56CLASSES
+            else:
+                self.OBJCLASSES = PSU45CLASSES
+        config["OBJCLASSES"] = self.OBJCLASSES
+        
         if split.endswith('.json'):
             self.root = os.path.dirname(split)
             split_files = [split]
