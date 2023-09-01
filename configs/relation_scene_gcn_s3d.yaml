@@ -2,10 +2,14 @@ method: Pano3D
 resume: False
 finetune: True
 weight: [
-  # 'out/bdb3d_estimation/21071216554474/model_best.pth',
-  'out/bdb3d_estimation/23070912284372_rlsd/model_best.pth',
-  # 'out/ldif/21022210091327/model_best.pth'
-  'out/ldif/23070713210586_rlsd/model_best.pth'
+  'out/bdb3d_estimation/21071216554474/model_best.pth',
+  # 'out/bdb3d_estimation/23070901353249_ig/model_best.pth',
+  # 'out/bdb3d_estimation/23070912284372_rlsd/model_best.pth',
+  # 'out/bdb3d_estimation/23072419072657_ig_rlsd_ft/model_best.pth',
+  'out/ldif/21022210091327/model_best.pth'
+  # 'out/ldif/23071423264320_ig/model_best.pth',
+  # 'out/ldif/23070713210586_rlsd/model_best.pth',
+  # 'out/ldif/23071517271080_ig_ft/model_best.pth'
 ]
 seed: 123
 device:
@@ -13,10 +17,10 @@ device:
   gpu_ids: '0'
   num_workers: 4
 data:
-  name: rlsd
-  split: data/rlsd_stage1
+  name: s3d
+  split: /project/3dlg-hcvc/rlsd/data/psu/s3d_stage1_pano3d
   expand_dis: 0.1
-  igibson_obj_dataset: /project/3dlg-hcvc/rlsd/data/psu/rlsd_obj
+  igibson_obj_dataset: /project/3dlg-hcvc/rlsd/data/psu/igibson_obj
   g_feature_length: 64
   height: 512
   width: 1024
@@ -49,7 +53,6 @@ model:
   bdb3d_estimation:
     module: Bdb3DNet
     loss: JointLoss
-    use_phy: False
     d_k: 64
     Nr: 16
   shape_encoder:
