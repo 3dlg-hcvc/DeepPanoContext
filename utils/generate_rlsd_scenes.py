@@ -26,7 +26,7 @@ from .layout_utils import scene_layout_from_rlsd_arch, room_layout_from_rlsd_sce
 from .transform_utils import bdb3d_corners, IGTransform
 
 
-issues = {key:[] for key in ["duplicate_points", "duplicate_x", "over_large_objects", "outside_house", "mask_missing", "close_to_wall"]}
+issues = {key:[] for key in ["duplicate_points", "duplicate_x", "over_large_objects", "zero_obj_dim", "outside_house", "mask_missing", "close_to_wall"]}
 issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
 model_paths = set()
 missing_3dw = set()
@@ -158,6 +158,9 @@ def _render_scene(args):
         if np.any((np.array(obj["obb"]["axesLengths"])-np.array(rooms_scale)) > 1):
             if full_task_id not in issues["over_large_objects"]:
                 issues["over_large_objects"].append(full_task_id)
+            continue
+        if np.any(np.array(obj["obb"]["axesLengths"]) < 1e-6):
+            issues["zero_obj_dim"].append(f"{full_task_id}/{obj_id}/{obj['modelId']}")
             continue
         mask_ids = obj2masks[obj_id]
         # categories = [mask_infos[mask_id]["label"] for mask_id in mask_ids if mask_id in mask_infos]
@@ -369,7 +372,6 @@ def main():
     else:
         OBJCLASSES = PSU45CLASSES
 
-    # import pdb; pdb.set_trace()
     assert args.vertical_fov is not None or args.cam_pitch != 0, \
         "cam_pitch not supported for panorama rendering"
     assert all(r in ['rgb', 'normal', 'seg', 'sem', 'depth', '3d'] for r in args.render_type), \

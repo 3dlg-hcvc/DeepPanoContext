@@ -336,7 +336,7 @@ def manhattan_pix_layout_from_rlsd_room(camera, room, room_mode, full_task_id, i
     if len(points_unique) < len(points):
         issues["duplicate_points"].append(full_task_id)
         print(f"{full_task_id} duplicate points")
-        # return
+        return
     xs = points[::2, 0].astype(int)
     xs_unique = np.unique(xs)
     if len(xs_unique) < len(xs):
@@ -361,8 +361,8 @@ def cuboid_world_layout_from_room_layout(room_layout):
 def manhattan_world_layout_from_room_layout(room_layout):
     # generate manhattan layout in the world frame from bondary
     boundary = np.array(room_layout['room'].boundary.xy, dtype=np.float32)[:, :-1].T
-    boundary_l = np.pad(boundary, [[0, 0], [0, 1]], 'constant', constant_values=0)
-    boundary_h = np.pad(boundary, [[0, 0], [0, 1]], 'constant', constant_values=room_layout['height'] if 'height' in room_layout else room_layout['wall_height'])
+    boundary_l = np.pad(boundary, [[0, 0], [0, 1]], 'constant', constant_values=0 if 'floor_height' not in room_layout else room_layout['floor_height'])
+    boundary_h = np.pad(boundary, [[0, 0], [0, 1]], 'constant', constant_values=room_layout['height'] if 'height' in room_layout else room_layout['wall_height'] + room_layout['floor_height'])
     world_layout = np.concatenate([boundary_l, boundary_h], 0)
     return world_layout
 
