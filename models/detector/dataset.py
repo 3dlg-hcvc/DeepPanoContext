@@ -21,9 +21,9 @@ def register_detection_dataset(path, real=None):
     for d in ["train" , "test"]:
         DatasetCatalog.register(
             f"{dataset}_{d}", lambda d=d: get_dataset_dicts(path, d))
-        if dataset.startswith(('igibson',)) or real == False:
+        if dataset.startswith(('igibson',)):
             thing_classes = IG56CLASSES
-        elif dataset.startswith(('rlsd', 's3d')) or real == False:
+        elif dataset.startswith(('rlsd', 's3d')):
             if 'ig' in dataset:
                 thing_classes = IG56CLASSES
             else:
@@ -42,7 +42,7 @@ def get_dataset_dicts(folder, mode):
     elif dataset_name.startswith(('rlsd',)):
         dataset = RLSDSceneDataset({'data': {'split': folder}}, mode)
     else:
-            raise NotImplementedError
+        raise NotImplementedError
     dataset_dicts = []
 
     for idx in tqdm(range(len(dataset)), desc=f'Loading {dataset_name}'):
