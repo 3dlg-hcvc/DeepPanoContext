@@ -14,6 +14,9 @@ from .igibson_utils import IGScene
 from .image_utils import save_image, show_image
 # from models.pano3d.dataloader import IGSceneDataset
 from .visualize_utils import IGVisualizer
+from .render_rlsd_layout_bdb3d import render_view
+from configs.data_config import rlsd_cls45_colorbox, rlsd_cls23_colorbox, igibson_colorbox
+
 
 
 def visualize_camera(args):
@@ -30,6 +33,16 @@ def visualize_camera(args):
             bdb3d['basis'] = bdb3d['basis'] @ rotx90
     
     visualizer = IGVisualizer(scene, gpu_id=args.gpu_id, debug=args.debug)
+    _ = scene.merge_layout_bdb3d_mesh(
+                colorbox=igibson_colorbox * 255,
+                separate=False,
+                # camera_color=(29, 203, 224),
+                layout_color=(255, 69, 80),
+                texture=False,
+                filename=os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply')
+            )
+    render_view(os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply'),
+                os.path.join(scene_folder, args.task_id, 'layout_bdb3d.png'))
 
     # if not args.skip_render:
     #     render = visualizer.render(background=200)
@@ -64,7 +77,7 @@ def visualize_camera(args):
 def main():
     parser = argparse.ArgumentParser(
         description='Visualize iGibson scenes.')
-    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd',
+    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd_real',
                         help='The path of the rlsd dataset')
     # parser.add_argument('--igibson_obj_dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/igibson_obj',
     #                     help='The path of the iGibson object dataset')

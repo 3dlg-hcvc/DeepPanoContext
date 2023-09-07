@@ -56,5 +56,5 @@ log:
   print_step: 10
   path: out/bdb3d_estimation
   save_checkpoint: True
-
+  save_bdb3d_mesh: False
 

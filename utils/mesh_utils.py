@@ -3,6 +3,11 @@ import re
 
 import numpy as np
 import trimesh
+from plyfile import PlyData, PlyElement
+
+from .layout_utils import layout_line_segment_indexes
+from .igibson_utils import IGScene
+from .transform_utils import bdb3d_corners
 
 
 def save_mesh(mesh, save_path):
@@ -253,3 +258,56 @@ def write_obj(objfile, data):
 
         for item in data['f']:
             file.write('f' + ' %s' * len(item) % tuple(item) + '\n')
+
+
+def create_layout_mesh(data, color=(255, 69, 80), radius=0.025, texture=True):
+        if 'layout' not in data or (
+                'manhattan_world' not in data['layout']
+                and 'total3d' not in data['layout']
+        ):
+            return None
+        if 'total3d' in data['layout']:
+            mesh = create_layout_mesh(data['layout']['total3d'], color=color)
+        elif 'manhattan_world' in data['layout']:
+            mesh = []
+            layout_points = data['layout']['manhattan_world']
+            layout_lines = layout_line_segment_indexes(len(layout_points) // 2)
+            for indexes in layout_lines:
+                line = layout_points[indexes]
+                line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
+                mesh.append(line_mesh)
+            mesh = sum(mesh)
+            mesh = IGScene.colorize_mesh_for_igibson(mesh, color, texture)
+        return mesh
+
+
+def create_bdb3d_mesh(bdb3d, color=None, radius=0.05):
+        corners = bdb3d_corners(bdb3d)
+        corners_box = corners.reshape(2, 2, 2, 3)
+        mesh = []
+        for k in [0, 1]:
+            for l in [0, 1]:
+                for idx1, idx2 in [((0, k, l), (1, k, l)), ((k, 0, l), (k, 1, l)), ((k, l, 0), (k, l, 1))]:
+                    line = corners_box[idx1], corners_box[idx2]
+                    line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
+                    mesh.append(line_mesh)
+        # for idx1, idx2 in [(0, 5), (1, 4)]:
+        #     line = corners[idx1], corners[idx2]
+        #     line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
+        #     mesh.append(line_mesh)
+        mesh = sum(mesh)
+        if color is not None:
+            mesh = IGScene.colorize_mesh_for_igibson(mesh, color)
+        return mesh
+
+
+def write_ply_rgb_face(points, colors, faces, filename, text=True):
+    """ Color (N,3) points with RGB colors (N,3) within range [0,255] as ply file """
+    colors = colors.astype(int)
+    points = [(points[i,0], points[i,1], points[i,2], colors[i,0], colors[i,1], colors[i,2]) for i in range(points.shape[0])]
+    faces = [((faces[i,0], faces[i,1], faces[i,2]),) for i in range(faces.shape[0])]
+    vertex = np.array(points, dtype=[('x', 'f4'), ('y', 'f4'),('z', 'f4'),('red', 'u1'), ('green', 'u1'),('blue', 'u1')])
+    face = np.array(faces, dtype=[('vertex_indices', 'i4', (3,))])
+    ele1 = PlyElement.describe(vertex, 'vertex', comments=['vertices'])
+    ele2 = PlyElement.describe(face, 'face', comments=['faces'])
+    PlyData([ele1, ele2], text=text).write(filename)

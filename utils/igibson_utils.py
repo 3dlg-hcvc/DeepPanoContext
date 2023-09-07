@@ -9,7 +9,7 @@ import trimesh
 
 from .image_utils import ImageIO
 from .layout_utils import layout_line_segment_indexes
-from .mesh_utils import MeshIO
+from .mesh_utils import MeshIO, write_ply_rgb_face, create_layout_mesh, create_bdb3d_mesh
 from .transform_utils import IGTransform, cam_axis, bdb3d_from_corners, bdb3d_corners
 from external.Equirec2Perspec.Equirec2Perspec import Equirectangular
 from utils.basic_utils import read_pkl, write_pkl, write_json, recursively_to, \
@@ -417,7 +417,7 @@ class IGScene:
 
         # add layout mesh
         if layout_color is not None:
-            layout_mesh = self.layout_mesh(color=layout_color, texture=texture)
+            layout_mesh = create_layout_mesh(self.data, color=layout_color, texture=texture)
             if layout_mesh is not None:
                 mesh_io['layout_mesh'] = layout_mesh
 
@@ -425,44 +425,66 @@ class IGScene:
             return mesh_io
 
         return mesh_io.merge()
+    
+    def merge_layout_bdb3d_mesh(self, colorbox=None, separate=False, camera_color=None, layout_color=None, texture=False, gt_data=None, filename=None):
+        mesh_io = MeshIO()
+        
+        if gt_data is None:
+            objs = self.data['objs']
+            for k, obj in enumerate(objs):
+                bdb3d = obj['bdb3d']
+                mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
+                mesh_io[k] = mesh_world
+        else:
+            for k, est_obj in enumerate(self.data['objs']):
+                bdb3d = est_obj['bdb3d']
+                mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
+                mesh_io[f'est_{k}'] = mesh_world
+            for k, gt_obj in enumerate(gt_data['objs']):
+                bdb3d = gt_obj['bdb3d']
+                mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
+                mesh_io[f'gt_{k}'] = mesh_world
 
-    def layout_mesh(self, color=(255, 69, 80), radius=0.025, texture=True):
-        if 'layout' not in self.data or (
-                'manhattan_world' not in self.data['layout']
-                and 'total3d' not in self.data['layout']
-        ):
-            return None
-        if 'total3d' in self.data['layout']:
-            mesh = self.bdb3d_mesh(self.data['layout']['total3d'], color=color)
-        elif 'manhattan_world' in self.data['layout']:
-            mesh = []
-            layout_points = self.data['layout']['manhattan_world']
-            layout_lines = layout_line_segment_indexes(len(layout_points) // 2)
-            for indexes in layout_lines:
-                line = layout_points[indexes]
-                line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
-                mesh.append(line_mesh)
-            mesh = sum(mesh)
-            mesh = IGScene.colorize_mesh_for_igibson(mesh, color, texture)
-        return mesh
+        # add camera marker
+        if camera_color is not None:
+            camera_mesh = self.camera_marker(color=camera_color, texture=texture)
+            mesh_io['camera'] = camera_mesh
 
-    def bdb3d_mesh(self, bdb3d, color, radius=0.05):
-        corners = bdb3d_corners(bdb3d)
-        corners_box = corners.reshape(2, 2, 2, 3)
-        mesh = []
-        for k in [0, 1]:
-            for l in [0, 1]:
-                for idx1, idx2 in [((0, k, l), (1, k, l)), ((k, 0, l), (k, 1, l)), ((k, l, 0), (k, l, 1))]:
-                    line = corners_box[idx1], corners_box[idx2]
-                    line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
-                    mesh.append(line_mesh)
-        for idx1, idx2 in [(0, 5), (1, 4)]:
-            line = corners[idx1], corners[idx2]
-            line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
-            mesh.append(line_mesh)
-        mesh = sum(mesh)
-        mesh = IGScene.colorize_mesh_for_igibson(mesh, color)
-        return mesh
+        # add layout mesh
+        if layout_color is not None:
+            try:
+                layout_mesh = create_layout_mesh(self.data, color=layout_color, texture=texture)
+            except:
+                layout_mesh = None
+            if layout_mesh is not None:
+                mesh_io['layout_mesh'] = layout_mesh
+            # if gt_data is not None:
+            #     mesh_io['gt_layout_mesh'] = create_layout_mesh(gt_data, color=layout_color, texture=texture)
+        
+        all_verts, all_faces, all_colors = [], [], []
+        for k, m in mesh_io.items():
+            if k == 'camera': color = camera_color
+            elif k == 'layout_mesh': color = layout_color
+            elif k == 'gt_layout_mesh': color = (255, 255, 0)
+            elif k.startswith(('est',)): color = (0, 0, 255)
+            elif k.startswith(('gt',)): color = (0, 255, 0)
+            else: 
+                if isinstance(objs[k]['label'], list):
+                    color = colorbox[objs[k]['label'][0]]
+                else:
+                    color = colorbox[objs[k]['label']]
+            cur_num_verts = len(all_verts)
+            all_verts.extend(m.vertices.tolist())
+            all_faces.extend((m.faces + cur_num_verts).tolist())
+            all_colors.extend([color] * len(m.vertices))
+        
+        if filename is not None:
+            write_ply_rgb_face(np.array(all_verts), np.array(all_colors), np.array(all_faces), filename)
+
+        if separate:
+            return mesh_io
+
+        return mesh_io.merge()
 
     def camera_marker(self, color=(29, 203, 224), length=0.5, radius=0.05, texture=True):
         mesh = []
