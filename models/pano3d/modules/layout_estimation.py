@@ -73,7 +73,7 @@ class HorizonNet(nn.Module):
                         layout_scene, height, width, force_cuboid=False, scene_name=data['scene'][i], cfg=self.cfg)
                 except:
                     dt_cor_id = np.array([
-                        [k // 2 * 1024, 256 - ((k % 2) * 2 - 1) * 120]
+                        [k // 2 * 256, 256 + ((k % 2) * 2 - 1) * 120]
                         for k in range(8)
                     ])
                 manhattan_pix.append(dt_cor_id)
