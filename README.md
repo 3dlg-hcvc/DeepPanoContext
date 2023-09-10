@@ -196,7 +196,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --mo
 
 Train object reconstruction network (LIEN+LDIF) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif_igibson.yaml
+CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif_<data>.yaml
 ```
 The checkpoint and visualization results will be saved to ```out/ldif/<ldif_id>```.
    
@@ -217,7 +217,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation_<data>.yaml --mod
    
 1. Train Relation SGCN without relation branch:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_igibson.yaml --model.scene_gcn.output_relation False --model.scene_gcn.loss BaseLoss --weight out/bdb3d_estimation/<bdb3d_estimation_id>/model_best.pth out/ldif/<ldif_id>/model_best.pth
+    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_igibson.yaml --model.scene_gcn.output_relation False --model.scene_gcn.loss BaseLoss --weight out/bdb3d_estimation/<bdb3d_estimation_id>/model_best.pth out/ldif/<ldif_id>/model_best.pth --data.split /path/to/data
     ```
    The checkpoint and visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_wo_rel_id>```.
    

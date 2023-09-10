@@ -2,8 +2,7 @@ method: LIENLDIF
 resume: False
 finetune: True
 weight: [
-  # 'out/total3d/20110611514267/model_best.pth',
-  'out/ldif/23071423264320_ig/model_best.pth'
+  'out/total3d/20110611514267/model_best.pth',
 ]
 seed: 123
 device:

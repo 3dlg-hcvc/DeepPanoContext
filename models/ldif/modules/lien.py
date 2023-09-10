@@ -4,7 +4,6 @@ import torch.utils.model_zoo as model_zoo
 
 from models.modules.resnet import model_urls
 from models.registers import MODULES
-from configs.data_config import IG56CLASSES
 from models.modules import resnet
 
 
@@ -24,7 +23,7 @@ class LIEN(nn.Module):
         '''Modules'''
         self.encoder = resnet.resnet18_full(pretrained=False, num_classes=bottleneck_size, input_channels=3)
         self.mlp = nn.Sequential(
-            nn.Linear(bottleneck_size + len(IG56CLASSES), bottleneck_size), nn.LeakyReLU(0.2, True),
+            nn.Linear(bottleneck_size + len(cfg.config['OBJCLASSES']), bottleneck_size), nn.LeakyReLU(0.2, True),
             nn.Linear(bottleneck_size, bottleneck_size), nn.LeakyReLU(0.2, True),
             nn.Linear(bottleneck_size, model_config['shape_code_length'])
         )
