@@ -159,7 +159,7 @@ class Pano3D(BaseMethod):
 
             # encode class as one-hot
             for i_est, est_obj in enumerate(est_scene['objs']):
-                cls_code = np.zeros(len(self.OBJCLASSES), dtype=np.float32)
+                cls_code = np.zeros(len(self.cfg.config['OBJCLASSES']), dtype=np.float32)
                 cls_code[est_obj['label']] = 1.
                 est_obj['cls_code'] = cls_code
 
