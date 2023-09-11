@@ -1,16 +1,11 @@
 import os
 import json
 import argparse
-import random
 from glob import glob
 from tqdm import tqdm
-from multiprocessing import Pool
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-import cv2
-import torch
-import hashlib
 
 os.environ["PYOPENGL_PLATFORM"] = "egl" #opengl seems to only work with TPU
 
