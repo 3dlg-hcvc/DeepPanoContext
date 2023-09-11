@@ -5,10 +5,6 @@ import numpy as np
 import trimesh
 from plyfile import PlyData, PlyElement
 
-from .layout_utils import layout_line_segment_indexes
-from .igibson_utils import IGScene
-from .transform_utils import bdb3d_corners
-
 
 def save_mesh(mesh, save_path):
     if isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
@@ -261,44 +257,48 @@ def write_obj(objfile, data):
 
 
 def create_layout_mesh(data, color=(255, 69, 80), radius=0.025, texture=True):
-        if 'layout' not in data or (
-                'manhattan_world' not in data['layout']
-                and 'total3d' not in data['layout']
-        ):
-            return None
-        if 'total3d' in data['layout']:
-            mesh = create_layout_mesh(data['layout']['total3d'], color=color)
-        elif 'manhattan_world' in data['layout']:
-            mesh = []
-            layout_points = data['layout']['manhattan_world']
-            layout_lines = layout_line_segment_indexes(len(layout_points) // 2)
-            for indexes in layout_lines:
-                line = layout_points[indexes]
-                line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
-                mesh.append(line_mesh)
-            mesh = sum(mesh)
-            mesh = IGScene.colorize_mesh_for_igibson(mesh, color, texture)
-        return mesh
+    from .layout_utils import layout_line_segment_indexes
+    from .igibson_utils import IGScene
+    if 'layout' not in data or (
+            'manhattan_world' not in data['layout']
+            and 'total3d' not in data['layout']
+    ):
+        return None
+    if 'total3d' in data['layout']:
+        mesh = create_layout_mesh(data['layout']['total3d'], color=color)
+    elif 'manhattan_world' in data['layout']:
+        mesh = []
+        layout_points = data['layout']['manhattan_world']
+        layout_lines = layout_line_segment_indexes(len(layout_points) // 2)
+        for indexes in layout_lines:
+            line = layout_points[indexes]
+            line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
+            mesh.append(line_mesh)
+        mesh = sum(mesh)
+        mesh = IGScene.colorize_mesh_for_igibson(mesh, color, texture)
+    return mesh
 
 
 def create_bdb3d_mesh(bdb3d, color=None, radius=0.05):
-        corners = bdb3d_corners(bdb3d)
-        corners_box = corners.reshape(2, 2, 2, 3)
-        mesh = []
-        for k in [0, 1]:
-            for l in [0, 1]:
-                for idx1, idx2 in [((0, k, l), (1, k, l)), ((k, 0, l), (k, 1, l)), ((k, l, 0), (k, l, 1))]:
-                    line = corners_box[idx1], corners_box[idx2]
-                    line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
-                    mesh.append(line_mesh)
-        # for idx1, idx2 in [(0, 5), (1, 4)]:
-        #     line = corners[idx1], corners[idx2]
-        #     line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
-        #     mesh.append(line_mesh)
-        mesh = sum(mesh)
-        if color is not None:
-            mesh = IGScene.colorize_mesh_for_igibson(mesh, color)
-        return mesh
+    from .igibson_utils import IGScene
+    from .transform_utils import bdb3d_corners
+    corners = bdb3d_corners(bdb3d)
+    corners_box = corners.reshape(2, 2, 2, 3)
+    mesh = []
+    for k in [0, 1]:
+        for l in [0, 1]:
+            for idx1, idx2 in [((0, k, l), (1, k, l)), ((k, 0, l), (k, 1, l)), ((k, l, 0), (k, l, 1))]:
+                line = corners_box[idx1], corners_box[idx2]
+                line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
+                mesh.append(line_mesh)
+    # for idx1, idx2 in [(0, 5), (1, 4)]:
+    #     line = corners[idx1], corners[idx2]
+    #     line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
+    #     mesh.append(line_mesh)
+    mesh = sum(mesh)
+    if color is not None:
+        mesh = IGScene.colorize_mesh_for_igibson(mesh, color)
+    return mesh
 
 
 def write_ply_rgb_face(points, colors, faces, filename, text=True):

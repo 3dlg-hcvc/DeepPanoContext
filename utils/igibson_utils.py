@@ -8,7 +8,6 @@ from PIL import Image
 import trimesh
 
 from .image_utils import ImageIO
-from .layout_utils import layout_line_segment_indexes
 from .mesh_utils import MeshIO, write_ply_rgb_face, create_layout_mesh, create_bdb3d_mesh
 from .transform_utils import IGTransform, cam_axis, bdb3d_from_corners, bdb3d_corners
 from external.Equirec2Perspec.Equirec2Perspec import Equirectangular

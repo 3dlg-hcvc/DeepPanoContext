@@ -217,19 +217,19 @@ CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation_<data>.yaml --mod
    
 1. Train Relation SGCN without relation branch:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_igibson.yaml --model.scene_gcn.output_relation False --model.scene_gcn.loss BaseLoss --weight out/bdb3d_estimation/<bdb3d_estimation_id>/model_best.pth out/ldif/<ldif_id>/model_best.pth --data.split /path/to/data
+    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_<data>.yaml --model.scene_gcn.output_relation False --model.scene_gcn.loss BaseLoss --weight out/bdb3d_estimation/<bdb3d_estimation_id>/model_best.pth out/ldif/<ldif_id>/model_best.pth --data.split /path/to/data
     ```
    The checkpoint and visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_wo_rel_id>```.
    
 2. Train Relation SGCN with relation branch:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_igibson.yaml --weight out/relation_scene_gcn/<relation_sgcn_wo_rel_id>/model_best.pth --train.epochs 20 
+    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_<data>.yaml --weight out/relation_scene_gcn/<relation_sgcn_wo_rel_id>/model_best.pth --train.epochs 20 --data.split /path/to/data
     ```
    The checkpoint and visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_id>```.
  
 3. Fine-tune Relation SGCN end-to-end with relation optimization:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_igibson.yaml --weight out/relation_scene_gcn/<relation_sgcn_id>/model_best.pth --model.scene_gcn.relation_adjust True --train.batch_size 1 --val.batch_size 1 --device.num_workers 2 --train.freeze shape_encoder shape_decoder --model.scene_gcn.loss_weights.bdb3d_proj 1.0 --model.scene_gcn.optimize_steps 20 --train.epochs 10
+    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_<data>.yaml --weight out/relation_scene_gcn/<relation_sgcn_id>/model_best.pth --model.scene_gcn.relation_adjust True --train.batch_size 1 --val.batch_size 1 --device.num_workers 2 --train.freeze shape_encoder shape_decoder --model.scene_gcn.loss_weights.bdb3d_proj 1.0 --model.scene_gcn.optimize_steps 20 --train.epochs 10 --data.split /path/to/data
     ```
    The checkpoint and visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_ro_id>```.
 
