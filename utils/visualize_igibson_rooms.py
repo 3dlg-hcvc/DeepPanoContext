@@ -7,15 +7,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import shapely
 from shapely.geometry import Polygon, Point, MultiPolygon
+from copy import deepcopy
 
-from models.detector.dataset import register_detection_dataset
 from utils.igibson_utils import IGScene
-from utils.image_utils import save_image, show_image
 from models.pano3d.dataloader import IGSceneDataset
 from utils.visualize_utils import IGVisualizer
+from utils.relation_utils import RelationOptimization, relation_from_bins
 from utils.basic_utils import read_pkl
 from utils.render_layout_bdb3d import render_view
 from utils.mesh_utils import MeshIO, write_ply_rgb_face, create_layout_mesh, create_bdb3d_mesh
+from models.eval_metrics import bdb3d_iou, bdb2d_iou, classification_metric, AverageMeter, \
+    AveragePrecisionMeter, BinaryClassificationMeter, ClassMeanMeter
 from configs.data_config import igibson_colorbox
 
 
@@ -68,7 +70,36 @@ def merge_layout_bdb3d_mesh(data, objs, colorbox=None, separate=False, camera_co
     return mesh_io.merge()
 
 
-# scene_objs = defaultdict()
+def evaluate_collision(data, room_name, metric, metric_rooms):
+    # generate relation between estimated objects and layout
+    # 0.1m of toleration distance when measuring collision
+    relation_optimization = RelationOptimization(expand_dis=-0.1)
+    data['objs'] = deepcopy(data['objs'])
+    rel_scene = IGScene(data)
+    relation_optimization.generate_relation(rel_scene)
+    relation = rel_scene['relation']
+
+    # collision metrics
+    metric_rooms[room_name]['collision_pairs'].append(relation['obj_obj_tch'].sum() / 2)
+    metric_rooms[room_name]['collision_objs'].append(relation['obj_obj_tch'].any(axis=0).sum())
+    metric_rooms[room_name]['collision_walls'].append(relation['obj_wall_tch'].any(axis=-1).sum())
+    metric_rooms[room_name]['collision_ceil'].append(sum(o['ceil_tch'] for o in rel_scene['objs']))
+    metric_rooms[room_name]['collision_floor'].append(sum(o['floor_tch'] for o in rel_scene['objs']))
+    
+    metric['collision_pairs'].append(relation['obj_obj_tch'].sum() / 2)
+    metric['collision_objs'].append(relation['obj_obj_tch'].any(axis=0).sum())
+    metric['collision_walls'].append(relation['obj_wall_tch'].any(axis=-1).sum())
+    metric['collision_ceil'].append(sum(o['ceil_tch'] for o in rel_scene['objs']))
+    metric['collision_floor'].append(sum(o['floor_tch'] for o in rel_scene['objs']))
+    
+    # # save reconstructed relations for relation fidelity evaluation
+    # relation_optimization = RelationOptimization(expand_dis=cfg.config['data'].get('expand_dis', 0.1))
+    # relation_optimization.generate_relation(est_rel_scene)
+    # est_rel_scene['relation'] = relation_from_bins(relation, None)
+    # rel_scenes.append(est_rel_scene)
+
+metric = defaultdict(AverageMeter)
+
 for scene_name in tqdm(scene_names):
     scene_dir = os.path.join(out_dir, scene_name)
     os.makedirs(scene_dir, exist_ok=True)
@@ -76,6 +107,7 @@ for scene_name in tqdm(scene_names):
     scene_rooms = defaultdict(list)
     scene_layouts = defaultdict(dict)
     scene_objs = defaultdict(dict)
+    metric_rooms = defaultdict(lambda: ClassMeanMeter(AverageMeter))
     for i in range(100):
         camera_id = f"{i:05d}"
         pkl_file = os.path.join(data_dir, scene_name, camera_id, 'data.pkl')
@@ -88,11 +120,18 @@ for scene_name in tqdm(scene_names):
             room = Polygon(corners[:(len(corners)//2), :2])
             scene_polygons[room_name] = room
         scene_objs[room_name].update({obj['id']: obj for obj in data['objs'] if obj['id'] not in scene_objs[room_name]})
+        evaluate_collision(data.copy(), room_name, metric, metric_rooms)
     
     plot_ig_rooms_layout(scene_polygons,
                          os.path.join(scene_dir, "rooms.png"))
     with open(os.path.join(scene_dir, "cameras.json"), "w") as f:
         json.dump(scene_rooms, f, indent=4)
+        
+    for room_name in metric_rooms:
+        for k in metric_rooms[room_name]:
+            metric_rooms[room_name][k] = metric_rooms[room_name][k]()
+    with open(os.path.join(scene_dir, "collisions.json"), "w") as f:
+        json.dump(metric_rooms, f, indent=4)
         
     for room_name in scene_layouts:
         room_dir = os.path.join(scene_dir, room_name)
@@ -110,4 +149,7 @@ for scene_name in tqdm(scene_names):
         render_view(os.path.join(room_dir, 'layout_bdb3d.ply'),
                     os.path.join(room_dir, 'layout_bdb3d.png'))
 
-
+for k in metric:
+    metric[k] = metric[k]()
+with open(os.path.join(out_dir, "collisions.json"), "w") as f:
+    json.dump(metric, f, indent=4)
