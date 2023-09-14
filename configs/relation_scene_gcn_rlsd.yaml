@@ -163,12 +163,12 @@ val:
 test:
   batch_size: 1
 log:
-  vis_step: 10
+  vis_step: 1
   print_step: 10
   save_mesh: False
   path: out/relation_scene_gcn
   save_checkpoint: True
-
+  save_bdb3d_mesh: False
 
 
 
