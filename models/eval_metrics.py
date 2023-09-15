@@ -22,7 +22,7 @@ def _change_key(bbox):
     return bbox
 
 
-def bdb3d_iou(cu1, cu2):
+def bdb3d_iou(cu1, cu2, union=True):
     """
         Calculate the Intersection over Union (IoU) of two 3D cuboid.
 
@@ -59,9 +59,14 @@ def bdb3d_iou(cu1, cu2):
     # the volume of cu1 and cu2
     vol1 = polygon2D_1.area * (cu1[4][2]-cu1[0][2])
     vol2 = polygon2D_2.area * (cu2[4][2]-cu2[0][2])
+    # vol1 = polygon2D_1.area * (max(cu1[:,2])-min(cu1[:,2]))
+    # vol2 = polygon2D_2.area * (max(cu2[:,2])-min(cu2[:,2]))
 
     # return 3D IoU
-    return inter_vol / (vol1 + vol2 - inter_vol)
+    if union:
+        return inter_vol / (vol1 + vol2 - inter_vol)
+    else:
+        return vol1, inter_vol / vol1
 
 
 def bdb2d_iou(bb1, bb2):
