@@ -14,9 +14,8 @@ from .igibson_utils import IGScene
 from .image_utils import save_image, show_image
 # from models.pano3d.dataloader import IGSceneDataset
 from .visualize_utils import IGVisualizer
-from .render_rlsd_layout_bdb3d import render_view
+from .render_layout_bdb3d import render_view
 from configs.data_config import rlsd_cls45_colorbox, rlsd_cls23_colorbox, igibson_colorbox
-
 
 
 def visualize_camera(args):
@@ -26,14 +25,13 @@ def visualize_camera(args):
     if not os.path.exists(os.path.join(camera_folder, 'data.pkl')): return
     scene = IGScene.from_pickle(camera_folder)
     
-    if not ('objs' not in scene.data or not scene['objs'] or 'bdb3d' not in scene['objs'][0]):
+    if 'objs' in scene.data and scene['objs'] and 'bdb3d' in scene['objs'][0]:
         rotx90 = np.array([[1,0,0],[0,0,-1],[0,1,0]])
         for obj in scene['objs']:
             bdb3d = obj['bdb3d']
             bdb3d['basis'] = bdb3d['basis'] @ rotx90
     
-    visualizer = IGVisualizer(scene, gpu_id=args.gpu_id, debug=args.debug)
-    _ = scene.merge_layout_bdb3d_mesh(
+        _ = scene.merge_layout_bdb3d_mesh(
                 colorbox=igibson_colorbox * 255,
                 separate=False,
                 # camera_color=(29, 203, 224),
@@ -41,9 +39,10 @@ def visualize_camera(args):
                 texture=False,
                 filename=os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply')
             )
-    render_view(os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply'),
-                os.path.join(scene_folder, args.task_id, 'layout_bdb3d.png'))
+        render_view(os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply'),
+                    os.path.join(scene_folder, args.task_id, 'layout_bdb3d.png'))
 
+    visualizer = IGVisualizer(scene, gpu_id=args.gpu_id, debug=args.debug)
     # if not args.skip_render:
     #     render = visualizer.render(background=200)
 
