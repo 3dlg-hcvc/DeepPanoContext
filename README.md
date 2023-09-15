@@ -238,7 +238,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation_<data>.yaml --mod
 Run:
 
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_igibson.yaml --weight out/relation_scene_gcn/<relation_sgcn_ro_id>/model_best.pth --log.path out/relation_scene_gcn --resume False --finetune True --model.scene_gcn.relation_adjust True --mode qtest --model.scene_gcn.optimize_steps 100
+CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_<data>.yaml --weight out/relation_scene_gcn/<relation_sgcn_ro_id>/model_best.pth --log.path out/relation_scene_gcn --resume False --finetune True --model.scene_gcn.relation_adjust True --mode qtest --model.scene_gcn.optimize_steps 100
 ```
 
 The visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_ro_test_id>```.
