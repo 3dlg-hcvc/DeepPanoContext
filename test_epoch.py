@@ -29,7 +29,7 @@ def test_func(cfg, tester, test_loader):
         # visualize intermediate results.
         vis_step = cfg.config['log'].get('vis_step')
         if vis_step and ((iter + 1) % vis_step) == 0:
-            tester.visualize_step(est_data)
+            tester.visualize_step(est_data, gt_scenes=data[-1])
 
         metric_recorder.add(loss)
 
