@@ -96,7 +96,7 @@ class Tester(PanoTester):
 
         return metrics, est_data
 
-    def visualize_step(self, est_data):
+    def visualize_step(self, est_data, **kwargs):
         ''' Performs a visualization step.
         '''
         stitched = est_data['stitched']

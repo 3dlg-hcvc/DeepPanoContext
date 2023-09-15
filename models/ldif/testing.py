@@ -73,7 +73,7 @@ class Tester(BaseTester, Trainer):
         loss, est_data = self.get_metric_values(est_data, data)
         return loss, est_data
 
-    def visualize_step(self, data):
+    def visualize_step(self, data, **kwargs):
         ''' Performs a visualization step.
         '''
         est_data, gt_data = data
