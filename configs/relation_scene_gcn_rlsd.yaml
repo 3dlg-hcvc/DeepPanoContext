@@ -96,7 +96,7 @@ model:
     optimize_lr: 1.
     optimize_momentum: 0.9
     toleration_dis: 0.0
-    loss_weights:
+    loss_weights: # relation optimization loss weights
       center: 0.0001
       size: 1.0
       dis: 0.01

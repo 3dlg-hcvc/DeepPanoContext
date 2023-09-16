@@ -3,7 +3,6 @@ from torch import nn
 import torch.nn.functional as F
 import numpy as np
 
-from configs.data_config import IG56CLASSES
 from models.loss import BaseLoss
 from models.registers import LOSSES
 from utils.basic_utils import list_of_dict_to_dict_of_array, recursively_to
@@ -38,7 +37,7 @@ def cls_reg_loss(cls_result, cls_gt, reg_result, reg_gt):
 class Bdb3DLoss(BaseLoss):
     def __call__(self, est_data, gt_data):
         est_objs, gt_objs = est_data['objs'], gt_data['objs']
-        if est_data['objs']:
+        if est_data['objs'] and 'bdb3d' in est_objs and 'bdb3d' in gt_objs:
             id_gt = est_objs['gt']
             id_match = id_gt >= 0
             id_gt = id_gt[id_match]
@@ -53,7 +52,7 @@ class Bdb3DLoss(BaseLoss):
                 est_bdb3d['dis_reg'][id_match], gt_bdb3d['dis_reg'][id_gt])
             delta2d_loss = reg_criterion(est_objs['delta2d'][id_match], gt_objs['delta2d'][id_gt])
         else:
-            size_reg_loss = ori_cls_loss = ori_reg_loss = dis_cls_loss = dis_reg_loss = delta2d_loss = 0.
+            size_reg_loss = ori_cls_loss = ori_reg_loss = dis_cls_loss = dis_reg_loss = delta2d_loss = torch.tensor(0., dtype=torch.float)
         return {'size_reg_loss': size_reg_loss,
                 'ori_cls_loss': ori_cls_loss, 'ori_reg_loss': ori_reg_loss,
                 'dis_cls_loss': dis_cls_loss, 'dis_reg_loss': dis_reg_loss,
@@ -66,6 +65,8 @@ class JointLoss(Bdb3DLoss):
         loss_dict = super(JointLoss, self).__call__(est_data, gt_data)
 
         est_objs, gt_objs = est_data['objs'], gt_data['objs']
+        if not ('bdb3d' in est_objs and 'bdb3d' in gt_objs):
+            return loss_dict
         id_gt = est_objs['gt']
         id_match = id_gt >= 0
         est_bdb3ds = bins2bdb3d(est_data)
@@ -115,7 +116,7 @@ class JointLoss(Bdb3DLoss):
             bdb2d_from_est_bdb3d_t[id_match], bdb2d_from_gt_bdb3d_t[id_gt[id_match]])
 
         # physical violation loss
-        if self.config['model']['bdb3d_estimation'].get('use_phy', True):
+        if self.config['model']['bdb3d_estimation'].get('use_phy', True): # due to some bad layout estimation
             dis = []
             for i_scene, (start, end) in enumerate(est_objs['split']):
                 if 'layout' not in est_data:
@@ -160,15 +161,15 @@ class RelationLoss(BaseLoss):
             id_match = id_gt >= 0
 
             # object label
-            if est_objs['cls_code'].shape[-1] == len(IG56CLASSES) + 1:
+            if est_objs['cls_code'].shape[-1] == len(self.OBJCLASSES) + 1:
                 est_code = est_objs['cls_code']
                 gt_label = torch.zeros(len(est_code), device=est_code.device, dtype=torch.long)
-                gt_label[:] = len(IG56CLASSES)
+                gt_label[:] = len(self.OBJCLASSES)
                 gt_label[id_match] = gt_objs['label'][id_gt[id_match]]
                 loss_dict['label_loss'] = cls_criterion(est_code, gt_label)
 
             # optimized bdb3d pix
-            if 'ori' in est_objs['bdb3d']:
+            if 'ori' in est_objs['bdb3d'] and 'bdb3d' in gt_objs:
                 for k in ('center', 'dis', 'ori', 'size'):
                     est_v = est_objs['bdb3d'][k][id_match]
                     gt_v = gt_objs['bdb3d'][k][id_gt[id_match]]
@@ -192,7 +193,7 @@ class RelationLoss(BaseLoss):
                 gt_rel = gt_objs[k][id_gt[id_match]]
                 loss_dict[loss_name] = binary_cls_criterion(est_rel[:, 0], gt_rel.type(torch.float))
             else:
-                loss_dict[loss_name] = 0.
+                loss_dict[loss_name] = torch.tensor(0., dtype=torch.float)
 
         # object pairwise relation
         for k in ('obj_obj_rot', 'obj_obj_dis', 'obj_obj_tch', 'obj_wall_rot', 'obj_wall_tch'):
@@ -210,13 +211,15 @@ class RelationLoss(BaseLoss):
                         scene_rel = scene_rel[:, scene_id_match]
                     est_rel.append(scene_rel.view(-1, scene_rel.shape[-1]))
             if len(est_rel) == 0:
-                loss_dict[loss_name] = 0.
+                loss_dict[loss_name] = torch.tensor(0., dtype=torch.float)
                 continue
             est_rel = torch.cat(est_rel)
 
             gt_rel = []
             for scene_rel, (est_start, est_end), (gt_start, gt_end) \
                     in zip(gt_data['relation'], est_objs['split'], gt_objs['split']):
+                if not scene_rel:
+                    continue
                 scene_rel = scene_rel[k]
                 if est_end - est_start == 0:
                     continue
@@ -226,6 +229,9 @@ class RelationLoss(BaseLoss):
                     if k.startswith('obj_obj'):
                         scene_rel = scene_rel[:, scene_id_gt]
                     gt_rel.append(scene_rel.view(-1))
+            if len(est_rel) == 0:
+                loss_dict[loss_name] = torch.tensor(0., dtype=torch.float)
+                continue
             gt_rel = torch.cat(gt_rel)
 
             if 'rot' in k:
