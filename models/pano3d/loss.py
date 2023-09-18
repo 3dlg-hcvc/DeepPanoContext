@@ -37,7 +37,7 @@ def cls_reg_loss(cls_result, cls_gt, reg_result, reg_gt):
 class Bdb3DLoss(BaseLoss):
     def __call__(self, est_data, gt_data):
         est_objs, gt_objs = est_data['objs'], gt_data['objs']
-        if est_data['objs'] and 'bdb3d' in est_objs and 'bdb3d' in gt_objs:
+        if est_objs and 'bdb3d' in est_objs and 'bdb3d' in gt_objs and torch.any(est_objs['gt'] >= 0):
             id_gt = est_objs['gt']
             id_match = id_gt >= 0
             id_gt = id_gt[id_match]
@@ -65,7 +65,7 @@ class JointLoss(Bdb3DLoss):
         loss_dict = super(JointLoss, self).__call__(est_data, gt_data)
 
         est_objs, gt_objs = est_data['objs'], gt_data['objs']
-        if not ('bdb3d' in est_objs and 'bdb3d' in gt_objs):
+        if not ('bdb3d' in est_objs and 'bdb3d' in gt_objs and torch.any(est_objs['gt'] >= 0)):
             return loss_dict
         id_gt = est_objs['gt']
         id_match = id_gt >= 0
@@ -154,9 +154,8 @@ class RelationLoss(BaseLoss):
     def __call__(self, est_data, gt_data):
         loss_dict = {}
 
-        gt_objs = gt_data['objs']
-        if est_data['objs']:
-            est_objs = est_data['objs']
+        est_objs, gt_objs = est_data['objs'], gt_data['objs']
+        if est_objs and torch.any(est_objs['gt'] >= 0):
             id_gt = est_objs['gt']
             id_match = id_gt >= 0
 
@@ -185,58 +184,58 @@ class RelationLoss(BaseLoss):
                         gt_v = torch.zeros_like(est_v, device=est_v.device)
                     loss_dict[k + '_loss'] = reg_criterion(est_v, gt_v)
 
-        # object single relation
-        for k in ('floor_tch', 'ceil_tch', 'in_room'):
-            loss_name = k + '_loss'
-            if est_data['objs'] and id_match.any():
-                est_rel = est_objs[k][id_match]
-                gt_rel = gt_objs[k][id_gt[id_match]]
-                loss_dict[loss_name] = binary_cls_criterion(est_rel[:, 0], gt_rel.type(torch.float))
-            else:
-                loss_dict[loss_name] = torch.tensor(0., dtype=torch.float)
+            # object single relation
+            for k in ('floor_tch', 'ceil_tch', 'in_room'):
+                loss_name = k + '_loss'
+                if est_data['objs'] and id_match.any():
+                    est_rel = est_objs[k][id_match]
+                    gt_rel = gt_objs[k][id_gt[id_match]]
+                    loss_dict[loss_name] = binary_cls_criterion(est_rel[:, 0], gt_rel.type(torch.float))
+                else:
+                    loss_dict[loss_name] = torch.tensor(0., dtype=torch.float)
 
-        # object pairwise relation
-        for k in ('obj_obj_rot', 'obj_obj_dis', 'obj_obj_tch', 'obj_wall_rot', 'obj_wall_tch'):
-            loss_name = k + '_loss'
+            # object pairwise relation
+            for k in ('obj_obj_rot', 'obj_obj_dis', 'obj_obj_tch', 'obj_wall_rot', 'obj_wall_tch'):
+                loss_name = k + '_loss'
 
-            est_rel = []
-            for scene_rel, (start, end) in zip(est_data['relation'], est_objs['split']):
-                scene_rel = scene_rel[k]
-                if end - start == 0:
+                est_rel = []
+                for scene_rel, (start, end) in zip(est_data['relation'], est_objs['split']):
+                    scene_rel = scene_rel[k]
+                    if end - start == 0:
+                        continue
+                    scene_id_match = id_match[start:end]
+                    if scene_id_match.any():
+                        scene_rel = scene_rel[scene_id_match]
+                        if k.startswith('obj_obj'):
+                            scene_rel = scene_rel[:, scene_id_match]
+                        est_rel.append(scene_rel.view(-1, scene_rel.shape[-1]))
+                if len(est_rel) == 0:
+                    loss_dict[loss_name] = torch.tensor(0., dtype=torch.float)
                     continue
-                scene_id_match = id_match[start:end]
-                if scene_id_match.any():
-                    scene_rel = scene_rel[scene_id_match]
-                    if k.startswith('obj_obj'):
-                        scene_rel = scene_rel[:, scene_id_match]
-                    est_rel.append(scene_rel.view(-1, scene_rel.shape[-1]))
-            if len(est_rel) == 0:
-                loss_dict[loss_name] = torch.tensor(0., dtype=torch.float)
-                continue
-            est_rel = torch.cat(est_rel)
+                est_rel = torch.cat(est_rel)
 
-            gt_rel = []
-            for scene_rel, (est_start, est_end), (gt_start, gt_end) \
-                    in zip(gt_data['relation'], est_objs['split'], gt_objs['split']):
-                if not scene_rel:
+                gt_rel = []
+                for scene_rel, (est_start, est_end), (gt_start, gt_end) \
+                        in zip(gt_data['relation'], est_objs['split'], gt_objs['split']):
+                    if not scene_rel:
+                        continue
+                    scene_rel = scene_rel[k]
+                    if est_end - est_start == 0:
+                        continue
+                    scene_id_gt = id_gt[est_start:est_end][id_match[est_start:est_end]] - gt_start
+                    if len(scene_id_gt) > 0:
+                        scene_rel = scene_rel[scene_id_gt]
+                        if k.startswith('obj_obj'):
+                            scene_rel = scene_rel[:, scene_id_gt]
+                        gt_rel.append(scene_rel.view(-1))
+                if len(est_rel) == 0:
+                    loss_dict[loss_name] = torch.tensor(0., dtype=torch.float)
                     continue
-                scene_rel = scene_rel[k]
-                if est_end - est_start == 0:
-                    continue
-                scene_id_gt = id_gt[est_start:est_end][id_match[est_start:est_end]] - gt_start
-                if len(scene_id_gt) > 0:
-                    scene_rel = scene_rel[scene_id_gt]
-                    if k.startswith('obj_obj'):
-                        scene_rel = scene_rel[:, scene_id_gt]
-                    gt_rel.append(scene_rel.view(-1))
-            if len(est_rel) == 0:
-                loss_dict[loss_name] = torch.tensor(0., dtype=torch.float)
-                continue
-            gt_rel = torch.cat(gt_rel)
+                gt_rel = torch.cat(gt_rel)
 
-            if 'rot' in k:
-                loss_dict[loss_name] = cls_criterion(est_rel, gt_rel.type(torch.long))
-            else:
-                loss_dict[loss_name] = binary_cls_criterion(est_rel[..., 0], gt_rel.type(torch.float))
+                if 'rot' in k:
+                    loss_dict[loss_name] = cls_criterion(est_rel, gt_rel.type(torch.long))
+                else:
+                    loss_dict[loss_name] = binary_cls_criterion(est_rel[..., 0], gt_rel.type(torch.float))
 
         return loss_dict
