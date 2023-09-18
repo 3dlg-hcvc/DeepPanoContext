@@ -51,16 +51,24 @@ def bdb3d_iou(cu1, cu2, union=True):
     # pyplot.show()
 
     # 2D intersection area of the two projections.
-    intersect_2D = polygon2D_1.intersection(polygon2D_2).area
+    try:
+        intersect_2D = polygon2D_1.intersection(polygon2D_2).area
+    except:
+        polygon2D_2 = Polygon(
+            [(cu2[0][0], cu2[0][1]), (cu2[1][0], cu2[1][1]), (cu2[5][0], cu2[5][1]), (cu2[4][0], cu2[4][1])])
+        intersect_2D = polygon2D_1.intersection(polygon2D_2).area
 
     # the volume of the intersection part of cu1 and cu2
-    inter_vol = intersect_2D * max(0.0, min(cu1[4][2], cu2[4][2]) - max(cu1[0][2], cu2[0][2]))
+    # inter_vol = intersect_2D * max(0.0, min(cu1[4][2], cu2[4][2]) - max(cu1[0][2], cu2[0][2]))
+    cu1_h, cu1_l = max(cu1[:,2]), min(cu1[:,2])
+    cu2_h, cu2_l = max(cu2[:,2]), min(cu2[:,2])
+    inter_vol = intersect_2D * max(0.0, min(cu1_h, cu2_h) - max(cu1_l, cu2_l))
 
     # the volume of cu1 and cu2
-    vol1 = polygon2D_1.area * (cu1[4][2]-cu1[0][2])
-    vol2 = polygon2D_2.area * (cu2[4][2]-cu2[0][2])
-    # vol1 = polygon2D_1.area * (max(cu1[:,2])-min(cu1[:,2]))
-    # vol2 = polygon2D_2.area * (max(cu2[:,2])-min(cu2[:,2]))
+    # vol1 = polygon2D_1.area * (cu1[4][2]-cu1[0][2])
+    # vol2 = polygon2D_2.area * (cu2[4][2]-cu2[0][2])
+    vol1 = polygon2D_1.area * (cu1_h - cu1_l)
+    vol2 = polygon2D_2.area * (cu2_h - cu2_l)
 
     # return 3D IoU
     if union:
