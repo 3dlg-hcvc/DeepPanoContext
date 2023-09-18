@@ -16,8 +16,7 @@ from utils.relation_utils import RelationOptimization, relation_from_bins
 from utils.basic_utils import read_pkl
 from utils.render_layout_bdb3d import render_view
 from utils.mesh_utils import MeshIO, write_ply_rgb_face, create_layout_mesh, create_bdb3d_mesh
-from models.eval_metrics import bdb3d_iou, bdb2d_iou, classification_metric, AverageMeter, \
-    AveragePrecisionMeter, BinaryClassificationMeter, ClassMeanMeter
+from models.eval_metrics import AverageMeter, AveragePrecisionMeter, BinaryClassificationMeter, ClassMeanMeter
 from configs.data_config import igibson_colorbox
 
 

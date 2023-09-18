@@ -16,8 +16,7 @@ from utils.visualize_utils import IGVisualizer
 from utils.relation_utils import RelationOptimization, relation_from_bins
 from utils.basic_utils import read_pkl
 from utils.mesh_utils import MeshIO, write_ply_rgb_face, create_layout_mesh, create_bdb3d_mesh
-from models.eval_metrics import bdb3d_iou, bdb2d_iou, classification_metric, AverageMeter, \
-    BinaryClassificationMeter, ClassMeanMeter
+from models.eval_metrics import AverageMeter, BinaryClassificationMeter, ClassMeanMeter
 from configs import data_config
 
 
