@@ -21,6 +21,7 @@ from utils.visualize_utils import IGVisualizer
 from utils.image_utils import save_image
 from external.HorizonNet.eval_general import test_general
 from utils.basic_utils import dict_of_array_to_list_of_dict, recursively_to
+from utils.render_layout_bdb3d import render_view
 
 
 class Tester(BaseTester, Trainer):
@@ -49,7 +50,7 @@ class Tester(BaseTester, Trainer):
                     est_scenes
             ):
                 height, width = est_scene['camera']['height'], est_scene['camera']['width']
-                test_general(dt_cor_id, gt_cor_id, width, height, losses)
+                test_general(dt_cor_id, gt_cor_id, width, height, losses, est_data, gt_data)
             for n_corners, ms in losses.items():
                 for metric_name, metric in ms.items():
                     metrics[f"layout_{n_corners}_{metric_name}"] = AverageMeter(metric)
@@ -178,7 +179,9 @@ class Tester(BaseTester, Trainer):
         # evaluate IoU and bdb3d parameters
         metric_iou = defaultdict(AverageMeter)
         metric_bdb3d = defaultdict(lambda: ClassMeanMeter(AverageMeter))
+        metric_scene = defaultdict(lambda: ClassMeanMeter(AverageMeter))
         for est_scene, gt_scene in zip(est_scenes, gt_scenes):
+            scene_name = gt_scene['name']
             for est_obj in est_scene['objs']:
                 # match objects prediction and ground truth
                 if 'gt' not in est_obj or est_obj['gt'] < 0:
@@ -189,7 +192,9 @@ class Tester(BaseTester, Trainer):
 
                 # 3D IoU
                 est_corners, gt_corners = bdb3d_corners(est_bdb3d), bdb3d_corners(gt_bdb3d)
-                metric_iou['bdb3d_3DIoU'].append(bdb3d_iou(est_corners, gt_corners))
+                obj_3d_iou = bdb3d_iou(est_corners, gt_corners)
+                metric_iou['bdb3d_3DIoU'].append(obj_3d_iou)
+                metric_scene['scene_bdb3d_3DIoU'][scene_name].append(obj_3d_iou)
 
                 # 2D IoU: project bdb3d to camera plane
                 recentered_trans = IGTransform.level_look_at(est_scene.data, gt_bdb3d['centroid'])
@@ -211,6 +216,7 @@ class Tester(BaseTester, Trainer):
 
         metrics.update(metric_iou)
         metrics.update(metric_bdb3d)
+        metrics.update(metric_scene)
 
         # mAP and bdb3d parameters
         metric_aps = ClassMeanMeter(AveragePrecisionMeter)
@@ -281,7 +287,7 @@ class Tester(BaseTester, Trainer):
         loss, est_scenes = self.get_metric_values(est_data, data)
         return loss, est_scenes
 
-    def visualize_step(self, est_data):
+    def visualize_step(self, est_data, gt_scenes=None):
         ''' Performs a visualization step.
         '''
         if 'objs' in est_data and 'mesh' not in est_data['objs'] \
@@ -289,9 +295,23 @@ class Tester(BaseTester, Trainer):
             est_data['objs']['mesh'] = est_data['objs']['mesh_extractor'].extract_mesh()
         est_scenes = IGScene.from_batch(est_data)
 
-        for est_scene in est_scenes:
+        for i, est_scene in enumerate(est_scenes):
+            gt_scene = gt_scenes[i]
             scene_folder = os.path.join(self.cfg.config['log']['vis_path'], est_scene['scene'], est_scene['name'])
+            os.makedirs(scene_folder, exist_ok=True)
             gpu_id = int(self.cfg.config['device']['gpu_ids'].split(',')[0])
+            
+            if 'rlsd' in est_scene['image_path']['rgb'] and 'objs' in est_scene.data and est_scene['objs'] and 'bdb3d' in est_scene['objs'][0]:
+                rotx90 = np.array([[1,0,0],[0,0,-1],[0,1,0]])
+                for obj in est_scene['objs']:
+                    bdb3d = obj['bdb3d']
+                    bdb3d['basis'] = bdb3d['basis'] @ rotx90
+            if 'rlsd' in gt_scene['image_path']['rgb'] and 'objs' in gt_scene.data and gt_scene['objs'] and 'bdb3d' in gt_scene['objs'][0]:
+                rotx90 = np.array([[1,0,0],[0,0,-1],[0,1,0]])
+                for obj in gt_scene['objs']:
+                    bdb3d = obj['bdb3d']
+                    bdb3d['basis'] = bdb3d['basis'] @ rotx90
+            
             visualizer = IGVisualizer(est_scene, gpu_id=gpu_id)
 
             # save mesh
@@ -305,6 +325,19 @@ class Tester(BaseTester, Trainer):
                 scene_mesh.vertices[:, 1] *= -1
                 scene_mesh.vertices = scene_mesh.vertices[:, (0, 2, 1)]
                 save_mesh(scene_mesh, os.path.join(scene_folder, 'scene.glb'))
+                
+            if self.cfg.config['log'].get('save_bdb3d_mesh'):
+                _ = est_scene.merge_layout_bdb3d_mesh(
+                    colorbox=igibson_colorbox * 255,
+                    separate=False,
+                    # camera_color=(29, 203, 224),
+                    layout_color=(255, 69, 80),
+                    texture=False,
+                    gt_data=gt_scene.data,
+                    filename=os.path.join(scene_folder, 'layout_bdb3d.ply')
+                )
+                render_view(os.path.join(scene_folder, 'layout_bdb3d.ply'),
+                            os.path.join(scene_folder, 'layout_bdb3d.png'))
 
             if self.cfg.config['full'] and est_scene.mesh_io:
                 background = visualizer.background(200)
@@ -313,10 +346,10 @@ class Tester(BaseTester, Trainer):
 
             image = visualizer.image('rgb')
             save_image(image, os.path.join(scene_folder, 'rgb.png'))
-            image = visualizer.layout(image, total3d=True)
-            image = visualizer.objs3d(image, bbox3d=True, axes=True, centroid=True, info=False)
+            image = visualizer.layout(image, total3d=False)
+            image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
             save_image(image, os.path.join(scene_folder, 'det3d.png'))
-            image = visualizer.bfov(image)
+            # image = visualizer.bfov(image)
             image = visualizer.bdb2d(image)
             save_image(image, os.path.join(scene_folder, 'visual.png'))
 
