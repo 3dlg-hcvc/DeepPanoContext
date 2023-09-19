@@ -240,7 +240,7 @@ Run:
 ```shell
 CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_<data>.yaml --weight out/relation_scene_gcn/<relation_sgcn_ro_id>/model_best.pth --log.path out/relation_scene_gcn --resume False --finetune True --model.scene_gcn.relation_adjust True --mode qtest --model.scene_gcn.optimize_steps 100
 ```
-
+Use `--model.scene_gcn.loss_weights.bdb3d_proj 1.0` or even smaller could be better for RLSD data.
 The visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_ro_test_id>```.
 
 ## Citation
