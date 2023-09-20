@@ -23,7 +23,7 @@ def main():
                         help='The name of the scene to visualize')
     parser.add_argument('--task_id', type=str, default=None,
                         help='The task_id of the camera to visualize')
-    parser.add_argument('--output', type=str, default='out/tmp',
+    parser.add_argument('--output', type=str, default='out/relation_adjust',
                         help='The path of the output folder')
     parser.add_argument('--skip_render', default=False, action='store_true',
                         help='Skip visualizing mesh GT, which is time consuming')
@@ -43,6 +43,7 @@ def main():
     scene_name = f'{house_id}_{level_id}/{pano_id}'
     scene_folder = os.path.join(args.dataset, scene_name)
     camera_folder = os.path.join(scene_folder, args.task_id)
+    args.output = os.path.join(args.output, scene_name, args.task_id)
     if not os.path.exists(os.path.join(camera_folder, 'data.pkl')): return
     scene = IGScene.from_pickle(camera_folder)
     
@@ -54,10 +55,22 @@ def main():
         for k in ["mask_ids", "classname", "label"]:
             if isinstance(obj[k], list):
                 obj[k] = obj[k][0] #HACK
+                
+    loss_weights = {
+        'center': 0.0001, 'size': 1.0, 'dis': 0.01, 'ori': 0.001,
+        'obj_obj_col': 0.1, 'obj_wall_col': 1.0, 'obj_floor_col': 1.0, 'obj_ceil_col': 1.0,
+        'obj_obj_tch': 0.1, 'obj_wall_tch': 1.0, 'obj_floor_tch': 1.0, 'obj_ceil_tch': 1.0,
+        'obj_obj_rot': 0.01, 'obj_wall_rot': 0.1,
+        'obj_obj_dis': 0.01,
+        'bdb3d_proj': 10.0
+    }
 
     relation_optimization = RelationOptimization(
-        visual_path=args.output, expand_dis=args.expand_dis, toleration_dis=args.toleration_dis,
-        visual_frames=30
+        loss_weights=loss_weights,
+        visual_path=args.output,
+        expand_dis=args.expand_dis, 
+        toleration_dis=args.toleration_dis,
+        visual_frames=100
     )
 
     # inference relationships between objects from GT
@@ -87,7 +100,10 @@ def main():
     optim_data['relation'] = relation_label['relation']
 
     # run relation optimization with visualization
-    optim_bdb3d = relation_optimization.optimize(optim_data, visual=True)
+    optim_bdb3d = relation_optimization.optimize(optim_data, 
+                                                 steps=100,
+                                                 visual=True,
+                                                 lr=1)
     # optim_data['objs']['bdb3d'].update(IGTransform(optim_data).campix2world(optim_bdb3d))
 
     # evaluate bdb3d with gt

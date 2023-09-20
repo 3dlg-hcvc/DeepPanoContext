@@ -14,7 +14,7 @@ from utils.transform_utils import IGTransform
 def main():
     parser = argparse.ArgumentParser(
         description='Relation optimization testing.')
-    parser.add_argument('--dataset', type=str, default='data/igibson',
+    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/igibson',
                         help='The path of the iGibson dataset')
     parser.add_argument('--igibson_obj_dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/igibson_obj',
                         help='The path of the iGibson object dataset')
@@ -42,12 +42,20 @@ def main():
 
     scene_folder = os.path.join(args.dataset, args.scene)
     camera_folder = os.path.join(scene_folder, args.id)
-    scene = IGScene.from_pickle(camera_folder, args.igibson_obj_dataset)
+    # scene = IGScene.from_pickle(camera_folder, args.igibson_obj_dataset)
+    scene = IGScene.from_pickle(camera_folder)
+    
+    for obj in scene.data['objs']:
+        if 'bdb2d_clip' in obj: del obj['bdb2d_clip']
+        if 'contour_clip' in obj: del obj['contour_clip']
+    
     relation_optimization = RelationOptimization(
-        visual_path=args.output, expand_dis=args.expand_dis, toleration_dis=args.toleration_dis,
-        visual_frames=30
+        visual_path=args.output, 
+        expand_dis=args.expand_dis, 
+        toleration_dis=args.toleration_dis,
+        visual_frames=100
     )
-
+    
     # inference relationships between objects from GT
     relation_optimization.generate_relation(scene)
 
@@ -59,6 +67,7 @@ def main():
     background = cv2.cvtColor(background, cv2.COLOR_GRAY2RGB)
     relation_optimization.visual_background = background
 
+    # import pdb; pdb.set_trace()
     # randomize scene bdb3d
     gt_data = collate_fn(scene.data)
     relation_optimization.randomize_scene(scene)
