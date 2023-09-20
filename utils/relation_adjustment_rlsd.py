@@ -90,7 +90,7 @@ def main():
     relation_optimization.randomize_scene(scene)
 
     # visualize randomized scene
-    image = visualize_relation(scene, background)
+    image = visualize_relation(scene, background, relation=False)
     save_image(image, os.path.join(args.output, f'diff.png'))
 
     # to tensor
