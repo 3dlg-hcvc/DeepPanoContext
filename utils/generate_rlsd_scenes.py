@@ -111,7 +111,7 @@ def _render_scene(args):
         }
     skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
     plot_path = os.path.join(args.output, scene_name)
-    room, distance_wall = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
+    room, wall_ind_map, distance_wall = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
     if room is None:
         issues["outside_house"].append(full_task_id)
         print(skip_info + "room layout generation failed")
@@ -264,6 +264,25 @@ def _render_scene(args):
         #     continue
 
         data['objs'].append(obj_dict)
+        
+    for obj in data['objs']:
+        obj_id = obj['id']
+        obj.update({'obj_parent': -1, 'floor_supp': 0, 'ceil_supp': 0, 'wall_supp': 0, 'wall_parent': -1})
+        if 'parentId' not in objects[obj_id]:
+            continue
+        parent_id = objects[obj_id]['parentId']
+        parent_idx = list(filter(lambda i: data['objs'][i]['id'] == parent_id, range(len(data['objs']))))
+        if parent_idx:
+            obj['obj_parent'] = parent_idx[0]
+        else:
+            if parent_id[-1] == 'f':
+                obj['floor_supp'] = 1
+            elif parent_id[-1] == 'c':
+                obj['ceil_supp'] = 1
+            elif len(parent_id.split('_')) == 3: # wall
+                obj['wall_supp'] = 1
+                if int(parent_id.split('_')[1]) == data['room_idx']:
+                    obj['wall_parent'] = wall_ind_map.get(int(parent_id.split('_')[-1]), -1)
 
     if not data['objs']:
         print(f"{skip_info}no object in the frame")

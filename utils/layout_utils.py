@@ -201,7 +201,7 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
                 outside = False
                 break
         if outside:
-            return None, None # camera outside rooms -> invalid -> return None
+            return None, None, None # camera outside rooms -> invalid -> return None
     room = rooms[room_id]
     layout2d = room["room"]
     level = room["level"]
@@ -217,8 +217,26 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
 
     nearest_point, _ = shapely.ops.nearest_points(layout2d.boundary, cam_point)
     distance_wall = cam_point.distance(nearest_point)
+    
+    n_bd_walls = len(boundary)
+    wall_ind_map = {}
+    for i_wall in range(n_bd_walls):
+        wall_bottom_p = boundary[(i_wall, np.mod(i_wall + 1, n_bd_walls)), :]
+        if wall_bottom_p[0,0] == wall_bottom_p[1,0]:
+            a1, b1 = wall_bottom_p[0,0], -1e10
+        else:
+            a1, b1 = np.polyfit(wall_bottom_p[:,0], wall_bottom_p[:,1], 1)
+        for arch_wall in room['Wall']:
+            points = np.array(arch_wall['points'])[:, :-1]
+            if points[0,0] == points[1,0]:
+                a2, b2 = points[0,0], -1e10
+            else:
+                a2, b2 = np.polyfit(points[:,0], points[:,1], 1)
+            if np.abs(a1 - a2) < 1e-10 and np.abs(b1 - b2) < 1e-10:
+                wall_ind_map[int(arch_wall['id'].split('_')[-1])] = i_wall
+                break
 
-    return room, distance_wall
+    return room, wall_ind_map, distance_wall
 
 
 def plot_2d_regions_layout(rooms, room_id, level=0, cameras=[], output_path=None):
