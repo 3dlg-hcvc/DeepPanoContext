@@ -97,7 +97,7 @@ class FeatureExtractor:
         self.shape_decoder_config = cfg.config['model'].get('shape_decoder', {})
 
         self.feature_length = {
-            # for layout node
+            # for layout node, for Total3D, IM3D
             'layout.horizon.bon': width * 2,
             'layout.horizon.cor': width,
             'layout.total3d.pitch_reg': 2,
@@ -110,7 +110,7 @@ class FeatureExtractor:
             'layout.total3d.size_reg': 3,
             'layout.afeatures': 2048,
             'camera.K': 3,
-            # for wall node
+            # for wall node, for DPC
             'walls.bdb3d.centroid': 3,
             'walls.bdb3d.size': 3,
             'walls.bdb3d.center': 2,
@@ -603,6 +603,7 @@ class RelationSGCN(SceneGCN):
         self.output_bdb3d = self.model_config['output_bdb3d']
         self.output_relation = self.model_config['output_relation']
         self.output_label = self.model_config.get('output_label', False)
+        # relation optimization params
         self.relation_adjust = self.model_config['relation_adjust']
         self.visualize_adjust = self.model_config['visualize_adjust']
         self.score_weighted = self.model_config['score_weighted']
