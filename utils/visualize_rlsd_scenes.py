@@ -2,20 +2,19 @@ import os
 import json
 import argparse
 import pickle
-# from glob import glob
 from multiprocessing import Pool
 from tqdm import tqdm
 import numpy as np
 from PIL import Image
 import shutil
 
+from configs.data_config import rlsd_cls45_colorbox, rlsd_cls23_colorbox, igibson_colorbox
 from models.detector.dataset import register_detection_dataset
 from .igibson_utils import IGScene
-from .image_utils import save_image, show_image
-# from models.pano3d.dataloader import IGSceneDataset
+from .image_utils import save_image
 from .visualize_utils import IGVisualizer
 from .render_layout_bdb3d import render_view
-from configs.data_config import rlsd_cls45_colorbox, rlsd_cls23_colorbox, igibson_colorbox
+from .relation_utils import RelationOptimization, visualize_relation
 
 
 def visualize_camera(args):
@@ -26,11 +25,6 @@ def visualize_camera(args):
     scene = IGScene.from_pickle(camera_folder)
     
     if 'objs' in scene.data and scene['objs'] and 'bdb3d' in scene['objs'][0]:
-        rotx90 = np.array([[1,0,0],[0,0,-1],[0,1,0]])
-        for obj in scene['objs']:
-            bdb3d = obj['bdb3d']
-            bdb3d['basis'] = bdb3d['basis'] @ rotx90
-    
         _ = scene.merge_layout_bdb3d_mesh(
                 colorbox=igibson_colorbox * 255,
                 separate=False,
@@ -43,34 +37,23 @@ def visualize_camera(args):
                     os.path.join(scene_folder, args.task_id, 'layout_bdb3d.png'))
 
     visualizer = IGVisualizer(scene, gpu_id=args.gpu_id, debug=args.debug)
-    # if not args.skip_render:
-    #     render = visualizer.render(background=200)
 
     image = visualizer.image('rgb')
     image = visualizer.layout(image, total3d=False)
     image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
     det_image = visualizer.holes(image)
-    if not args.show:
-        save_path = os.path.join(scene_folder, args.task_id, 'det3d.png')
-        save_image(det_image, save_path)
+    save_path = os.path.join(scene_folder, args.task_id, 'det3d.png')
+    save_image(det_image, save_path)
     # image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
     image = visualizer.bdb2d(image)
-
-    if args.show:
-        # if not args.skip_render:
-        #     show_image(render)
-        #     if 'K' in scene['camera']:
-        #         birds_eye = visualizer.render(background=200, camera='birds_eye')
-        #         show_image(birds_eye)
-        #         up_down = visualizer.render(background=200, camera='up_down')
-        #         show_image(up_down)
-        show_image(image)
-    else:
-        # if not args.skip_render:
-        #     save_path = os.path.join(scene_folder, args.task_id, 'render.png')
-        #     save_image(render, save_path)
-        save_path = os.path.join(scene_folder, args.task_id, 'visual.png')
-        save_image(image, save_path)
+    save_path = os.path.join(scene_folder, args.task_id, 'visual.png')
+    save_image(image, save_path)
+        
+    relation_optimization = RelationOptimization(expand_dis=args.expand_dis)
+    relation_optimization.generate_relation(scene)
+    image = visualize_relation(scene, layout=True, relation=True, collision=True)
+    save_path = os.path.join(scene_folder, args.task_id, 'relation.png')
+    save_image(image, save_path)
 
 
 def main():
@@ -94,6 +77,9 @@ def main():
                         help='Skip visualizing mesh GT, which is time consuming')
     parser.add_argument('--show', default=False, action='store_true',
                         help='Show visualization results instead of saving')
+    parser.add_argument('--expand_dis', type=float, default=0.1,
+                        help='Distance of bdb3d expansion when generating collision and touch relation '
+                             'between objects, walls, floor and ceiling')
     args = parser.parse_args()
     register_detection_dataset(args.dataset)
     

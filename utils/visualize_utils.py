@@ -364,7 +364,8 @@ class IGVisualizer:
         if obj_obj_tch or collision:
             for i_a, obj_a in enumerate(objs):
                 for i_b, obj_b in enumerate(objs):
-                    if i_a == i_b or any(not obj.get('in_room', True) for obj in (obj_a, obj_b)):
+                    # if i_a == i_b or any(not obj.get('in_room', True) for obj in (obj_a, obj_b)):
+                    if i_a == i_b:
                         continue
                     bdb3d_a = obj_a['bdb3d']
                     bdb3d_b = obj_b['bdb3d']
