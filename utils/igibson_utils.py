@@ -465,8 +465,8 @@ class IGScene:
             if k == 'camera': color = camera_color
             elif k == 'layout_mesh': color = layout_color
             elif k == 'gt_layout_mesh': color = (255, 255, 0)
-            elif k.startswith(('est',)): color = (0, 0, 255)
-            elif k.startswith(('gt',)): color = (0, 255, 0)
+            elif str(k).startswith(('est',)): color = (0, 0, 255)
+            elif str(k).startswith(('gt',)): color = (0, 255, 0)
             else: 
                 if isinstance(objs[k]['label'], list):
                     color = colorbox[objs[k]['label'][0]]
