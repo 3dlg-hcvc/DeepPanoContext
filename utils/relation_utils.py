@@ -157,7 +157,7 @@ def test_bdb3ds(bdb3d_a, bdb3d_b=None, toleration_dis=0.):
 
 
 def visualize_relation(scene, background=None, wall3d=False,
-                       relation=True, show=True, collision=False, layout=False):
+                       relation=True, show=False, collision=False, layout=False):
     visualizer = IGVisualizer(scene)
     image = visualizer.background(0) if background is None else background
     if layout:
@@ -165,6 +165,7 @@ def visualize_relation(scene, background=None, wall3d=False,
     if wall3d:
         image = visualizer.wall3d(image, 50, thickness=1)
     image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
+    image = visualizer.objs3d(image, bbox3d=False, axes=False, centroid=True, info=False, thickness=2)
     if relation:
         image = visualizer.relation(image, thickness=2, collision=collision)
     if show:
