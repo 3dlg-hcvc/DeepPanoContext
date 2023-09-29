@@ -62,8 +62,17 @@ def main():
         'obj_obj_tch': 0.1, 'obj_wall_tch': 1.0, 'obj_floor_tch': 1.0, 'obj_ceil_tch': 1.0,
         'obj_obj_rot': 0.01, 'obj_wall_rot': 0.1,
         'obj_obj_dis': 0.01,
-        'bdb3d_proj': 10.0
+        'bdb3d_proj': 1.0
     }
+    
+    # loss_weights = {
+    #     'center': 0.1, 'size': 10.0, 'dis': 0.1, 'ori': 0.01,
+    #     'obj_obj_col': 0.1, 'obj_wall_col': 1.0, 'obj_floor_col': 1.0, 'obj_ceil_col': 1.0,
+    #     'obj_obj_tch': 0.1, 'obj_wall_tch': 1.0, 'obj_floor_tch': 1.0, 'obj_ceil_tch': 1.0,
+    #     'obj_obj_rot': 0.1, 'obj_wall_rot': 1,
+    #     'obj_obj_dis': 0.01,
+    #     'bdb3d_proj': 1.0
+    # }
 
     relation_optimization = RelationOptimization(
         loss_weights=loss_weights,
@@ -75,10 +84,9 @@ def main():
 
     # inference relationships between objects from GT
     relation_optimization.generate_relation(scene)
-    # relation_optimization.generate_relation(gt_scene)
     
     # visualize GT scene
-    background = visualize_relation(scene, layout=True, relation=False)
+    background = visualize_relation(scene, layout=True, relation=True, collision=True)
     save_image(background, os.path.join(args.output, f'gt.png'))
     background = cv2.cvtColor(background, cv2.COLOR_RGB2GRAY)
     background = (background * 0.5).astype(np.uint8)
@@ -90,7 +98,7 @@ def main():
     relation_optimization.randomize_scene(scene)
 
     # visualize randomized scene
-    image = visualize_relation(scene, background, relation=False)
+    image = visualize_relation(scene, background, relation=True, collision=True)
     save_image(image, os.path.join(args.output, f'diff.png'))
 
     # to tensor
@@ -99,7 +107,7 @@ def main():
     optim_data['objs'].update(relation_label['objs'])
     optim_data['relation'] = relation_label['relation']
 
-    # run relation optimization with visualization
+    # run relation optimization with visualization guided by GT relation
     optim_bdb3d = relation_optimization.optimize(optim_data, 
                                                  steps=100,
                                                  visual=True,
