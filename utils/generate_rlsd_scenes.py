@@ -211,6 +211,7 @@ def _render_scene(args):
             "basis": np.array(obj["obb"]["normalizedAxes"], dtype=np.float32).reshape(3, 3).T @ rotx90,
             "size": np.array(obj["obb"]["axesLengths"], dtype=np.float32),
         }
+        obj_dict['bdb3d']['size'][[1, 2]] = obj_dict['bdb3d']['size'][[2, 1]]
         objs[obj_id] = obj_dict
 
     # # get object layout
