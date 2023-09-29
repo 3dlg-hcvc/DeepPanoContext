@@ -23,24 +23,30 @@ data:
   fov_split: 0
   offset_bdb2d: False
 loss_weights:
+  # Bdb3DLoss
   size_reg_loss: 10.0
   ori_cls_loss: 1.0
   ori_reg_loss: 10.0
   dis_cls_loss: 1.0
   dis_reg_loss: 10.0
   delta2d_loss: 1.0
+  # JointLoss
   corner_loss: 50.0
   bdb2D_loss: 50.0
   phy_loss: 5.0
+  # RelationLoss: object-room relation
   floor_tch_loss: 10.0
   ceil_tch_loss: 10.0
   in_room_loss: 10.0
+  # RelationLoss: object-wise relation
   obj_obj_rot_loss: 10.0
   obj_obj_dis_loss: 10.0
   obj_obj_tch_loss: 10.0
   obj_wall_rot_loss: 10.0
   obj_wall_tch_loss: 10.0
+  # RelationLoss: object label
   label_loss: 10.0
+  # RelationLoss: optimized bdb3d pix
   center_loss: 10.0
   dis_loss: 10.0
   ori_loss: 10.0
@@ -49,7 +55,6 @@ model:
   bdb3d_estimation:
     module: Bdb3DNet
     loss: JointLoss
-    use_phy: False
     d_k: 64
     Nr: 16
   shape_encoder:
@@ -163,7 +168,7 @@ val:
 test:
   batch_size: 1
 log:
-  vis_step: 1
+  vis_step: 10
   print_step: 10
   save_mesh: False
   path: out/relation_scene_gcn
