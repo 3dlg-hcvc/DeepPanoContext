@@ -301,17 +301,6 @@ class Tester(BaseTester, Trainer):
             os.makedirs(scene_folder, exist_ok=True)
             gpu_id = int(self.cfg.config['device']['gpu_ids'].split(',')[0])
             
-            if 'rlsd' in est_scene['image_path']['rgb'] and 'objs' in est_scene.data and est_scene['objs'] and 'bdb3d' in est_scene['objs'][0]:
-                rotx90 = np.array([[1,0,0],[0,0,-1],[0,1,0]])
-                for obj in est_scene['objs']:
-                    bdb3d = obj['bdb3d']
-                    bdb3d['basis'] = bdb3d['basis'] @ rotx90
-            if 'rlsd' in gt_scene['image_path']['rgb'] and 'objs' in gt_scene.data and gt_scene['objs'] and 'bdb3d' in gt_scene['objs'][0]:
-                rotx90 = np.array([[1,0,0],[0,0,-1],[0,1,0]])
-                for obj in gt_scene['objs']:
-                    bdb3d = obj['bdb3d']
-                    bdb3d['basis'] = bdb3d['basis'] @ rotx90
-            
             visualizer = IGVisualizer(est_scene, gpu_id=gpu_id)
 
             # save mesh
