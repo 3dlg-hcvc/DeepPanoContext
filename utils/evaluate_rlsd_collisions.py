@@ -151,4 +151,16 @@ ax2 = sns.heatmap(avg_iou, annot=True, fmt='.2f', xticklabels=data_config.RLSD32
 plt.savefig('avg_iou.png')
 np.save("avg_iou.npy", avg_iou)
 
+col_prob = cls_cls_tch_num / (cls_num[None, ...]+1)
+_, ax3 = plt.subplots(figsize=(14,10))
+ax3 = sns.heatmap(col_prob, annot=True, fmt='.2f', xticklabels=data_config.RLSD32CLASSES, yticklabels=data_config.RLSD32CLASSES)
+plt.savefig('col_prob.png')
+np.save("col_prob.npy", col_prob)
+
+weighted_col_prob = col_prob * avg_iou
+_, ax4 = plt.subplots(figsize=(14,10))
+ax4 = sns.heatmap(weighted_col_prob, annot=True, fmt='.2f', xticklabels=data_config.RLSD32CLASSES, yticklabels=data_config.RLSD32CLASSES)
+plt.savefig('w_col_prob.png')
+np.save("w_col_prob.npy", weighted_col_prob)
+
 # import pdb; pdb.set_trace()
