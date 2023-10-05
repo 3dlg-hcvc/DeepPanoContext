@@ -127,6 +127,8 @@ class IGSceneDataset(Pano3DDataset):
         if 'relation' in gt_scene.data and any(k in self.config['model'] for k in ('scene_gcn', 'bdb3d_estimation')):
             if 'relation' in gt_scene.data:
                 gt_data['relation'] = gt_scene['relation']
+        else:
+            gt_data['relation'] = dict() # in case gt_scene has no relation due to empty scene
 
         return est_data, gt_data, est_scene, gt_scene
 
