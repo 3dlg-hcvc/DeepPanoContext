@@ -433,8 +433,6 @@ class IGScene:
     def merge_rlsd_mesh(self, colorbox=None, separate=False, camera_color=None, layout_color=None, texture=True):
         self.mesh_io.load()
         mesh_io = MeshIO()
-        if not self.data['objs']:
-            return mesh_io
 
         # transform each object mesh to world frame
         objs = self.data['objs']

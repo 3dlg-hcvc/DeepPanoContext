@@ -68,8 +68,6 @@ def main():
         description='Visualize iGibson scenes.')
     parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd_real',
                         help='The path of the rlsd dataset')
-    # parser.add_argument('--igibson_obj_dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/igibson_obj',
-    #                     help='The path of the iGibson object dataset')
     parser.add_argument('--full_pano_id', type=str, default=None,
                         help='The name of the scene to visualize')
     parser.add_argument('--task_id', type=str, default=None,
