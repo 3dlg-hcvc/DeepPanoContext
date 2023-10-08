@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from PIL import Image
 import trimesh
+from copy import deepcopy
 
 from .image_utils import ImageIO
 from .mesh_utils import MeshIO, write_ply_rgb_face, create_layout_mesh, create_bdb3d_mesh
@@ -178,7 +179,7 @@ class IGScene:
         self.data['camera'] = Camera(self.data['camera'])
 
     @classmethod
-    def from_pickle(cls, path: str, igibson_obj_dataset=None):
+    def from_pickle(cls, path: str, igibson_obj_dataset=None, load_rlsd_obj=False):
         camera_folder, pickle_file = pickle_path(path)
         data = read_pkl(pickle_file)
         if 'image_path' not in data:
@@ -187,6 +188,10 @@ class IGScene:
         if igibson_obj_dataset is not None:
             mesh_path = [os.path.join(igibson_obj_dataset, o['model_path'], cls.mesh_file)
                          for o in data['objs'] if 'model_path' in o]
+            if mesh_path:
+                data['mesh_path'] = mesh_path
+        if load_rlsd_obj:
+            mesh_path = [o['model_path'] for o in data['objs'] if 'model_path' in o]
             if mesh_path:
                 data['mesh_path'] = mesh_path
         scene = cls(data)
@@ -419,6 +424,44 @@ class IGScene:
             layout_mesh = create_layout_mesh(self.data, color=layout_color, texture=texture)
             if layout_mesh is not None:
                 mesh_io['layout_mesh'] = layout_mesh
+
+        if separate:
+            return mesh_io
+
+        return mesh_io.merge()
+    
+    def merge_rlsd_mesh(self, colorbox=None, separate=False, camera_color=None, layout_color=None, texture=True):
+        self.mesh_io.load()
+        mesh_io = MeshIO()
+        if not self.data['objs']:
+            return mesh_io
+
+        # transform each object mesh to world frame
+        objs = self.data['objs']
+        for k, v in self.mesh_io.items():
+            bdb3d = deepcopy(objs[k]['bdb3d'])
+            bdb3d['basis'] = bdb3d['basis'] @ np.array([[1,0,0],[0,0,-1],[0,1,0]])
+            if 'wayfair' in self.mesh_io.mesh_path[k]:
+                bdb3d['basis'] = bdb3d['basis'] @ np.array([[-1,0,0],[0,1,0],[0,0,-1]])
+            bdb3d['size'][[1, 2]] = bdb3d['size'][[2, 1]]
+            mesh_world = self.transform.obj2frame(v, bdb3d)
+            if colorbox is not None:
+                if isinstance(objs[k]['label'], list):
+                    color = colorbox[objs[k]['label'][0]]
+                else:
+                    color = colorbox[objs[k]['label']]
+                mesh_world = IGScene.colorize_mesh_for_igibson(mesh_world, color, texture)
+            mesh_io[k] = mesh_world
+
+        # add camera marker
+        if camera_color is not None:
+            camera_mesh = self.camera_marker(color=camera_color, texture=texture)
+            mesh_io['camera'] = camera_mesh
+
+        # add layout mesh
+        layout_mesh = create_layout_mesh(self.data, color=layout_color, texture=texture)
+        if layout_mesh is not None:
+            mesh_io['layout_mesh'] = layout_mesh
 
         if separate:
             return mesh_io

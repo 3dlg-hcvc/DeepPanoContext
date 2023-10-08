@@ -1,12 +1,8 @@
 import os
 import json
 import argparse
-import pickle
 from multiprocessing import Pool
 from tqdm import tqdm
-import numpy as np
-from PIL import Image
-import shutil
 
 from configs.data_config import rlsd_cls45_colorbox, rlsd_cls23_colorbox, igibson_colorbox
 from models.detector.dataset import register_detection_dataset
@@ -15,6 +11,7 @@ from .image_utils import save_image
 from .visualize_utils import IGVisualizer
 from .render_layout_bdb3d import render_view
 from .relation_utils import RelationOptimization, visualize_relation
+from .mesh_utils import save_mesh
 
 
 def visualize_camera(args):
@@ -22,13 +19,23 @@ def visualize_camera(args):
     scene_folder = os.path.join(args.dataset, args.scene_name) if args.scene_name is not None else args.dataset
     camera_folder = os.path.join(scene_folder, args.task_id)
     if not os.path.exists(os.path.join(camera_folder, 'data.pkl')): return
-    scene = IGScene.from_pickle(camera_folder)
+    scene = IGScene.from_pickle(camera_folder, load_rlsd_obj=True)
+    
+    if args.save_scene_mesh:
+        scene_mesh = scene.merge_rlsd_mesh(
+            colorbox=igibson_colorbox * 255,
+            separate=False,
+            layout_color=(255, 69, 80),
+            texture=False
+        )
+        save_mesh(scene_mesh, os.path.join(scene_folder, args.task_id, 'scene_mesh.obj'))
+        render_view(os.path.join(scene_folder, args.task_id, 'scene_mesh.obj'),
+                    os.path.join(scene_folder, args.task_id, 'scene_mesh.png'))
     
     if 'objs' in scene.data and scene['objs'] and 'bdb3d' in scene['objs'][0]:
         _ = scene.merge_layout_bdb3d_mesh(
                 colorbox=igibson_colorbox * 255,
                 separate=False,
-                # camera_color=(29, 203, 224),
                 layout_color=(255, 69, 80),
                 texture=False,
                 filename=os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply')
@@ -77,6 +84,8 @@ def main():
                         help='Skip visualizing mesh GT, which is time consuming')
     parser.add_argument('--show', default=False, action='store_true',
                         help='Show visualization results instead of saving')
+    parser.add_argument('--save_scene_mesh', default=False, action='store_true',
+                        help='')
     parser.add_argument('--expand_dis', type=float, default=0.1,
                         help='Distance of bdb3d expansion when generating collision and touch relation '
                              'between objects, walls, floor and ceiling')

@@ -16,9 +16,9 @@ def save_mesh(mesh, save_path):
 
 
 def load_mesh(path, mesh_only=False):
-    mesh = trimesh.load_mesh(path)
-    if isinstance(mesh, trimesh.Scene):
-        mesh = trimesh.load(path, force='mesh', skip_materials=True)
+    # mesh = trimesh.load_mesh(path)
+    # if isinstance(mesh, trimesh.Scene):
+    mesh = trimesh.load(path, force='mesh', skip_materials=True)
     if mesh_only:
         mesh = trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces)
     return mesh
@@ -256,7 +256,7 @@ def write_obj(objfile, data):
             file.write('f' + ' %s' * len(item) % tuple(item) + '\n')
 
 
-def create_layout_mesh(data, color=(255, 69, 80), radius=0.025, texture=True):
+def create_layout_mesh(data, color=None, radius=0.025, texture=True):
     from .layout_utils import layout_line_segment_indexes
     from .igibson_utils import IGScene
     if 'layout' not in data or (
@@ -275,7 +275,8 @@ def create_layout_mesh(data, color=(255, 69, 80), radius=0.025, texture=True):
             line_mesh = trimesh.creation.cylinder(radius, sections=8, segment=line)
             mesh.append(line_mesh)
         mesh = sum(mesh)
-        mesh = IGScene.colorize_mesh_for_igibson(mesh, color, texture)
+        if color is not None:
+            mesh = IGScene.colorize_mesh_for_igibson(mesh, color, texture)
     return mesh
 
 
