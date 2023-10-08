@@ -286,7 +286,7 @@ class IGVisualizer:
         return image
 
     def objs3d(self, image, bbox3d=True, axes=False, centroid=False, info=False, thickness=2):
-        if 'objs' not in self.scene.data or not self.scene['objs'] or 'bdb3d' not in self.scene['objs'][0]:
+        if not ('objs' in self.scene.data and self.scene['objs'] and 'bdb3d' in self.scene['objs'][0]):
             return image
         image = image.copy()
         objs = self.scene['objs']

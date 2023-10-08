@@ -42,6 +42,12 @@ def visualize_camera(args):
             )
         render_view(os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply'),
                     os.path.join(scene_folder, args.task_id, 'layout_bdb3d.png'))
+        
+        relation_optimization = RelationOptimization(expand_dis=args.expand_dis)
+        relation_optimization.generate_relation(scene)
+        image = visualize_relation(scene, layout=True, relation=True, collision=True)
+        save_path = os.path.join(scene_folder, args.task_id, 'relation.png')
+        save_image(image, save_path)
 
     visualizer = IGVisualizer(scene, gpu_id=args.gpu_id, debug=args.debug)
 
@@ -54,12 +60,6 @@ def visualize_camera(args):
     # image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
     image = visualizer.bdb2d(image)
     save_path = os.path.join(scene_folder, args.task_id, 'visual.png')
-    save_image(image, save_path)
-        
-    relation_optimization = RelationOptimization(expand_dis=args.expand_dis)
-    relation_optimization.generate_relation(scene)
-    image = visualize_relation(scene, layout=True, relation=True, collision=True)
-    save_path = os.path.join(scene_folder, args.task_id, 'relation.png')
     save_image(image, save_path)
 
 
