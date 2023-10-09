@@ -9,7 +9,6 @@ from models.testing import BaseTester
 from models.eval_metrics import bdb3d_iou, bdb2d_iou, rot_err, classification_metric, AverageMeter, \
     AveragePrecisionMeter, BinaryClassificationMeter, ClassMeanMeter
 from utils.layout_utils import manhattan_world_layout_info
-from utils.relation_utils import relation_from_bins, test_bdb3ds, RelationOptimization
 from .dataloader import collate_fn
 from ..pano3d.testing import Tester as PanoTester
 from utils.transform_utils import bins2bdb3d, IGTransform, bdb3d_corners, points2bdb2d, expand_bdb3d

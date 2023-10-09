@@ -5,6 +5,9 @@ import numpy as np
 import trimesh
 from plyfile import PlyData, PlyElement
 
+import torch
+from mesh_intersection.bvh_search_tree import BVH
+
 
 def save_mesh(mesh, save_path):
     if isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
@@ -312,3 +315,33 @@ def write_ply_rgb_face(points, colors, faces, filename, text=True):
     ele1 = PlyElement.describe(vertex, 'vertex', comments=['vertices'])
     ele2 = PlyElement.describe(face, 'face', comments=['faces'])
     PlyData([ele1, ele2], text=text).write(filename)
+    
+    
+def mesh_collision(mesh1, mesh2):
+    num_mesh1_faces = len(mesh1.faces)
+    mesh = trimesh.util.concatenate([mesh1, mesh2])
+    vertices = torch.tensor(mesh.vertices,
+                            dtype=torch.float32).to('cuda')
+    faces = torch.tensor(mesh.faces.astype(np.int64),
+                         dtype=torch.long).to('cuda')
+    
+    triangles = vertices[faces].unsqueeze(dim=0)
+
+    m = BVH(max_collisions=8)
+
+    torch.cuda.synchronize()
+    outputs = m(triangles)
+    torch.cuda.synchronize()
+
+    outputs = outputs.detach().cpu().numpy().squeeze()
+    collisions = outputs[outputs[:, 0] >= 0, :]
+    
+    face_diffs = np.sign(collisions - num_mesh1_faces + 0.5)
+    valid = (face_diffs[:, 0] * face_diffs[:, 1]) < 0
+    collisions = collisions[valid]
+    
+    # all_collisions = np.unique(collisions.reshape(-1))
+    # mesh1_collisions = all_collisions[all_collisions < num_mesh1_faces]
+    # mesh2_collisions = all_collisions[all_collisions >= num_mesh1_faces]
+    
+    return len(collisions) > 0
