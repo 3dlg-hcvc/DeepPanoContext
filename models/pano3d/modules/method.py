@@ -248,7 +248,7 @@ class Pano3D(BaseMethod):
             # set matched gt index for detected objects
             for i_est, est_obj in enumerate(est_objs):
                 est_obj['gt'] = i_est_gt_match.get(i_est, -1)
-                est_obj['gt_model_path'] = gt_objs[est_obj['gt']]['model_path']
+                est_obj['gt_model_path'] = gt_objs[est_obj['gt']]['model_path'] if est_obj['gt'] != -1 else ''
 
             # get normalized distance between bfov center and projected bdb3d centroid
             for gt_obj in gt_objs:
