@@ -327,7 +327,7 @@ def mesh_collision(mesh1, mesh2):
     
     triangles = vertices[faces].unsqueeze(dim=0)
 
-    m = BVH(max_collisions=8)
+    m = BVH(max_collisions=16)
 
     torch.cuda.synchronize()
     outputs = m(triangles)
