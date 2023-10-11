@@ -12,7 +12,7 @@ from models.eval_metrics import bdb3d_iou, bdb2d_iou, rot_err, classification_me
     AveragePrecisionMeter, BinaryClassificationMeter, ClassMeanMeter
 from utils.layout_utils import manhattan_world_layout_info
 from utils.mesh_utils import save_mesh
-from utils.relation_utils import relation_from_bins, test_bdb3ds, RelationOptimization
+from utils.relation_utils import relation_from_bins, RelationOptimization
 from .dataloader import collate_fn
 from .training import Trainer
 from utils.transform_utils import bins2bdb3d, IGTransform, bdb3d_corners, points2bdb2d, expand_bdb3d
@@ -84,13 +84,13 @@ class Tester(BaseTester, Trainer):
                     metric_col['collision_ceil'].append(sum(o['ceil_tch'] for o in est_rel_scene['objs']))
                     metric_col['collision_floor'].append(sum(o['floor_tch'] for o in est_rel_scene['objs']))
 
-                    # save reconstructed relations for relation fidelity evaluation
-                    relation_optimization = RelationOptimization(expand_dis=self.cfg.config['data'].get('expand_dis', 0.1))
-                    relation_optimization.generate_relation(est_rel_scene)
-                    est_rel_scene['relation'] = relation_from_bins(relation, None)
-                    rel_scenes.append(est_rel_scene)
+                    # # save reconstructed relations for relation fidelity evaluation
+                    # relation_optimization = RelationOptimization(expand_dis=self.cfg.config['data'].get('expand_dis', 0.1))
+                    # relation_optimization.generate_relation(est_rel_scene)
+                    # est_rel_scene['relation'] = relation_from_bins(relation, None)
+                    # rel_scenes.append(est_rel_scene)
 
-                rel_type_scenes['fidelity'] = rel_scenes
+                # rel_type_scenes['fidelity'] = rel_scenes
                 metrics.update(metric_col)
 
         # save classified relations for relation classification evaluation
@@ -105,6 +105,12 @@ class Tester(BaseTester, Trainer):
 
         # Relation evaluation
         if do_evaluation and 'relation' in gt_data:
+            obj_single_rels = ['floor_tch', 'ceil_tch', 'in_room']
+            obj_pair_rels = ['obj_obj_rot', 'obj_obj_dis', 'obj_obj_tch', 'obj_wall_rot', 'obj_wall_tch']
+            if self.cfg.config['model']['scene_gcn']['output_support']:
+                obj_single_rels.extend(['floor_supp', 'ceil_supp'])
+                obj_pair_rels.extend(['obj_obj_supp'])
+            
             if rel_type_scenes:
                 gt_rels = relation_from_bins(gt_data, None)['relation']
                 gt_rels = recursively_to(gt_rels, dtype='numpy')
@@ -121,12 +127,12 @@ class Tester(BaseTester, Trainer):
                     if len(id_gt) <= 0:
                         continue
 
-                    for k in ('floor_tch', 'ceil_tch', 'in_room'):
+                    for k in obj_single_rels:
                         est_v = np.array([o[k] for o in rel_scenes['objs']])[id_match]
                         gt_v = np.array([o[k] for o in gt_scene['objs']])[id_gt]
                         metric_rels[f"{k}_{rel_type}"].add({'est': est_v, 'gt': gt_v})
 
-                    for k in ('obj_obj_rot', 'obj_obj_dis', 'obj_obj_tch', 'obj_wall_rot', 'obj_wall_tch'):
+                    for k in obj_pair_rels:
                         # match estimated objects with ground truth
                         if 'relation' not in rel_scenes.data:
                             continue

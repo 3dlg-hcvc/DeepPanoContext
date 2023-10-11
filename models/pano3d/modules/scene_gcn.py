@@ -602,6 +602,7 @@ class RelationSGCN(SceneGCN):
         self.OBJ_ROT_BIN = len(data_config.metadata['rot_bins'])
         self.output_bdb3d = self.model_config['output_bdb3d']
         self.output_relation = self.model_config['output_relation']
+        self.output_support = self.model_config['output_support']
         self.output_label = self.model_config.get('output_label', False)
         # relation optimization params
         self.relation_adjust = self.model_config['relation_adjust']
@@ -667,6 +668,19 @@ class RelationSGCN(SceneGCN):
         # branch to predict the in_room
         self.fc_obj_in_room_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
         self.fc_obj_in_room_2 = nn.Linear(self.feature_dim // 2, 1)
+        
+        if self.output_support:
+            # branch to predict the obj_obj_supp
+            self.fc_obj_obj_supp_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
+            self.fc_obj_obj_supp_2 = nn.Linear(self.feature_dim // 2, 1)
+            
+            # branch to predict the floor_supp
+            self.fc_obj_floor_supp_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
+            self.fc_obj_floor_supp_2 = nn.Linear(self.feature_dim // 2, 1)
+            
+            # branch to predict the ceil_supp
+            self.fc_obj_ceil_supp_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
+            self.fc_obj_ceil_supp_2 = nn.Linear(self.feature_dim // 2, 1)
 
     def _get_map(self, objs_split, walls_split):
         device = objs_split.device
@@ -900,6 +914,13 @@ class RelationSGCN(SceneGCN):
         obj_obj_tch = self.relu(obj_obj_tch)
         obj_obj_tch = self.dropout(obj_obj_tch)
         relation['obj_obj_tch'] = self.fc_obj_obj_tch_2(obj_obj_tch)
+        
+        if self.output_support:
+            # branch to predict the obj_obj_supp
+            obj_obj_supp = self.fc_obj_obj_supp_1(pred_feats)
+            obj_obj_supp = self.relu(obj_obj_supp)
+            obj_obj_supp = self.dropout(obj_obj_supp)
+            relation['obj_obj_supp'] = self.fc_obj_obj_supp_2(obj_obj_supp)
 
         # branch to predict the obj_wall_rot
         obj_wall_rot = self.fc_obj_wall_rot_1(pred_feats)
@@ -962,6 +983,24 @@ class RelationSGCN(SceneGCN):
             'ceil_tch': ceil_tch,
             'in_room': in_room,
         }
+
+        if self.output_support:
+            # branch to predict the floor_supp
+            floor_supp = self.fc_obj_floor_supp_1(obj_feats_wowall)
+            floor_supp = self.relu(floor_supp)
+            floor_supp = self.dropout(floor_supp)
+            floor_supp = self.fc_obj_floor_supp_2(floor_supp)
+            
+            # branch to predict the ceil_supp
+            ceil_supp = self.fc_obj_ceil_supp_1(obj_feats_wowall)
+            ceil_supp = self.relu(ceil_supp)
+            ceil_supp = self.dropout(ceil_supp)
+            ceil_supp = self.fc_obj_ceil_supp_2(ceil_supp)
+
+            objs.update({
+                'floor_supp': floor_supp,
+                'ceil_supp': ceil_supp,
+            })
 
         return objs, rel_list
 
