@@ -190,7 +190,7 @@ def _render_scene(args):
         if model_source == 'wayfair':
             model_path = f'/datasets/internal/models3d/wayfair/wayfair_models_cleaned/{model_name}/{model_name}.glb'
         elif model_source == '3dw':
-            model_path = f'/project/3dlg-hcvc/rlsd/data/3dw/objmeshes-normalized/{model_name}/{model_name}.obj'
+            model_path = f'/project/3dlg-hcvc/rlsd/data/3dw/objmeshes/{model_name}/{model_name}.obj'
             if not os.path.exists(model_path):
                 missing_3dw.add(model_name)
         else:
