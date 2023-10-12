@@ -18,39 +18,36 @@ CUSTOM2RLSD = {'pictures': 'picture', 'platn': 'plant', 'light': 'lighting', 'pa
 
 common_objects = ['counter', 'picture', 'microwave', 'sink', 'oven', 'dishwasher', 'chair', 'mirror', 'shower', 'table', 'stove', 'stool', 'bed', 'plant', 'door', 'bathtub', 'sofa', 'cushion', 'toilet', 'window']
 rlsd_common_mapping = {k:k for k in common_objects}
-RLSD32_2_IG56 = {'washing machine': 'washer', 'towel': 'towel_rack', 'cabinet': 'bottom_cabinet', 'tv_monitor': 'monitor', 'lighting': 'floor_lamp', 'blinds': 'fence', 'seating': 'bench', 'refrigerator': 'fridge', 'chest_of_drawers': 'counter', 'clothes dryer': 'dryer', 'shelving': 'shelf', 'curtain': 'fence'}
+RLSD32_2_IG56 = {'washing machine': 'washer', 'cabinet': 'bottom_cabinet', 'tv_monitor': 'monitor', 'lighting': 'floor_lamp', 'seating': 'bench', 'refrigerator': 'fridge', 'chest_of_drawers': 'chest', 'clothes dryer': 'dryer', 'shelving': 'shelf'}
 RLSD32_2_IG56.update(rlsd_common_mapping)
 
-COMMON23CLASSES = ['counter', 'picture', 'microwave', 'sink', 'oven', 'dishwasher', 'chair', 'mirror', 'shower', 'table', 'stove', 'stool', 'bed', 'plant', 'bathtub', 'sofa', 'cushion', 'toilet', 'washing machine', 'tv_monitor', 'refrigerator', 'clothes dryer', 'shelving']
+COMMON25CLASSES = ['bathtub', 'bed', 'cabinet', 'chair', 'chest_of_drawers', 'clothes dryer', 'counter', 'cushion', 'dishwasher', 'microwave', 'mirror', 'oven', 'picture', 'plant', 'refrigerator', 'shelving', 'shower', 'sink', 'sofa', 'stool', 'stove', 'table', 'toilet', 'tv_monitor', 'washing machine']
+
 
 NYU40CLASSES = ['bag', 'bathtub', 'bed', 'blinds', 'books', 'bookshelf', 'box', 'cabinet', 'ceiling', 'chair', 'clothes', 'counter', 'curtain', 'desk', 'door', 'dresser', 'floor', 'floor mat', 'lamp', 'mirror', 'nightstand', 'otherfurniture', 'otherprop', 'otherstructure', 'paper', 'person', 'picture', 'pillow', 'refrigerator', 'shelves', 'shower curtain', 'sink', 'sofa', 'table', 'television', 'toilet', 'towel', 'unknown', 'wall', 'whiteboard', 'window']
 
-NYU40_2_IG56 = {'bathtub': 'bathtub', 'bed':'bed', 'blinds': 'fence',
-                'bookshelf': 'shelf', 'cabinet': 'bottom_cabinet', 'chair': 'chair',
-                'counter': 'counter', 'curtain': 'fence', 'desk': 'table',
-                'door': 'door', 'dresser': 'counter', 'floor mat': 'carpet', 
-                'lamp': 'floor_lamp', 'mirror': 'mirror', 'nightstand': 'chest',
-                'picture': 'picture', 'pillow': 'cushion', 'refrigerator': 'fridge',
-                'shelves': 'shelf', 'shower curtain': 'fence', 'sink': 'sink',
-                'sofa': 'sofa', 'table': 'table', 'television': 'monitor', 'toilet': 'toilet',
-                'towel': 'towel_rack', 'window': 'window'}
+NYU40_2_COMMON25 = {'bookshelf': 'shelving', 'desk': 'table', 'dresser': 'chest_of_drawers', 'floor mat': 'carpet',
+                 'lamp': 'lighting', 'nightstand': 'chest_of_drawers', 'pillow': 'cushion', 'shelves': 'shelving',
+                 'television': 'tv_monitor'}
+
+NYU40_2_IG56 = {'bookshelf': 'shelf', 'cabinet': 'bottom_cabinet', 'desk': 'table',
+                'dresser': 'counter', 'floor mat': 'carpet', 'lamp': 'floor_lamp', 'nightstand': 'chest',
+                'pillow': 'cushion', 'refrigerator': 'fridge', 'shelves': 'shelf',  'television': 'monitor'}
 
 NYU40_2_PSU45 = {'bookshelf': 'shelving', 'desk': 'table', 'dresser': 'chest_of_drawers', 'floor mat': 'carpet',
-                 'lamp': 'lighting', 'nightstand': 'table', 'pillow': 'cushion', 'shelves': 'shelving',
+                 'lamp': 'lighting', 'nightstand': 'chest_of_drawers', 'pillow': 'cushion', 'shelves': 'shelving',
                  'shower curtain': 'curtain', 'television': 'tv_monitor'}
 
 
-PSU45CLASSES = RLSD32CLASSES + \
-               ['basket', 'range_hood', 'carpet', 'piano', 'coffee_machine', 'clock', 'guitar', 'heater', 'laptop', 'speaker', 'towel_rack', 'trash_can', 'treadmill']
+PSU45CLASSES = RLSD32CLASSES + ['basket', 'range_hood', 'carpet', 'piano', 'coffee_machine', 'clock', 'guitar', 'heater', 'laptop', 'speaker', 'towel_rack', 'trash_can', 'treadmill']
 
 IG56_2_PSU45 = {'bench': 'seating', 'bottom_cabinet': 'cabinet', 'bottom_cabinet_no_top': 'cabinet',
            'chest': 'chest_of_drawers', 'coffee_table': 'table', 'console_table': 'table',
            'cooktop': 'stove', 'crib': 'bed', 'dryer': 'clothes dryer', 'floor_lamp': 'lighting',
            'fridge': 'refrigerator', 'grandfather_clock': 'clock', 'loudspeaker': 'speaker',
            'monitor': 'tv_monitor', 'office_chair': 'chair', 'pool_table': 'table', 'shelf': 'shelving',
-           'sofa_chair': 'chair', 'speaker_system': 'speaker', 'standing_tv': 'tv_monitor',
-           'table_lamp': 'lighting', 'top_cabinet': 'cabinet', 'wall_clock': 'clock', 'wall_mounted_tv': 'tv_monitor',
-           'washer': 'washing machine'}
+           'sofa_chair': 'chair', 'speaker_system': 'speaker', 'standing_tv': 'tv_monitor', 'table_lamp': 'lighting', 
+           'top_cabinet': 'cabinet', 'wall_clock': 'clock', 'wall_mounted_tv': 'tv_monitor', 'washer': 'washing machine'}
 
 IG56CLASSES = [
     'basket', 'bathtub', 'bed', 'bench', 'bottom_cabinet',
@@ -229,7 +226,7 @@ PC2IG = {
 colorbox_path = 'external/cooperative_scene_parsing/evaluation/vis/igibson_colorbox.mat'
 igibson_colorbox = np.array(sns.hls_palette(n_colors=len(IG59CLASSES), l=.45, s=.8))
 rlsd_cls45_colorbox = np.array(sns.hls_palette(n_colors=len(PSU45CLASSES), l=.45, s=.8))
-rlsd_cls23_colorbox = np.array(sns.hls_palette(n_colors=len(COMMON23CLASSES), l=.45, s=.8))
+rlsd_cls23_colorbox = np.array(sns.hls_palette(n_colors=len(COMMON25CLASSES), l=.45, s=.8))
 if not os.path.exists(colorbox_path):
     sio.savemat(colorbox_path, {'igibson_colorbox': igibson_colorbox})
 

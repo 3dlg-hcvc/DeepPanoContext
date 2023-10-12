@@ -10,7 +10,7 @@ from detectron2.config import get_cfg as default_cfg
 from detectron2.data import DatasetCatalog
 from detectron2.data import MetadataCatalog
 
-from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name, PSU45CLASSES
+from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name, PSU45CLASSES, COMMON25CLASSES
 from utils.visualize_utils import detectron_gt_sample, visualize_igibson_detectron_gt
 from utils.image_utils import show_image
 from models.pano3d.dataloader import IGSceneDataset, RLSDSceneDataset
@@ -32,6 +32,8 @@ def register_detection_dataset(path, real=None):
             thing_classes = WIMR11CLASSES
         else:
             raise NotImplementedError
+        if 'cls25' in dataset:
+            thing_classes = COMMON25CLASSES
         MetadataCatalog.get(f"{dataset}_{d}").set(thing_classes=thing_classes)
 
 
