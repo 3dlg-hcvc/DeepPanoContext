@@ -29,42 +29,19 @@ def visualize_camera(args):
 
     image = visualizer.image('rgb')
     image = visualizer.layout(image, total3d=False)
-    image = visualizer.objs3d(image, bbox3d=True, axes=True, centroid=False, info=False, thickness=1)
-    if not args.show:
-        save_path = os.path.join(scene_folder, 'det3d.png')
-        save_image(image, save_path)
-        # save_image(image, './det3d.png')
-        # save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/w_pano_camera_n_anno"
-        # os.makedirs(save_dir, exist_ok=True)
-        # save_image(image, os.path.join(save_dir, f"{pano_id}.png"))
+    image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
+    save_path = os.path.join(scene_folder, 'det3d.png')
+    save_image(image, save_path)
     # image = visualizer.bfov(image, thickness=1, include=('walls', 'objs'))
     image = visualizer.bdb2d(image)
-
-    if args.show:
-        # if not args.skip_render:
-        #     show_image(render)
-        #     if 'K' in scene['camera']:
-        #         birds_eye = visualizer.render(background=200, camera='birds_eye')
-        #         show_image(birds_eye)
-        #         up_down = visualizer.render(background=200, camera='up_down')
-        #         show_image(up_down)
-        show_image(image)
-    else:
-        # if not args.skip_render:
-        #     save_path = os.path.join(scene_folder, 'render.png')
-        #     save_image(render, save_path)
-        save_path = os.path.join(scene_folder, 'visual.png')
-        save_image(image, save_path)
-        # save_image(image, './visual.png')
-        # save_dir = f"/project/3dlg-hcvc/rlsd/www/annotations/docs/viz_v2/w_pano_camera_n_anno/"
-        # os.makedirs(save_dir, exist_ok=True)
-        # save_image(image, os.path.join(save_dir, f"{pano_id}.png"))
+    save_path = os.path.join(scene_folder, 'visual.png')
+    save_image(image, save_path)
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='Visualize iGibson scenes.')
-    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/s3d',
+    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/s3d_cls25',
                         help='The path of the rlsd dataset')
     parser.add_argument('--scene_name', type=str, default=None,
                         help='The name of the scene to visualize')
