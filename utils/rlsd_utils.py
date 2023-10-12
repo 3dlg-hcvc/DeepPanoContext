@@ -25,14 +25,18 @@ def prepare_images(args):
     if os.path.exists(os.path.join(args.output, args.scene_name, "rgb.png")):
         return
     house_id = args.scene_name.split("_")[0]
-    pano_id = args.scene_name.split("/")[-1]
+    if args.img_mode == 'mix':
+        pano_id, img_mode = args.scene_name.split("/")[-1].split("_")
+    else:
+        pano_id = args.scene_name.split("/")[-1]
+        img_mode = args.img_mode
     task_id = args.task_id
-    if args.img_mode == "real":
-        rgb_path = f"{data_dirs[args.img_mode]['rgb']}/{house_id}/{pano_id}.png"
-        inst_path = f"{data_dirs[args.img_mode]['inst']}/{house_id}/{pano_id}.objectId.encoded.png"
-    elif args.img_mode == "syn":
-        rgb_path = f"{data_dirs[args.img_mode]['rgb']}/{task_id}/{pano_id}.png"
-        inst_path = f"{data_dirs[args.img_mode]['inst']}/{task_id}/{pano_id}.objectId.encoded.png"
+    if img_mode == "real":
+        rgb_path = f"{data_dirs[img_mode]['rgb']}/{house_id}/{pano_id}.png"
+        inst_path = f"{data_dirs[img_mode]['inst']}/{house_id}/{pano_id}.objectId.encoded.png"
+    elif img_mode == "syn":
+        rgb_path = f"{data_dirs[img_mode]['rgb']}/{task_id}/{pano_id}.png"
+        inst_path = f"{data_dirs[img_mode]['inst']}/{task_id}/{pano_id}.objectId.encoded.png"
     else:
         raise NotImplemented
     Image.open(rgb_path).convert("RGB").resize((1024, 512)).save(os.path.join(args.output, args.scene_name, "rgb.png"))

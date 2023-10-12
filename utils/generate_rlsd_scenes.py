@@ -53,9 +53,13 @@ def _render_scene_fail_remove(args):
 
 def _render_scene(args):
     # preparation
-    scene_name, scene_source = args.scene_name, args.scene_source
+    scene_name, _ = args.scene_name, args.scene_source
     house_id = scene_name.split("_")[0]
-    pano_id = scene_name.split("/")[-1]
+    if args.img_mode == 'mix':
+        pano_id, img_mode = scene_name.split("/")[-1].split("_")
+    else:
+        pano_id = scene_name.split("/")[-1]
+        img_mode = args.img_mode
     task_id = args.task_id
     full_task_id = f'{scene_name}/{task_id}'
     task_file = f"/project/3dlg-hcvc/rlsd/data/annotations/complete_task_json/{task_id}.json"
@@ -226,7 +230,7 @@ def _render_scene(args):
     data['objs'] = []
     inst_path = os.path.join(args.output, scene_name, "seg.png")
     inst_seg = encode_rgba(np.array(Image.open(inst_path)))
-    if args.img_mode == 'syn':
+    if img_mode == 'syn':
         obj2insts = {}
         label_csv_path = f"/project/3dlg-hcvc/rlsd/data/annotations/equirectangular_instance/{task_id}/{task_id}.scene.objectId.csv"
         label_df = pd.read_csv(label_csv_path)
@@ -313,6 +317,9 @@ def main():
     parser.add_argument('--scene', dest='scene_name',
                         type=str, default=None,
                         help='The name of the scene to load')
+    parser.add_argument('--source', dest='scene_source',
+                        type=str, default='IG',
+                        help='The name of the source dataset, among [IG,CUBICASA,THREEDFRONT]')
     parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd',
                         help='The path of the output folder')
     parser.add_argument('--seed', type=int, default=0,
@@ -413,7 +420,14 @@ def main():
             full_pano_id = task_pano_mapping[task_id]
             house_id, level_id, pano_id = full_pano_id.split('_')
             args_dict['scene_name'] = f'{house_id}_{level_id}/{pano_id}'
-            args_list.append(argparse.Namespace(**args_dict))
+            if args_dict['img_mode'] == 'mix':
+                args_dict_real, args_dict_syn = args_dict.copy(), args_dict.copy()
+                args_dict_real['scene_name'] = f"{args_dict_real['scene_name']}_real"
+                args_list.append(argparse.Namespace(**args_dict_real))
+                args_dict_syn['scene_name'] = f"{args_dict_syn['scene_name']}_syn"
+                args_list.append(argparse.Namespace(**args_dict_syn))
+            else:
+                args_list.append(argparse.Namespace(**args_dict))
         print(f"{len(args_list)} scenes to be rendered")
 
         if args.processes == 0:
