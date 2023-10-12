@@ -39,7 +39,7 @@ def register_detection_dataset(path, real=None):
 
 def get_dataset_dicts(folder, mode):
     dataset_name = get_dataset_name(folder)
-    if dataset_name == 'igibson':
+    if dataset_name.startswith(('igibson',)):
         dataset = IGSceneDataset({'data': {'split': folder}}, mode)
     elif dataset_name.startswith(('rlsd',)):
         dataset = RLSDSceneDataset({'data': {'split': folder}}, mode)
