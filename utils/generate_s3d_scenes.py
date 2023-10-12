@@ -1,8 +1,6 @@
 import os
 import json
-# import jsonlines
 import argparse
-# import math
 import pickle
 import numpy as np
 from PIL import Image
@@ -15,7 +13,7 @@ import shapely
 from glob import glob
 import traceback
 
-from configs.data_config import IG56CLASSES, NYU40_2_IG56
+from configs.data_config import NYU40CLASSES, COMMON25CLASSES, NYU40_2_COMMON25
 from data.s3d_metadata.labels import IDX_TO_LABLE, LABEL_TO_IDX
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
@@ -125,15 +123,16 @@ def _render_scene(args):
         bdb3d = bdb3ds[inst_id2idx[inst_id]]
         labels, occurences = np.unique(semantic[np.where(instance==inst_id)], return_counts=True)
         label = labels[max(enumerate(occurences), key=lambda x: x[1])[0]]
-        nyu40_cat = IDX_TO_LABLE[label]
-        if nyu40_cat in NYU40_2_IG56:
-            category = NYU40_2_IG56[nyu40_cat]
-        else:
-            continue
+        cat = IDX_TO_LABLE[label] # NYU40
+        if args.cls_mode == 'cls25':
+            if cat in NYU40_2_COMMON25:
+                cat = NYU40_2_COMMON25[cat]
+            if cat not in COMMON25CLASSES:
+                continue
         obj_dict = {
             "id": inst_id,
-            "classname": category,
-            "label": IG56CLASSES.index(category),
+            "classname": cat,
+            "label": OBJCLASSES.index(cat),
             "is_fixed": True,
         }
         obj_dict["bdb3d"] = {
@@ -143,14 +142,14 @@ def _render_scene(args):
         }
         objs[inst_id] = obj_dict
 
-    # get object layout
-    object_layout = []
-    for obj in objs.values():
-        corners = bdb3d_corners(obj['bdb3d'])
-        corners2d = corners[(0, 1, 3, 2), :2]
-        obj2d = Polygon(corners2d)
-        object_layout.append(obj2d)
-    object_layout = shapely.ops.cascaded_union(object_layout)
+    # # get object layout
+    # object_layout = []
+    # for obj in objs.values():
+    #     corners = bdb3d_corners(obj['bdb3d'])
+    #     corners2d = corners[(0, 1, 3, 2), :2]
+    #     obj2d = Polygon(corners2d)
+    #     object_layout.append(obj2d)
+    # object_layout = shapely.ops.cascaded_union(object_layout)
     # plot_layout(object_layout)
 
     # # extract object params
@@ -167,8 +166,6 @@ def _render_scene(args):
             continue
 
         # rotate camera to recenter bdb3d
-        # if room_id == '485142': 
-        #     import pdb; pdb.set_trace()
         recentered_trans = IGTransform.level_look_at(data, obj_dict['bdb3d']['centroid'])
         corners = recentered_trans.world2campix(bdb3d_corners(obj_dict['bdb3d']))
         full_convex = MultiPoint(corners).convex_hull
@@ -207,14 +204,10 @@ def _render_scene(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Render RGB panorama from iGibson scenes.')
+    parser = argparse.ArgumentParser(description='Prepare Structure3D')
     parser.add_argument('--scene', dest='scene_name',
                         type=str, default=None,
                         help='The name of the scene to load')
-    parser.add_argument('--source', dest='scene_source',
-                        type=str, default='IG',
-                        help='The name of the source dataset, among [IG,CUBICASA,THREEDFRONT]')
     parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/s3d',
                         help='The path of the output folder')
     parser.add_argument('--seed', type=int, default=0,
@@ -259,6 +252,8 @@ def main():
                         help='Split train/test dataset without rendering')
     # parser.add_argument('--random_obj', default=None, action='store_true',
     #                     help='Use the 10 objects randomization for each scene')
+    parser.add_argument('--cls_mode', type=str, default='cls40',
+                        help='Types of object classes: cls40/cls25')
     parser.add_argument('--resume', default=False, action='store_true',
                         help='Resume from existing renders')
     parser.add_argument('--expand_dis', type=float, default=0.1,
@@ -271,6 +266,11 @@ def main():
     parser.add_argument('--skip_split', default=False, action='store_true',
                         help='Skip train/test split')
     args = parser.parse_args()
+    global OBJCLASSES
+    OBJCLASSES = NYU40CLASSES
+    if args.cls_mode == 'cls25':
+        args.output = f"{args.output}_{args.cls_mode}"
+        OBJCLASSES = COMMON25CLASSES
 
     assert args.vertical_fov is not None or args.cam_pitch != 0, \
         "cam_pitch not supported for panorama rendering"

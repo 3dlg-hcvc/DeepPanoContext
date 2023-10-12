@@ -313,9 +313,6 @@ def main():
     parser.add_argument('--scene', dest='scene_name',
                         type=str, default=None,
                         help='The name of the scene to load')
-    parser.add_argument('--source', dest='scene_source',
-                        type=str, default='IG',
-                        help='The name of the source dataset, among [IG,CUBICASA,THREEDFRONT]')
     parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd',
                         help='The path of the output folder')
     parser.add_argument('--seed', type=int, default=0,
