@@ -23,7 +23,7 @@ def register_detection_dataset(path, real=None):
             f"{dataset}_{d}", lambda d=d: get_dataset_dicts(path, d))
         if dataset.startswith(('igibson',)):
             thing_classes = IG56CLASSES
-        elif dataset.startswith(('rlsd', 's3d')):
+        elif dataset.startswith(('rlsd', 's3d', 'ig_rr')):
             if 'ig' in dataset:
                 thing_classes = IG56CLASSES
             else:
@@ -39,9 +39,9 @@ def register_detection_dataset(path, real=None):
 
 def get_dataset_dicts(folder, mode):
     dataset_name = get_dataset_name(folder)
-    if dataset_name.startswith(('igibson',)):
+    if dataset_name.startswith(('igibson', 's3d')):
         dataset = IGSceneDataset({'data': {'split': folder}}, mode)
-    elif dataset_name.startswith(('rlsd',)):
+    elif dataset_name.startswith(('rlsd', 'ig_rr')):
         dataset = RLSDSceneDataset({'data': {'split': folder}}, mode)
     else:
         raise NotImplementedError
