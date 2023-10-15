@@ -127,8 +127,8 @@ class IGSceneDataset(Pano3DDataset):
         if 'relation' in gt_scene.data and any(k in self.config['model'] for k in ('scene_gcn', 'bdb3d_estimation')):
             if 'relation' in gt_scene.data:
                 gt_data['relation'] = gt_scene['relation']
-        else:
-            gt_data['relation'] = dict() # in case gt_scene has no relation due to empty scene
+            else:
+                gt_data['relation'] = dict() # in case gt_scene has no relation due to empty scene
 
         return est_data, gt_data, est_scene, gt_scene
 
@@ -219,7 +219,7 @@ class RLSDSceneDataset(IGSceneDataset):
         
         for obj in gt_scene.data['objs']:
             for k in ["mask_ids", "classname", "label"]:
-                if k in gt_scene.data and isinstance(obj[k], list):
+                if k in obj and isinstance(obj[k], list):
                     obj[k] = obj[k][0] #HACK
 
         scenes = {'est': est_scene, 'gt': gt_scene}
