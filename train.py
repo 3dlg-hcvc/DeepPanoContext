@@ -11,15 +11,14 @@ import wandb
 
 def run(cfg):
     resume = cfg.config['resume']
-    name = cfg.config['name']
+    exp_name = cfg.config['exp']
     id = cfg.config['log']['path'].split('/')[-1]
-    if not resume and not name:
-        name = id
+    if not resume and not exp_name:
+        exp_name = id
     if cfg.config['sweep']:
-        name = None
+        exp_name = None
         id = None
-    wandb.init(project="deeppanocontext", config=cfg.config, dir=cfg.config['log']['path'],
-               name=name, id=id, resume=resume)
+    wandb.init(project="deeppanocontext", name=exp_name, id=id, config=cfg.config, dir=cfg.config['log']['path'], resume=resume)
     wandb.summary['pid'] = os.getpid()
     wandb.summary['ppid'] = os.getppid()
     # if cfg.config != dict(wandb.config):

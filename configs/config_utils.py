@@ -96,7 +96,10 @@ class CONFIG(object):
             self._logger = self.load_logger()
         else:
             # update save_path to config file
-            self._save_path = os.path.join(self.config['log']['path'], datetime.now().strftime('%y%m%d%H%M%S%f')[:-4])
+            if not args.exp:
+                self._save_path = os.path.join(self.config['log']['path'], datetime.now().strftime('%y%m%d%H%M%S%f')[:-4])
+            else:
+                self._save_path = os.path.join(self.config['log']['path'], args.exp)
             self._logger = self.load_logger()
             self.update_config(log={'path': self._save_path})
 

@@ -10,11 +10,10 @@ import wandb
 def run(cfg):
     if wandb.run is None:
         resume = cfg.config['resume']
-        name = cfg.config['name']
+        exp_name = cfg.config['exp']
         id = cfg.config['log']['path'].split('/')[-1]
         config = None if resume else cfg.config
-        wandb.init(project="deeppanocontext", config=config, dir=cfg.config['log']['path'],
-                   name=name, id=id, resume=resume)
+        wandb.init(project="deeppanocontext", name=exp_name, id=id, config=config, dir=cfg.config['log']['path'], resume=resume)
 
     '''Begin to run network.'''
     checkpoint = CheckpointIO(cfg)

@@ -13,10 +13,10 @@ def parse_args():
     parser = argparse.ArgumentParser('Pano 3D Understanding.')
     parser.add_argument('config', type=str, default='configs/total3d_mgnet.yaml',
                         help='configure file for training or testing.')
+    parser.add_argument('--exp', type=str, default=None, help='exp name.')
     parser.add_argument('--mode', type=str, default='qtrain', help='train, test, demo or qtrain, qtest')
     parser.add_argument('--test_all', default=False, action='store_true')
     parser.add_argument('--demo_path', type=str, default='demo/inputs/1', help='Please specify the demo path.')
-    parser.add_argument('--name', type=str, default=None, help='wandb exp name.')
     parser.add_argument('--sweep', action='store_true')
     return parser
 
