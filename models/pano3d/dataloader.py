@@ -33,12 +33,12 @@ _to_tensor = {
 }
 
 
-class IGSceneDataset(Pano3DDataset):
+class SceneDataset(Pano3DDataset):
 
     _basic_info = ('name', 'scene', 'camera', 'image_path')
 
     def __init__(self, config, mode=None):
-        super(IGSceneDataset, self).__init__(config, mode)
+        super(SceneDataset, self).__init__(config, mode)
         self.igibson_obj_dataset = config['data'].get('igibson_obj_dataset', None)
 
         # full image argumentation
@@ -81,7 +81,11 @@ class IGSceneDataset(Pano3DDataset):
                 dis = scene.transform.world2campix(bdb3d)['dis']
                 if dis > dis_max:
                     dis_max = dis
-                size_avg[obj['classname']].append(bdb3d['size'])
+                if isinstance(obj['classname'], list):
+                    for cat in obj['classname']:
+                        size_avg[cat].append(bdb3d['size'])
+                else:
+                    size_avg[obj['classname']].append(bdb3d['size'])
         if has_bdb3d and len(self.split):
             size_avg = {k: np.mean(np.stack(v), axis=0) for k, v in size_avg.items()}
             default_size = np.mean(np.stack(size_avg.values()), axis=0)
@@ -127,8 +131,8 @@ class IGSceneDataset(Pano3DDataset):
         if 'relation' in gt_scene.data and any(k in self.config['model'] for k in ('scene_gcn', 'bdb3d_estimation')):
             if 'relation' in gt_scene.data:
                 gt_data['relation'] = gt_scene['relation']
-            else:
-                gt_data['relation'] = dict() # in case gt_scene has no relation due to empty scene
+        else:
+            gt_data['relation'] = dict() # in case gt_scene has no relation due to empty scene
 
         return est_data, gt_data, est_scene, gt_scene
 
@@ -148,79 +152,26 @@ class IGSceneDataset(Pano3DDataset):
             else:
                 est_scene = None
                 gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset) if 'gt' in stype else None
-            
-        for obj in gt_scene.data['objs']:
-            if 'bdb2d_clip' in obj: del obj['bdb2d_clip']
-            if 'contour_clip' in obj: del obj['contour_clip']
-
-        scenes = {'est': est_scene, 'gt': gt_scene}
-        if len(stype) == 1:
-            return scenes[stype[0]]
-        else:
-            return [scenes[k] for k in stype]
-
-
-class RLSDSceneDataset(IGSceneDataset):
-
-    _basic_info = ('name', 'scene', 'camera', 'image_path')
-
-    def __init__(self, config, mode=None):
-        super(RLSDSceneDataset, self).__init__(config, mode)
-
-    def update_metadata(self):
-        dis_max = 0.
-        size_avg = collections.defaultdict(list)
-        has_bdb3d = True
-        for i in tqdm(range(len(self.split)), desc='Generating metadata of size_avg and dis_max...'):
-            scene = self.get_scene(i)
-            for obj in scene['objs']:
-                if 'bdb3d' not in obj:
-                    has_bdb3d = False
-                    break
-                bdb3d = obj['bdb3d']
-                dis = scene.transform.world2campix(bdb3d)['dis']
-                if dis > dis_max:
-                    dis_max = dis
-                if isinstance(obj['classname'], list):
-                    for cat in obj['classname']:
-                        size_avg[cat].append(bdb3d['size'])
-                else:
-                    size_avg[obj['classname']].append(bdb3d['size'])
-        if has_bdb3d and len(self.split):
-            size_avg = {k: np.mean(np.stack(v), axis=0) for k, v in size_avg.items()}
-            default_size = np.mean(np.stack(size_avg.values()), axis=0)
-            size_avg = np.stack([size_avg.get(k, default_size.copy()) for k in self.OBJCLASSES])
-            data_config.metadata.update({
-                'size_avg': size_avg,
-                'dis_max': float(dis_max)
-            })
-    
-    def get_scene(self, item, stype: (str, tuple, list)='gt'):
-        pkl = self.split[item]
-        if pkl.lower().endswith(('png', 'jpg')):
-            gt_scene = IGScene.from_image(pkl)
-            est_scene = None
-        else:
-            if isinstance(stype, str):
-                stype = (stype, )
-
-            gt_pkl = os.path.join(os.path.dirname(pkl), 'gt.pkl')
-            if os.path.exists(gt_pkl):
-                est_scene = IGScene.from_pickle(pkl) if 'est' in stype else None
-                gt_scene = IGScene.from_pickle(gt_pkl, self.igibson_obj_dataset) if 'gt' in stype else None
-            else:
-                est_scene = None
-                gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset) if 'gt' in stype else None
-
+        
         if 'room' in gt_scene.data and isinstance(gt_scene.data['room'], dict):
-            room = gt_scene.data['room']['id']
+            room = str(gt_scene.data['room']['id'])
             del gt_scene.data['room']
             gt_scene.data['room'] = room
-        
+
+        if 'room_idx' in gt_scene.data:
+            del gt_scene.data['room_idx']
+
         for obj in gt_scene.data['objs']:
+            obj['id'] = str(obj['id'])
             for k in ["mask_ids", "classname", "label"]:
                 if k in obj and isinstance(obj[k], list):
                     obj[k] = obj[k][0] #HACK
+            if 'bdb2d_clip' in obj: del obj['bdb2d_clip']
+            if 'contour_clip' in obj: del obj['contour_clip']
+        
+        if 'id' in gt_scene.data['camera']:
+            del gt_scene.data['camera']['id']
+            del gt_scene.data['camera']['view_dir']
 
         scenes = {'est': est_scene, 'gt': gt_scene}
         if len(stype) == 1:
@@ -283,19 +234,8 @@ def collate_fn(batch):
     return return_list
 
 
-def igibson_dataloader(config, mode='train'):
-    dataloader = DataLoader(dataset=IGSceneDataset(config, mode),
-                            num_workers=config['device']['num_workers'],
-                            batch_size=config[mode]['batch_size'],
-                            shuffle=(mode == 'train'),
-                            collate_fn=collate_fn,
-                            pin_memory=True,
-                            worker_init_fn=lambda x: np.random.seed())
-    return dataloader
-
-
-def rlsd_dataloader(config, mode='train'):
-    dataloader = DataLoader(dataset=RLSDSceneDataset(config, mode),
+def scene_dataloader(config, mode='train'):
+    dataloader = DataLoader(dataset=SceneDataset(config, mode),
                             num_workers=config['device']['num_workers'],
                             batch_size=config[mode]['batch_size'],
                             shuffle=(mode == 'train'),

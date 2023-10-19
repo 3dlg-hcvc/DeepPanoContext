@@ -10,7 +10,7 @@ from shapely.geometry import Polygon, Point, MultiPolygon
 from copy import deepcopy
 
 from utils.igibson_utils import IGScene
-from models.pano3d.dataloader import IGSceneDataset
+from models.pano3d.dataloader import SceneDataset
 from utils.visualize_utils import IGVisualizer
 from utils.relation_utils import RelationOptimization, relation_from_bins
 from utils.basic_utils import read_pkl

@@ -140,7 +140,8 @@ class IGScene:
     '''
 
     ignore_when_saving = ['image_path', 'mesh_path', 'image_tensor', 'image_np']
-    image_types = ['rgb', 'seg', 'sem', 'depth']
+    # image_types = ['rgb', 'seg', 'sem', 'depth']
+    image_types = ['rgb', 'seg']
     mesh_file = 'mesh_watertight.ply'
     consider_when_transform = {
         'objs': {'bdb3d'},

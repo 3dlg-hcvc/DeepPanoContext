@@ -8,7 +8,7 @@ from configs.data_config import COMMON25CLASSES, IG56_2_PSU45
 from models.detector.dataset import register_detection_dataset
 from utils.igibson_utils import IGScene
 from utils.image_utils import save_image
-from models.pano3d.dataloader import IGSceneDataset
+from models.pano3d.dataloader import SceneDataset
 from utils.visualize_utils import IGVisualizer
 
 
@@ -72,7 +72,7 @@ def main():
         args_dict = args.__dict__.copy()
         update_scene(argparse.Namespace(**args_dict))
     elif args.scene is None and args.id is None:
-        cameras = IGSceneDataset({'data': {'split': args.dataset, 'igibson_obj': args.igibson_obj_dataset}}).split
+        cameras = SceneDataset({'data': {'split': args.dataset, 'igibson_obj': args.igibson_obj_dataset}}).split
         args_dict = args.__dict__.copy()
         args_list = []
         for camera in cameras:

@@ -4,15 +4,15 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from models.pano3d.dataloader import IGSceneDataset, collate_fn
+from models.pano3d.dataloader import SceneDataset, collate_fn
 from utils.igibson_utils import IGScene
 from configs import data_config
 
 
-class PersIGSceneDataset(IGSceneDataset):
+class PersSceneDataset(SceneDataset):
 
     def __init__(self, config, mode=None):
-        super(PersIGSceneDataset, self).__init__(config, mode)
+        super(PersSceneDataset, self).__init__(config, mode)
 
         # full image argumentation
         self.image_transforms = transforms.Compose([
@@ -23,7 +23,7 @@ class PersIGSceneDataset(IGSceneDataset):
         ])
 
     def update_metadata(self):
-        super(PersIGSceneDataset, self).update_metadata()
+        super(PersSceneDataset, self).update_metadata()
         layout_centroid_avg = []
         layout_size_avg = []
         for i in tqdm(range(len(self)), desc='Generating metadata of layout_centroid_avg and layout_size_avg...'):
@@ -72,7 +72,7 @@ class PersIGSceneDataset(IGSceneDataset):
 
 
 def perspective_igibson_dataloader(config, mode='train'):
-    dataloader = DataLoader(dataset=PersIGSceneDataset(config, mode),
+    dataloader = DataLoader(dataset=PersSceneDataset(config, mode),
                             num_workers=config['device']['num_workers'],
                             batch_size=config[mode]['batch_size'],
                             shuffle=(mode == 'train'),

@@ -12,7 +12,7 @@ from glob import glob
 from models.detector.dataset import register_detection_dataset
 from .igibson_utils import IGScene
 from .image_utils import save_image, show_image
-# from models.pano3d.dataloader import IGSceneDataset
+# from models.pano3d.dataloader import SceneDataset
 from .visualize_utils import IGVisualizer
 
 

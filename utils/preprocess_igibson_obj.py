@@ -8,7 +8,7 @@ import argparse
 import trimesh
 from utils.igibson_utils import IGScene, hash_split
 from utils.image_utils import save_image
-from models.pano3d.dataloader import IGSceneDataset
+from models.pano3d.dataloader import SceneDataset
 import numpy as np
 from scipy.spatial import cKDTree
 
@@ -285,7 +285,7 @@ def main():
         for old_crop in tqdm(old_crops):
             os.remove(old_crop)
 
-        cameras = IGSceneDataset({'data': {'split': args.dataset}}).split
+        cameras = SceneDataset({'data': {'split': args.dataset}}).split
         args_dict = args.__dict__.copy()
         args_list = []
         for camera in cameras:

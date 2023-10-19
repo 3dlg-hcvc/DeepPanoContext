@@ -10,14 +10,14 @@ from torch.utils.data import DataLoader
 import torch.utils.data
 from torchvision import transforms
 
-from ..pano3d.dataloader import IGSceneDataset, collate_fn
+from ..pano3d.dataloader import SceneDataset, collate_fn
 from models.datasets import Pano3DDataset
 from utils.igibson_utils import IGScene
 from utils.basic_utils import list_of_dict_to_dict_of_array, read_json, write_json, recursively_to, get_any_array
 from configs import data_config
 
 
-class MultiViewDataset(IGSceneDataset):
+class MultiViewDataset(SceneDataset):
 
     def __init__(self, config, mode=None):
         super(MultiViewDataset, self).__init__(config, mode)
