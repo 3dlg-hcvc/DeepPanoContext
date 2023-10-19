@@ -52,7 +52,7 @@ val:
 test:
   batch_size: 6
 log:
-  vis_step: 1
+  vis_step: 0
   print_step: 10
   path: out/bdb3d_estimation
   save_checkpoint: True

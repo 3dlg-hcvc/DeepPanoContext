@@ -37,11 +37,14 @@ loss_weights:
   # RelationLoss: object-room relation
   floor_tch_loss: 10.0
   ceil_tch_loss: 10.0
+  floor_supp_loss: 10.0
+  ceil_supp_loss: 10.0
   in_room_loss: 10.0
   # RelationLoss: object-wise relation
   obj_obj_rot_loss: 10.0
   obj_obj_dis_loss: 10.0
   obj_obj_tch_loss: 10.0
+  obj_obj_supp_loss: 10.0
   obj_wall_rot_loss: 10.0
   obj_wall_tch_loss: 10.0
   # RelationLoss: object label
@@ -81,6 +84,7 @@ model:
     res_output: True
     output_bdb3d: True
     output_relation: True
+    output_support: False
     output_label: False
     relation_adjust: False
     visualize_adjust: False
@@ -97,6 +101,9 @@ model:
       obj_obj_rot: 0.5
       obj_wall_rot: 0.5
       obj_obj_dis: 0.5
+      obj_obj_supp: 0.1
+      obj_floor_supp: 0.1
+      obj_ceil_supp: 0.1
     optimize_steps: 100
     optimize_lr: 1.
     optimize_momentum: 0.9
@@ -168,7 +175,7 @@ val:
 test:
   batch_size: 1
 log:
-  vis_step: 10
+  vis_step: 0
   print_step: 10
   save_mesh: False
   path: out/relation_scene_gcn
