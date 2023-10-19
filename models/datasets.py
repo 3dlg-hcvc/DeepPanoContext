@@ -7,7 +7,7 @@ from glob import glob
 import shutil
 from torch.utils.data import Dataset
 
-from configs.data_config import IG56CLASSES, PSU45CLASSES, get_dataset_name
+from configs.data_config import IG56CLASSES, PSU45CLASSES, IG56_2_PSU45, get_dataset_name, COMMON25CLASSES
 from utils.basic_utils import read_json
 from utils.image_utils import load_image
 from utils.mesh_utils import load_mesh
@@ -39,7 +39,7 @@ class Pano3DDataset(Dataset):
         self.mode = mode
         if mode == 'val':
             mode = ['test']
-        elif mode is None or config['test_all']:
+        elif mode is None or config.get('test_all'):
             mode = ['train', 'test']
         elif mode in ['train', 'test']:
             mode = [mode]
@@ -56,6 +56,8 @@ class Pano3DDataset(Dataset):
                 self.OBJCLASSES = IG56CLASSES
             else:
                 self.OBJCLASSES = PSU45CLASSES
+        if 'cls25' in dataset or 'cls25' in config.get('exp', ''):
+            self.OBJCLASSES = COMMON25CLASSES
         config["OBJCLASSES"] = self.OBJCLASSES
         
         if split.endswith('.json'):
@@ -111,13 +113,19 @@ class IGObjRecDataset(Pano3DDataset):
         for i_image, image in enumerate(self.split):
             folder = os.path.dirname(image)
             category = folder.split('/')[-2]
+            if category not in PSU45CLASSES and category not in IG56_2_PSU45:
+                continue
+            if category in IG56_2_PSU45:
+                category = IG56_2_PSU45[category]
+            if category not in self.OBJCLASSES:
+                continue
             split.append({
                 'folder': folder,
                 'img_path': image + '.png',
                 'occnet2gaps_path': os.path.join(folder, 'orig_to_gaps.txt'),
                 'mesh_path': os.path.join(folder, 'mesh_watertight.ply'),
                 'sample_id': i_image,
-                'class_id': IG56CLASSES.index(category),
+                'class_id': self.OBJCLASSES.index(category),
                 'class_name': category
             })
         self.split = split
@@ -129,7 +137,7 @@ class IGObjRecDataset(Pano3DDataset):
         image = load_image(sample_info['img_path'])
         sample['img'] = self.crop_transforms[self.mode](image)
 
-        cls_codes = torch.zeros(len(IG56CLASSES), dtype=torch.float32)
+        cls_codes = torch.zeros(len(self.OBJCLASSES), dtype=torch.float32)
         cls_codes[sample_info['class_id']] = 1
         sample['cls'] = cls_codes
 
