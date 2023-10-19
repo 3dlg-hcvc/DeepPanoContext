@@ -93,11 +93,11 @@ def _render_scene(args):
     cam_height = cam3d2world[2, 3]
     cam_view = np.array([0, 1, 0])
     camera = {
-            "id": pano_id,
+            # "id": pano_id,
             'height': 512,
             'width': 1024,
             "pos": cam_pos,
-            "view_dir": cam_view,
+            # "view_dir": cam_view,
             "target": cam_pos + cam_view,
             "up": np.array([0, 0, 1], dtype=np.float32),
             "world2cam3d": world2cam3d,
