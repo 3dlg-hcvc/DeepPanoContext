@@ -113,10 +113,6 @@ class IGObjRecDataset(Pano3DDataset):
         for i_image, image in enumerate(self.split):
             folder = os.path.dirname(image)
             category = folder.split('/')[-2]
-            if category not in PSU45CLASSES and category not in IG56_2_PSU45:
-                continue
-            if category in IG56_2_PSU45:
-                category = IG56_2_PSU45[category]
             if category not in self.OBJCLASSES:
                 continue
             split.append({

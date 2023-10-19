@@ -13,11 +13,6 @@ from models.pano3d.dataloader import IGSceneDataset
 import numpy as np
 from scipy.spatial import cKDTree
 
-# import gibson2
-# from gibson2.render.mesh_renderer.mesh_renderer_settings import MeshRendererSettings
-# from gibson2.simulator import Simulator
-# from gibson2.objects.articulated_object import ArticulatedObject
-
 from utils.render_utils import seg2obj, render_camera, hdr_texture, hdr_texture2
 from .mesh_utils import MeshIO, save_mesh, load_mesh, normalize_to_unit_square, read_obj, write_obj, \
     sample_pnts_from_obj
