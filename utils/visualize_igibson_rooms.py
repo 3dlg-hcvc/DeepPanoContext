@@ -90,12 +90,6 @@ def evaluate_collision(data, room_name, metric, metric_rooms):
     metric['collision_walls'].append(relation['obj_wall_tch'].any(axis=-1).sum())
     metric['collision_ceil'].append(sum(o['ceil_tch'] for o in rel_scene['objs']))
     metric['collision_floor'].append(sum(o['floor_tch'] for o in rel_scene['objs']))
-    
-    # # save reconstructed relations for relation fidelity evaluation
-    # relation_optimization = RelationOptimization(expand_dis=cfg.config['data'].get('expand_dis', 0.1))
-    # relation_optimization.generate_relation(est_rel_scene)
-    # est_rel_scene['relation'] = relation_from_bins(relation, None)
-    # rel_scenes.append(est_rel_scene)
 
 metric = defaultdict(AverageMeter)
 

@@ -181,7 +181,7 @@ def evaluate_collision(data, arch_id, metric, metric_archs):
     # 0.1m of toleration distance when measuring collision
     data['objs'] = deepcopy(data['objs'])
     rel_scene = IGScene(data)
-    generate_relation(rel_scene, expand_dis=-0.1)
+    generate_relation(rel_scene, expand_dis=0.1)
     relation = rel_scene['relation']
     
     global cls_cls_tch, cls_cls_tch_num, cls_num
@@ -190,17 +190,17 @@ def evaluate_collision(data, arch_id, metric, metric_archs):
     cls_num += relation['cls_num']
 
     # collision metrics
-    metric_archs[arch_id]['collision_pairs'].append(relation['obj_obj_tch'].sum() / 2)
-    metric_archs[arch_id]['collision_objs'].append(relation['obj_obj_tch'].any(axis=0).sum())
-    metric_archs[arch_id]['collision_walls'].append(relation['obj_wall_tch'].any(axis=-1).sum())
-    metric_archs[arch_id]['collision_ceil'].append(sum(o['ceil_tch'] for o in rel_scene['objs']))
-    metric_archs[arch_id]['collision_floor'].append(sum(o['floor_tch'] for o in rel_scene['objs']))
+    metric_archs[arch_id]['collision_pairs'].append(relation['obj_obj_col'].sum() / 2)
+    metric_archs[arch_id]['collision_objs'].append(relation['obj_obj_col'].any(axis=0).sum())
+    metric_archs[arch_id]['collision_walls'].append(relation['obj_wall_col'].any(axis=-1).sum())
+    metric_archs[arch_id]['collision_ceil'].append(sum(o['ceil_col'] for o in rel_scene['objs']))
+    metric_archs[arch_id]['collision_floor'].append(sum(o['floor_col'] for o in rel_scene['objs']))
     
-    metric['collision_pairs'].append(relation['obj_obj_tch'].sum() / 2)
-    metric['collision_objs'].append(relation['obj_obj_tch'].any(axis=0).sum())
-    metric['collision_walls'].append(relation['obj_wall_tch'].any(axis=-1).sum())
-    metric['collision_ceil'].append(sum(o['ceil_tch'] for o in rel_scene['objs']))
-    metric['collision_floor'].append(sum(o['floor_tch'] for o in rel_scene['objs']))
+    metric['collision_pairs'].append(relation['obj_obj_col'].sum() / 2)
+    metric['collision_objs'].append(relation['obj_obj_col'].any(axis=0).sum())
+    metric['collision_walls'].append(relation['obj_wall_col'].any(axis=-1).sum())
+    metric['collision_ceil'].append(sum(o['ceil_col'] for o in rel_scene['objs']))
+    metric['collision_floor'].append(sum(o['floor_col'] for o in rel_scene['objs']))
     
 
 metric = defaultdict(AverageMeter)
@@ -221,6 +221,8 @@ metric.update(metric_archs)
 with open(os.path.join(data_dir, "collisions.json"), "w") as f:
     json.dump(metric, f, indent=4)
     
+# import pdb; pdb.set_trace()
+
 plt.savefig('num.png')
 _, ax = plt.subplots(figsize=(14,10))
 ax = sns.barplot(x=data_config.RLSD32CLASSES, y=cls_num)
@@ -248,5 +250,3 @@ _, ax4 = plt.subplots(figsize=(14,10))
 ax4 = sns.heatmap(weighted_col_prob, annot=True, fmt='.2f', xticklabels=data_config.RLSD32CLASSES, yticklabels=data_config.RLSD32CLASSES)
 plt.savefig('w_col_prob.png')
 np.save("w_col_prob.npy", weighted_col_prob)
-
-# import pdb; pdb.set_trace()
