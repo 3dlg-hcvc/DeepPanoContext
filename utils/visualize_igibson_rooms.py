@@ -72,24 +72,24 @@ def merge_layout_bdb3d_mesh(data, objs, colorbox=None, separate=False, camera_co
 def evaluate_collision(data, room_name, metric, metric_rooms):
     # generate relation between estimated objects and layout
     # 0.1m of toleration distance when measuring collision
-    relation_optimization = RelationOptimization(expand_dis=-0.1)
+    relation_optimization = RelationOptimization(expand_dis=0.1)
     data['objs'] = deepcopy(data['objs'])
     rel_scene = IGScene(data)
     relation_optimization.generate_relation(rel_scene)
     relation = rel_scene['relation']
 
     # collision metrics
-    metric_rooms[room_name]['collision_pairs'].append(relation['obj_obj_tch'].sum() / 2)
-    metric_rooms[room_name]['collision_objs'].append(relation['obj_obj_tch'].any(axis=0).sum())
-    metric_rooms[room_name]['collision_walls'].append(relation['obj_wall_tch'].any(axis=-1).sum())
-    metric_rooms[room_name]['collision_ceil'].append(sum(o['ceil_tch'] for o in rel_scene['objs']))
-    metric_rooms[room_name]['collision_floor'].append(sum(o['floor_tch'] for o in rel_scene['objs']))
+    metric_rooms[room_name]['collision_pairs'].append(relation['obj_obj_col'].sum() / 2)
+    metric_rooms[room_name]['collision_objs'].append(relation['obj_obj_col'].any(axis=0).sum())
+    metric_rooms[room_name]['collision_walls'].append(relation['obj_wall_col'].any(axis=-1).sum())
+    metric_rooms[room_name]['collision_ceil'].append(sum(o['ceil_col'] for o in rel_scene['objs']))
+    metric_rooms[room_name]['collision_floor'].append(sum(o['floor_col'] for o in rel_scene['objs']))
     
-    metric['collision_pairs'].append(relation['obj_obj_tch'].sum() / 2)
-    metric['collision_objs'].append(relation['obj_obj_tch'].any(axis=0).sum())
-    metric['collision_walls'].append(relation['obj_wall_tch'].any(axis=-1).sum())
-    metric['collision_ceil'].append(sum(o['ceil_tch'] for o in rel_scene['objs']))
-    metric['collision_floor'].append(sum(o['floor_tch'] for o in rel_scene['objs']))
+    metric['collision_pairs'].append(relation['obj_obj_col'].sum() / 2)
+    metric['collision_objs'].append(relation['obj_obj_col'].any(axis=0).sum())
+    metric['collision_walls'].append(relation['obj_wall_col'].any(axis=-1).sum())
+    metric['collision_ceil'].append(sum(o['ceil_col'] for o in rel_scene['objs']))
+    metric['collision_floor'].append(sum(o['floor_col'] for o in rel_scene['objs']))
 
 metric = defaultdict(AverageMeter)
 

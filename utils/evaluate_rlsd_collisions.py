@@ -25,8 +25,8 @@ data_paths = sorted(glob(os.path.join(data_dir, '*', '*', '*', 'data.pkl')))
 
 num_cls = len(data_config.RLSD32CLASSES)
 cls_num = np.zeros(num_cls, dtype=np.int)
-cls_cls_tch_num = np.zeros([num_cls, num_cls], dtype=np.int)
-cls_cls_tch = np.zeros([num_cls, num_cls])
+cls_cls_col_num = np.zeros([num_cls, num_cls], dtype=np.int)
+cls_cls_iou = np.zeros([num_cls, num_cls])
 
 
 def merge_layout_bdb3d_mesh(data, objs, colorbox=None, separate=False, camera_color=None, layout_color=None, texture=False, filename=None):
@@ -74,8 +74,8 @@ def generate_relation(scene, expand_dis):
         
         num_cls = len(data_config.RLSD32CLASSES)
         cls_num = np.zeros(num_cls, dtype=np.int)
-        cls_cls_tch_num = np.zeros([num_cls, num_cls], dtype=np.int)
-        cls_cls_tch = np.zeros([num_cls, num_cls])
+        cls_cls_col_num = np.zeros([num_cls, num_cls], dtype=np.int)
+        cls_cls_iou = np.zeros([num_cls, num_cls])
 
         # object - object relationships
         for obj in objs:
@@ -98,16 +98,16 @@ def generate_relation(scene, expand_dis):
                 obj_obj_tch[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, - expand_dis))
                 obj_obj_col[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, expand_dis))
                 
-                if obj_obj_tch[i_a, i_b]:
+                if obj_obj_col[i_a, i_b]:
                     from models.eval_metrics import bdb3d_iou
                     obj_a_label = obj_a['label'][0]
                     obj_b_label = obj_b['label'][0]
-                    cls_cls_tch_num[obj_a_label, obj_b_label] += 1
+                    cls_cls_col_num[obj_a_label, obj_b_label] += 1
                     corners_a, corners_b = bdb3d_corners(bdb3d_a), bdb3d_corners(bdb3d_b)
                     vol_a, obj_3d_iou = bdb3d_iou(corners_a, corners_b, union=False)
                     if vol_a == 0.:
                         continue
-                    cls_cls_tch[obj_a_label, obj_b_label] += obj_3d_iou
+                    cls_cls_iou[obj_a_label, obj_b_label] += obj_3d_iou
 
         # object - floor/ceiling relationships
         layout = scene['layout']['manhattan_world']
@@ -170,8 +170,8 @@ def generate_relation(scene, expand_dis):
             'obj_wall_col': obj_wall_col,
             'obj_obj_supp': obj_obj_supp,
             'obj_wall_supp': obj_wall_supp,
-            'cls_cls_tch_num': cls_cls_tch_num,
-            'cls_cls_tch': cls_cls_tch,
+            'cls_cls_col_num': cls_cls_col_num,
+            'cls_cls_iou': cls_cls_iou,
             'cls_num': cls_num
         }
 
@@ -184,9 +184,9 @@ def evaluate_collision(data, arch_id, metric, metric_archs):
     generate_relation(rel_scene, expand_dis=0.1)
     relation = rel_scene['relation']
     
-    global cls_cls_tch, cls_cls_tch_num, cls_num
-    cls_cls_tch_num += relation['cls_cls_tch_num']
-    cls_cls_tch += relation['cls_cls_tch']
+    global cls_cls_iou, cls_cls_col_num, cls_num
+    cls_cls_col_num += relation['cls_cls_col_num']
+    cls_cls_iou += relation['cls_cls_iou']
     cls_num += relation['cls_num']
 
     # collision metrics
@@ -230,16 +230,16 @@ plt.xticks(rotation=60)
 plt.savefig('num.png')
 
 _, ax1 = plt.subplots(figsize=(14,10))
-ax1 = sns.heatmap(cls_cls_tch_num, annot=True, fmt='d', xticklabels=data_config.RLSD32CLASSES, yticklabels=data_config.RLSD32CLASSES)
+ax1 = sns.heatmap(cls_cls_col_num, annot=True, fmt='d', xticklabels=data_config.RLSD32CLASSES, yticklabels=data_config.RLSD32CLASSES)
 plt.savefig('heat.png')
 
-avg_iou = cls_cls_tch/(cls_cls_tch_num+1)
+avg_iou = cls_cls_iou/(cls_cls_col_num+1)
 _, ax2 = plt.subplots(figsize=(14,10))
 ax2 = sns.heatmap(avg_iou, annot=True, fmt='.2f', xticklabels=data_config.RLSD32CLASSES, yticklabels=data_config.RLSD32CLASSES)
 plt.savefig('avg_iou.png')
 np.save("avg_iou.npy", avg_iou)
 
-col_prob = cls_cls_tch_num / (cls_num[None, ...]+1)
+col_prob = cls_cls_col_num / (cls_num[None, ...]+1)
 _, ax3 = plt.subplots(figsize=(14,10))
 ax3 = sns.heatmap(col_prob, annot=True, fmt='.2f', xticklabels=data_config.RLSD32CLASSES, yticklabels=data_config.RLSD32CLASSES)
 plt.savefig('col_prob.png')
