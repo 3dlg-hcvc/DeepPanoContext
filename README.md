@@ -196,7 +196,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --mo
 
 Train object reconstruction network (LIEN+LDIF) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif_<data>.yaml
+CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif_<data>.yaml --data.split /path/to/data
 ```
 The checkpoint and visualization results will be saved to ```out/ldif/<ldif_id>```.
    
