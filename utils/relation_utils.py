@@ -13,6 +13,7 @@ from .image_utils import save_image, show_image, GifIO
 from .visualize_utils import IGVisualizer
 from .transform_utils import num2bins, label_or_num_from_cls_reg, bdb3d_corners, IGTransform, bdb3d_axis, \
     expand_bdb3d, point_polygon_dis, points2bdb2d
+from .mesh_utils import MeshIO, mesh_collision, save_mesh, load_mesh
 from configs import data_config
 
 
@@ -51,7 +52,10 @@ def relation_from_bins(data: dict, thres):
 
         objs = data['objs']
         new_objs = {}
-        for k in ('floor_tch', 'ceil_tch', 'in_room'):
+        obj_single_rels = ['floor_tch', 'ceil_tch', 'in_room']
+        if 'floor_supp' in objs:
+            obj_single_rels.extend(['floor_supp', 'ceil_supp'])
+        for k in obj_single_rels:
             new_objs[k], new_objs[k + '_score'] = label_or_num_from_cls_reg(
                 objs[k], return_score=True, threshold=thres.get('obj_' + k, 0.5))
         new_data['objs'] = new_objs
@@ -156,6 +160,39 @@ def test_bdb3ds(bdb3d_a, bdb3d_b=None, toleration_dis=0.):
         return labels, collision_err_allaxes, touch_err_allaxes
 
 
+def test_meshes(scene, out_bdb3d_3d, step, output_path=None):
+    n_objs = len(scene['objs'])
+    obj_obj_mesh_mask = np.zeros((n_objs, n_objs))
+    meshes = []
+    
+    bdb3ds = {'centroid': out_bdb3d_3d['centroid'].detach().cpu().numpy(),
+              'basis': out_bdb3d_3d['basis'].detach().cpu().numpy(),
+              'size': out_bdb3d_3d['size'].detach().cpu().numpy()}
+    
+    for k, v in scene.mesh_io.items():
+        bdb3d = {'centroid': bdb3ds['centroid'][k],
+                 'basis': bdb3ds['basis'][k],
+                 'size': bdb3ds['size'][k]}
+        bdb3d['basis'] = bdb3d['basis'] @ np.array([[1,0,0],[0,0,-1],[0,1,0]])
+        if 'wayfair' in scene.mesh_io.mesh_path[k]:
+            bdb3d['basis'] = bdb3d['basis'] @ np.array([[-1,0,0],[0,1,0],[0,0,-1]])
+        bdb3d['size'][[1, 2]] = bdb3d['size'][[2, 1]]
+        mesh_world = scene.transform.obj2frame(v, bdb3d)
+        meshes.append((k, mesh_world))
+    
+    # import trimesh
+    # scene_mesh = sum([m[1] for m in meshes]) if meshes else trimesh.Trimesh()
+    # save_mesh(scene_mesh, os.path.join(output_path, f'scene_mesh_{step}.obj'))
+    
+    for i, (k1, m1) in enumerate(meshes):
+        for k2, m2 in meshes[i+1:]:
+            is_collided = mesh_collision(m1, m2)
+            obj_obj_mesh_mask[k1, k2] = is_collided
+    obj_obj_mesh_mask = obj_obj_mesh_mask + obj_obj_mesh_mask.T
+    
+    return obj_obj_mesh_mask
+
+
 def visualize_relation(scene, background=None, wall3d=False,
                        relation=True, show=False, collision=False, layout=False):
     visualizer = IGVisualizer(scene)
@@ -199,6 +236,9 @@ class RelationOptimization:
         self.toleration_dis = toleration_dis
         self.score_weighted = score_weighted
         self.gif_io = GifIO(duration=0.2)
+        self.avg_iou = torch.from_numpy(np.load("w_col_prob.npy"))
+        self.use_bbox_col_mask = False
+        self.use_mesh_col_mask = False
 
     def generate_relation(self, scene):
         expand_dis = self.expand_dis
@@ -207,12 +247,16 @@ class RelationOptimization:
         obj_obj_rot = np.zeros([n_objs, n_objs], dtype=np.int)  # angles of clockwise rotation from a to b
         obj_obj_dis = np.zeros_like(obj_obj_rot, dtype=np.bool)  # is a further than b
         obj_obj_tch = obj_obj_dis.copy()  # is a touching b
+        obj_obj_col = obj_obj_dis.copy()  # is a colliding b
+        obj_obj_supp = obj_obj_dis.copy() # is a supported by b
 
         # object - object relationships
         for obj in objs:
             obj['bdb3d'].update(scene.transform.world2campix(obj['bdb3d']))
 
         for i_a, obj_a in enumerate(objs):
+            if 'obj_parent' in obj_a and obj_a['obj_parent'] != -1:
+                obj_obj_supp[i_a, obj_a['obj_parent']] = 1
             for i_b, obj_b in enumerate(objs):
                 if i_a == i_b:
                     continue
@@ -223,20 +267,26 @@ class RelationOptimization:
                 obj_obj_rot[i_a, i_b] = num2bins(data_config.metadata['rot_bins'], rot)
                 obj_obj_dis[i_a, i_b] = bdb3d_a['dis'] > bdb3d_b['dis']
                 obj_obj_tch[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, - expand_dis))
+                obj_obj_col[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, expand_dis))
 
         # object - floor/ceiling relationships
         layout = scene['layout']['manhattan_world']
         layout_info = manhattan_world_layout_info(layout)
         for obj in objs:
-            bdb3d = expand_bdb3d(obj['bdb3d'], expand_dis)
-            corners = bdb3d_corners(bdb3d)
-            bottom = corners[:, -1].min()
-            top = corners[:, -1].max()
-
-            obj['floor_tch'] = bottom < layout_info['floor']
-            obj['ceil_tch'] = top > layout_info['ceil']
-            corners_2d = corners[:4, :2]
+            bdb3d_shrink = expand_bdb3d(obj['bdb3d'], - expand_dis)
+            corners_shrink = bdb3d_corners(bdb3d_shrink)
+            bdb3d_expand = expand_bdb3d(obj['bdb3d'], expand_dis)
+            corners_expand = bdb3d_corners(bdb3d_expand)
+            corners_2d = corners_expand[:4, :2]
             obj['in_room'] = any(layout_info['layout_poly'].contains(Point(c)) for c in corners_2d)
+            
+            obj['floor_col'] = corners_shrink[:, -1].min() < layout_info['floor'] if obj['in_room'] else 0
+            obj['ceil_col'] = corners_shrink[:, -1].max() > layout_info['ceil'] if obj['in_room'] else 0
+            obj['floor_tch'] = corners_expand[:, -1].min() < layout_info['floor'] if obj['in_room'] else 0
+            obj['ceil_tch'] = corners_expand[:, -1].max() > layout_info['ceil'] if obj['in_room'] else 0
+            
+            obj['floor_supp'] = obj['floor_supp'] if 'floor_supp' in obj else 1
+            obj['ceil_supp'] = obj['ceil_supp'] if 'ceil_supp' in obj else 0
 
         walls_bdb3d = wall_bdb3d_from_manhattan_world_layout(layout)
 
@@ -250,16 +300,20 @@ class RelationOptimization:
         obj_wall_rot = np.zeros(
             [n_objs, len(walls)], dtype=np.int)  # angles of clockwise rotation from object to wall
         obj_wall_tch = np.zeros_like(obj_wall_rot, dtype=np.bool)  # is obj touching wall
+        obj_wall_col = np.zeros_like(obj_wall_rot, dtype=np.bool)  # is obj colliding wall
+        # obj_wall_supp = obj_wall_tch.copy() # is obj supported by wall
         for i_obj, obj in enumerate(objs):
+            # if obj['wall_supp']:
+            #     obj_wall_supp[i_obj, obj['wall_parent']] = 1
             for i_wall, wall in enumerate(walls):
                 bdb3d_obj = obj['bdb3d']
                 bdb3d_wall = wall['bdb3d']
                 rot = np.mod(bdb3d_wall['ori'] - bdb3d_obj['ori'], np.pi * 2)
                 rot = rot - np.pi * 2 if rot > np.pi else rot
                 obj_wall_rot[i_obj, i_wall] = num2bins(data_config.metadata['rot_bins'], rot)
-                is_touching = test_bdb3ds(obj['bdb3d'], wall['bdb3d'], - expand_dis) if obj['in_room'] else 0
-                obj_wall_tch[i_obj, i_wall] = is_touching
-
+                obj_wall_tch[i_obj, i_wall] = test_bdb3ds(obj['bdb3d'], wall['bdb3d'], - expand_dis) if obj['in_room'] else 0
+                obj_wall_col[i_obj, i_wall] = test_bdb3ds(obj['bdb3d'], wall['bdb3d'], expand_dis) if obj['in_room'] else 0
+        
         # write to scene data
         if 'walls' in scene.data:
             for wall_old, wall_new in zip(scene['walls'], walls):
@@ -270,11 +324,15 @@ class RelationOptimization:
             'obj_obj_rot': obj_obj_rot,
             'obj_obj_dis': obj_obj_dis,
             'obj_obj_tch': obj_obj_tch,
+            'obj_obj_col': obj_obj_col,
             'obj_wall_rot': obj_wall_rot,
-            'obj_wall_tch': obj_wall_tch
+            'obj_wall_tch': obj_wall_tch,
+            'obj_wall_col': obj_wall_col,
+            'obj_obj_supp': obj_obj_supp,
+            # 'obj_wall_supp': obj_wall_supp,
         }
 
-    def relation_loss(self, out_bdb3d, est_data, transforms_to_bfov=None):
+    def relation_loss(self, out_bdb3d, est_data, est_scene, transforms_to_bfov=None, step=0):
         loss = {}
         relation = est_data['relation'][0]
         layout = est_data['layout']['manhattan_world'][0]
@@ -286,6 +344,13 @@ class RelationOptimization:
         toleration_dis = self.toleration_dis
         obj_obj_err_mask = 1 - torch.eye(n_objs, device=layout.device)
 
+        if self.use_bbox_col_mask:
+            label_idx = torch.meshgrid([objs['label'], objs['label']])
+            obj_obj_avg_iou = self.avg_iou[label_idx]
+            # obj_obj_col_mask = (1 - obj_obj_avg_iou).type_as(obj_obj_err_mask).to(layout.device)
+            obj_obj_col_mask = (obj_obj_avg_iou > 0.5).type_as(obj_obj_err_mask).to(layout.device)
+            # obj_obj_col_mask = (obj_obj_avg_iou == 0.).type_as(obj_obj_err_mask).to(layout.device)
+        
         # rel_in_room = torch.ones([n_objs, n_objs], device=device) > 0
         # rel_in_room[torch.logical_not(in_room), :] = False
         # rel_in_room[:, torch.logical_not(in_room)] = False
@@ -318,11 +383,19 @@ class RelationOptimization:
             loss['bdb3d_proj'] = torch.abs(torch.stack(
                 [proj_bdb2d_rad[k] - det_bdb2d_rad[k] for k in det_bdb2d_rad.keys()]
             ))
+        
+        if self.use_mesh_col_mask:
+            obj_obj_mesh_mask = test_meshes(est_scene, out_bdb3d_3d, step, self.visual_path)
+            obj_obj_mesh_mask = torch.from_numpy(obj_obj_mesh_mask).type_as(obj_obj_err_mask).to(layout.device)
 
         # obj_obj_col error
         all_bdb3d = {k: torch.cat([out_bdb3d_3d[k], est_bdb3d_wall[k]]) for k in out_bdb3d_3d.keys()}
-        has_collision, collision_err, _ = test_bdb3ds(all_bdb3d, toleration_dis=toleration_dis)
+        _, collision_err, _ = test_bdb3ds(all_bdb3d, toleration_dis=toleration_dis)
         loss['obj_obj_col'] = collision_err[:n_objs, :n_objs] * obj_obj_err_mask
+        if self.use_bbox_col_mask:
+            loss['obj_obj_col'] = loss['obj_obj_col'] * obj_obj_col_mask
+        if self.use_mesh_col_mask:
+            loss['obj_obj_col'] = loss['obj_obj_col'] * obj_obj_mesh_mask
 
         # obj_wall_col error
         layout_2d = manhattan_2d_from_manhattan_world_layout(layout)
@@ -339,11 +412,15 @@ class RelationOptimization:
         loss['obj_ceil_col'] = torch.relu(corners_z - ceil - toleration_dis)
 
         # obj_obj_tch/obj_wall_tch error
-        has_collision, _, touch_err = test_bdb3ds(all_bdb3d, toleration_dis=-toleration_dis)
+        _, _, touch_err = test_bdb3ds(all_bdb3d, toleration_dis=-toleration_dis)
 
         obj_obj_tch_err = touch_err[:n_objs, :n_objs]
         obj_obj_tch_err *= self.label2weight('obj_obj_tch', relation['obj_obj_tch'], relation['obj_obj_tch_score'])
         loss['obj_obj_tch'] = obj_obj_tch_err * obj_obj_err_mask
+        if self.use_bbox_col_mask:
+            loss['obj_obj_tch'] = loss['obj_obj_tch'] * obj_obj_col_mask
+        if self.use_mesh_col_mask:
+            loss['obj_obj_tch'] = loss['obj_obj_tch'] * obj_obj_mesh_mask
 
         obj_wall_tch_err = touch_err[:n_objs, n_objs:]
         obj_wall_tch_err *= self.label2weight('obj_wall_tch', relation['obj_wall_tch'], relation['obj_wall_tch_score'])
@@ -437,14 +514,19 @@ class RelationOptimization:
             n_objs = len(optim_bdb3d['size'])
             optim_bdb3d_3d = IGTransform(est_data).campix2world(optim_bdb3d)
             optim_data['objs']['bdb3d'] = optim_bdb3d_3d
+            in_room = self.label2weight('obj_in_room', optim_data['objs']['in_room'], optim_data['objs']['in_room_score'])
 
             all_bdb3d = {k: torch.cat([optim_bdb3d_3d[k], est_data['walls']['bdb3d'][k]])
                          for k in optim_bdb3d_3d.keys()}
             has_collision, _, _ = test_bdb3ds(all_bdb3d, toleration_dis=0.1)
             has_collision = has_collision.type(torch.bool)
+            has_tch, _, _ = test_bdb3ds(all_bdb3d, toleration_dis=-0.1)
+            has_tch = has_tch.type(torch.bool)
             relation = optim_data['relation'][0]
             relation['obj_obj_col'] = has_collision[:n_objs, :n_objs]
-            relation['obj_wall_col'] = has_collision[:n_objs, n_objs:]
+            relation['obj_wall_col'] = has_collision[:n_objs, n_objs:] * in_room[:, None]
+            relation['obj_obj_tch'] = has_tch[:n_objs, :n_objs]
+            relation['obj_wall_tch'] = has_tch[:n_objs, n_objs:] * in_room[:, None]
 
             layout = optim_data['layout']['manhattan_world'][0]
             layout_z = layout[:, -1]
@@ -452,9 +534,13 @@ class RelationOptimization:
             corners = bdb3d_corners(bdb3d_expanded)
             optim_data['objs']['floor_col'] = (corners[..., -1] < layout_z.min()).any(-1)
             optim_data['objs']['ceil_col'] = (corners[..., -1] > layout_z.max()).any(-1)
+            bdb3d_expanded = expand_bdb3d(optim_bdb3d_3d, 0.1)
+            corners = bdb3d_corners(bdb3d_expanded)
+            optim_data['objs']['floor_tch'] = (corners[..., -1] < layout_z.min()).any(-1)
+            optim_data['objs']['ceil_tch'] = (corners[..., -1] > layout_z.max()).any(-1)
 
             out_scene = IGScene.from_batch(optim_data)[0]
-            image = visualize_relation(out_scene, self.visual_background, show=end, collision=True, layout=True)
+            image = visualize_relation(out_scene, self.visual_background, collision=True, layout=True)
             save_image(image, os.path.join(self.visual_path, f'frame_{len(self.gif_io.frames)}.png'))
             self.gif_io.append(image)
 
@@ -477,9 +563,14 @@ class RelationOptimization:
         # optimizer = torch.optim.LBFGS(list(optim_bdb3d.values()), lr=lr, max_iter=20)
         criterion = lambda e: nn.SmoothL1Loss(reduction='mean')(e, torch.zeros_like(e, device=e.device))
 
+        scene = IGScene.from_batch(data)[0]
+        mesh_path = {i: o['gt_model_path'] for i, o in enumerate(scene['objs']) if 'gt_model_path' in o and o['gt_model_path']}
+        scene.mesh_io = MeshIO.from_file(mesh_path)
+        scene.mesh_io.load()
+
         # transform for bdb3d projection error
         if self.weights.get('bdb3d_proj'):
-            scene = IGScene.from_batch(data)[0]
+            # scene = IGScene.from_batch(data)[0]
             transforms_to_bfov = IGTransform()
             transforms_to_bfov.camera = []
             for obj in scene['objs']:
@@ -499,7 +590,7 @@ class RelationOptimization:
 
         def closure():
             optimizer.zero_grad()
-            loss.update(self.relation_loss(optim_bdb3d, data, transforms_to_bfov))
+            loss.update(self.relation_loss(optim_bdb3d, data, scene, transforms_to_bfov, step))
             loss['total'] = sum([
                 self.weights[k] * criterion(loss[k]) if len(loss[k]) > 0
                 else 0. for k in self.weights.keys() if k in loss
