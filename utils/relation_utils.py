@@ -52,9 +52,11 @@ def relation_from_bins(data: dict, thres):
 
         objs = data['objs']
         new_objs = {}
-        obj_single_rels = ['floor_tch', 'ceil_tch', 'in_room']
+        obj_single_rels = ['in_room']
         if 'floor_supp' in objs:
             obj_single_rels.extend(['floor_supp', 'ceil_supp'])
+        else:
+            obj_single_rels.extend(['floor_tch', 'ceil_tch'])
         for k in obj_single_rels:
             new_objs[k], new_objs[k + '_score'] = label_or_num_from_cls_reg(
                 objs[k], return_score=True, threshold=thres.get('obj_' + k, 0.5))
@@ -213,7 +215,8 @@ class RelationOptimization:
 
     def __init__(self, loss_weights=None, expand_dis=None, toleration_dis=None,
                  score_weighted=False, score_thres=None,
-                 visual_path=None, visual_background=None, visual_frames=10):
+                 visual_path=None, visual_background=None, visual_frames=10,
+                 use_anno_supp=False, use_bbox_col_mask=False, use_mesh_col_mask=False):
         if loss_weights is None:
             loss_weights = {
                 'center': 0.0001, 'size': 1.0, 'dis': 0.01, 'ori': 0.001,
@@ -236,9 +239,10 @@ class RelationOptimization:
         self.toleration_dis = toleration_dis
         self.score_weighted = score_weighted
         self.gif_io = GifIO(duration=0.2)
+        self.use_anno_supp = use_anno_supp
         self.avg_iou = torch.from_numpy(np.load("w_col_prob.npy"))
-        self.use_bbox_col_mask = False
-        self.use_mesh_col_mask = False
+        self.use_bbox_col_mask = use_bbox_col_mask
+        self.use_mesh_col_mask = use_mesh_col_mask
 
     def generate_relation(self, scene):
         expand_dis = self.expand_dis
@@ -255,7 +259,7 @@ class RelationOptimization:
             obj['bdb3d'].update(scene.transform.world2campix(obj['bdb3d']))
 
         for i_a, obj_a in enumerate(objs):
-            if 'obj_parent' in obj_a and obj_a['obj_parent'] != -1:
+            if self.use_anno_supp and 'obj_parent' in obj_a and obj_a['obj_parent'] != -1:
                 obj_obj_supp[i_a, obj_a['obj_parent']] = 1
             for i_b, obj_b in enumerate(objs):
                 if i_a == i_b:
@@ -268,6 +272,14 @@ class RelationOptimization:
                 obj_obj_dis[i_a, i_b] = bdb3d_a['dis'] > bdb3d_b['dis']
                 obj_obj_tch[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, - expand_dis))
                 obj_obj_col[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, expand_dis))
+                
+                if not self.use_anno_supp and obj_obj_tch[i_a, i_b]:
+                    corners_a = bdb3d_corners(bdb3d_a)
+                    center_z_a = (corners_a[:,-1].max() + corners_a[:,-1].min()) / 2
+                    corners_b = bdb3d_corners(bdb3d_b)
+                    center_z_b = (corners_b[:,-1].max() + corners_b[:,-1].min()) / 2
+                    if center_z_a > center_z_b:
+                        obj_obj_supp[i_a, i_b] = 1
 
         # object - floor/ceiling relationships
         layout = scene['layout']['manhattan_world']
@@ -285,8 +297,12 @@ class RelationOptimization:
             obj['floor_tch'] = corners_expand[:, -1].min() < layout_info['floor'] if obj['in_room'] else 0
             obj['ceil_tch'] = corners_expand[:, -1].max() > layout_info['ceil'] if obj['in_room'] else 0
             
-            obj['floor_supp'] = obj['floor_supp'] if 'floor_supp' in obj else 1
-            obj['ceil_supp'] = obj['ceil_supp'] if 'ceil_supp' in obj else 0
+            if self.use_anno_supp:
+                obj['floor_supp'] = obj['floor_supp'] if 'floor_supp' in obj else 1
+                obj['ceil_supp'] = obj['ceil_supp'] if 'ceil_supp' in obj else 0
+            else:
+                obj['floor_supp'] = obj['floor_tch']
+                obj['ceil_supp'] = obj['ceil_tch']
 
         walls_bdb3d = wall_bdb3d_from_manhattan_world_layout(layout)
 

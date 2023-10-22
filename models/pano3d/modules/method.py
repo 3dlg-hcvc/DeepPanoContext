@@ -194,13 +194,14 @@ class Pano3D(BaseMethod):
 
     def generate_relation_gt(self, est_scenes, gt_scenes):
         for est_scene, gt_scene in zip(est_scenes, gt_scenes):
-            if not('objs' in gt_scene.data and gt_scene['objs'] and 'bdb3d' in gt_scene['objs'][0]):
+            if not ('objs' in gt_scene.data and gt_scene['objs'] and 'bdb3d' in gt_scene['objs'][0]):
                 continue
             gt_objs = gt_scene['objs']
 
             # generate relation between gt objects and estimated layout
             relation_optimization = RelationOptimization(
-                expand_dis=self.cfg.config['data']['expand_dis'])
+                expand_dis=self.cfg.config['data']['expand_dis'],
+                use_anno_supp=self.cfg.config['data']['use_anno_supp'])
             gt_rel_data = est_scene.data.copy()
             gt_rel_data['objs'] = gt_objs
             gt_rel_scene = IGScene(gt_rel_data)

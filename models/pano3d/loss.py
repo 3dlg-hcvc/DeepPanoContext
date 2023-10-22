@@ -153,11 +153,13 @@ class HorizonLoss(BaseLoss):
 class RelationLoss(BaseLoss):
     def __call__(self, est_data, gt_data):
         loss_dict = {}
-        obj_single_rels = ['floor_tch', 'ceil_tch', 'in_room']
+        obj_single_rels = ['in_room']
         obj_pair_rels = ['obj_obj_rot', 'obj_obj_dis', 'obj_obj_tch', 'obj_wall_rot', 'obj_wall_tch']
         if self.config['model']['scene_gcn']['output_support']:
             obj_single_rels.extend(['floor_supp', 'ceil_supp'])
             obj_pair_rels.extend(['obj_obj_supp'])
+        else:
+            obj_single_rels.extend(['floor_tch', 'ceil_tch'])
 
         est_objs, gt_objs = est_data['objs'], gt_data['objs']
         if est_objs and torch.any(est_objs['gt'] >= 0):

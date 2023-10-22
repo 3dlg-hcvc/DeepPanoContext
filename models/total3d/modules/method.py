@@ -12,7 +12,6 @@ from models.pano3d.dataloader import collate_fn
 from utils.igibson_utils import IGScene, reverse_fov_split
 from utils.layout_utils import manhattan_world_layout_from_pix_layout, wall_contour_from_manhattan_pix_layout, \
     wall_bdb3d_from_manhattan_world_layout
-from utils.relation_utils import RelationOptimization
 from utils.basic_utils import dict_of_array_to_list_of_dict, recursively_to
 from utils.transform_utils import IGTransform, bdb3d_corners, points2bdb2d, size2reg, num2bins, contour2bfov, \
     bins2bdb3d, bins2layout, bins2camera
