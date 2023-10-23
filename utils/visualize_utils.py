@@ -417,6 +417,46 @@ class IGVisualizer:
                         self._line3d(image, src, dst, collision_color, collision_thickness, frame='world')
 
         return image
+    
+    def support(self, image, thickness=2):
+        image = image.copy()
+        objs = self.scene['objs']
+        walls = self.scene['walls']
+        relation_color = 255
+        # collision_color = (255, 74, 40)
+        relation_thickness = thickness
+        # collision_thickness = thickness
+
+        # visualize support relationship between objects
+        for i_a, obj_a in enumerate(objs):
+            for i_b, obj_b in enumerate(objs):
+                # if i_a == i_b or any(not obj.get('in_room', True) for obj in (obj_a, obj_b)):
+                if i_a == i_b:
+                    continue
+                bdb3d_a = obj_a['bdb3d']
+                bdb3d_b = obj_b['bdb3d']
+                src = bdb3d_a['centroid']
+                dst = bdb3d_b['centroid']
+                if self.scene['relation']['obj_obj_supp'][i_a, i_b]:
+                    self._line3d(image, src, dst, relation_color, relation_thickness, frame='world')
+
+        # visualize floor/ceiling relationships of objects
+        layout_z = self.scene['layout']['manhattan_world'][:, -1]
+        floor = layout_z.min()
+        ceil = layout_z.max()
+        for obj in objs:
+            src = obj['bdb3d']['centroid']
+            dst = src.copy()
+
+            dst[-1] = floor
+            if obj['floor_supp']:
+                self._line3d(image, src, dst, relation_color, relation_thickness, frame='world')
+
+            dst[-1] = ceil
+            if obj['ceil_supp']:
+                self._line3d(image, src, dst, relation_color, relation_thickness, frame='world')
+
+        return image
 
     def _bfov(self, image, bfov, color, thickness=2):
         target = self.transform.camrad2world(np.stack([bfov['lon'], bfov['lat']]), 1)
