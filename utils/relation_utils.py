@@ -52,11 +52,12 @@ def relation_from_bins(data: dict, thres):
 
         objs = data['objs']
         new_objs = {}
-        obj_single_rels = ['in_room']
+        # obj_single_rels = ['in_room']
+        obj_single_rels = ['in_room', 'floor_tch', 'ceil_tch']
         if 'floor_supp' in objs:
             obj_single_rels.extend(['floor_supp', 'ceil_supp'])
-        else:
-            obj_single_rels.extend(['floor_tch', 'ceil_tch'])
+        # else:
+        #     obj_single_rels.extend(['floor_tch', 'ceil_tch'])
         for k in obj_single_rels:
             new_objs[k], new_objs[k + '_score'] = label_or_num_from_cls_reg(
                 objs[k], return_score=True, threshold=thres.get('obj_' + k, 0.5))
@@ -195,8 +196,7 @@ def test_meshes(scene, out_bdb3d_3d, step, output_path=None):
     return obj_obj_mesh_mask
 
 
-def visualize_relation(scene, background=None, wall3d=False,
-                       relation=True, show=False, collision=False, layout=False):
+def visualize_relation(scene, background=None, wall3d=False, relation=True, show=False, collision=False, layout=False, support=False):
     visualizer = IGVisualizer(scene)
     image = visualizer.background(0) if background is None else background
     if layout:
@@ -206,6 +206,8 @@ def visualize_relation(scene, background=None, wall3d=False,
     image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
     if relation:
         image = visualizer.relation(image, thickness=2, collision=collision)
+    if support:
+        image = visualizer.support(image, thickness=2)
     if show:
         show_image(image)
     return image

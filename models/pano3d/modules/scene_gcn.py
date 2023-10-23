@@ -657,13 +657,13 @@ class RelationSGCN(SceneGCN):
         self.fc_obj_wall_tch_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
         self.fc_obj_wall_tch_2 = nn.Linear(self.feature_dim // 2, 1)
 
-        # # branch to predict the floor_tch
-        # self.fc_obj_floor_tch_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
-        # self.fc_obj_floor_tch_2 = nn.Linear(self.feature_dim // 2, 1)
+        # branch to predict the floor_tch
+        self.fc_obj_floor_tch_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
+        self.fc_obj_floor_tch_2 = nn.Linear(self.feature_dim // 2, 1)
 
-        # # branch to predict the ceil_tch
-        # self.fc_obj_ceil_tch_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
-        # self.fc_obj_ceil_tch_2 = nn.Linear(self.feature_dim // 2, 1)
+        # branch to predict the ceil_tch
+        self.fc_obj_ceil_tch_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
+        self.fc_obj_ceil_tch_2 = nn.Linear(self.feature_dim // 2, 1)
 
         # branch to predict the in_room
         self.fc_obj_in_room_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
@@ -681,14 +681,14 @@ class RelationSGCN(SceneGCN):
             # branch to predict the ceil_supp
             self.fc_obj_ceil_supp_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
             self.fc_obj_ceil_supp_2 = nn.Linear(self.feature_dim // 2, 1)
-        else:
-            # branch to predict the floor_tch
-            self.fc_obj_floor_tch_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
-            self.fc_obj_floor_tch_2 = nn.Linear(self.feature_dim // 2, 1)
+        # else:
+        #     # branch to predict the floor_tch
+        #     self.fc_obj_floor_tch_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
+        #     self.fc_obj_floor_tch_2 = nn.Linear(self.feature_dim // 2, 1)
 
-            # branch to predict the ceil_tch
-            self.fc_obj_ceil_tch_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
-            self.fc_obj_ceil_tch_2 = nn.Linear(self.feature_dim // 2, 1)
+        #     # branch to predict the ceil_tch
+        #     self.fc_obj_ceil_tch_1 = nn.Linear(self.feature_dim, self.feature_dim // 2)
+        #     self.fc_obj_ceil_tch_2 = nn.Linear(self.feature_dim // 2, 1)
             
 
     def _get_map(self, objs_split, walls_split):
@@ -969,17 +969,17 @@ class RelationSGCN(SceneGCN):
                 else:
                     rel_list[i_scene][k] = rel_mat[start:start + n_objs, start + n_objs:end]
 
-        # # branch to predict the floor_tch
-        # floor_tch = self.fc_obj_floor_tch_1(obj_feats_wowall)
-        # floor_tch = self.relu(floor_tch)
-        # floor_tch = self.dropout(floor_tch)
-        # floor_tch = self.fc_obj_floor_tch_2(floor_tch)
+        # branch to predict the floor_tch
+        floor_tch = self.fc_obj_floor_tch_1(obj_feats_wowall)
+        floor_tch = self.relu(floor_tch)
+        floor_tch = self.dropout(floor_tch)
+        floor_tch = self.fc_obj_floor_tch_2(floor_tch)
 
-        # # branch to predict the ceil_tch
-        # ceil_tch = self.fc_obj_ceil_tch_1(obj_feats_wowall)
-        # ceil_tch = self.relu(ceil_tch)
-        # ceil_tch = self.dropout(ceil_tch)
-        # ceil_tch = self.fc_obj_ceil_tch_2(ceil_tch)
+        # branch to predict the ceil_tch
+        ceil_tch = self.fc_obj_ceil_tch_1(obj_feats_wowall)
+        ceil_tch = self.relu(ceil_tch)
+        ceil_tch = self.dropout(ceil_tch)
+        ceil_tch = self.fc_obj_ceil_tch_2(ceil_tch)
 
         # branch to predict the in_room
         in_room = self.fc_obj_in_room_1(obj_feats_wowall)
@@ -988,8 +988,8 @@ class RelationSGCN(SceneGCN):
         in_room = self.fc_obj_in_room_2(in_room)
 
         objs = {
-            # 'floor_tch': floor_tch,
-            # 'ceil_tch': ceil_tch,
+            'floor_tch': floor_tch,
+            'ceil_tch': ceil_tch,
             'in_room': in_room,
         }
 
@@ -1010,23 +1010,23 @@ class RelationSGCN(SceneGCN):
                 'floor_supp': floor_supp,
                 'ceil_supp': ceil_supp,
             })
-        else:
-            # branch to predict the floor_tch
-            floor_tch = self.fc_obj_floor_tch_1(obj_feats_wowall)
-            floor_tch = self.relu(floor_tch)
-            floor_tch = self.dropout(floor_tch)
-            floor_tch = self.fc_obj_floor_tch_2(floor_tch)
+        # else:
+        #     # branch to predict the floor_tch
+        #     floor_tch = self.fc_obj_floor_tch_1(obj_feats_wowall)
+        #     floor_tch = self.relu(floor_tch)
+        #     floor_tch = self.dropout(floor_tch)
+        #     floor_tch = self.fc_obj_floor_tch_2(floor_tch)
 
-            # branch to predict the ceil_tch
-            ceil_tch = self.fc_obj_ceil_tch_1(obj_feats_wowall)
-            ceil_tch = self.relu(ceil_tch)
-            ceil_tch = self.dropout(ceil_tch)
-            ceil_tch = self.fc_obj_ceil_tch_2(ceil_tch)
+        #     # branch to predict the ceil_tch
+        #     ceil_tch = self.fc_obj_ceil_tch_1(obj_feats_wowall)
+        #     ceil_tch = self.relu(ceil_tch)
+        #     ceil_tch = self.dropout(ceil_tch)
+        #     ceil_tch = self.fc_obj_ceil_tch_2(ceil_tch)
             
-            objs.update({
-                'floor_tch': floor_tch,
-                'ceil_tch': ceil_tch,
-            })
+        #     objs.update({
+        #         'floor_tch': floor_tch,
+        #         'ceil_tch': ceil_tch,
+        #     })
 
         return objs, rel_list
 
