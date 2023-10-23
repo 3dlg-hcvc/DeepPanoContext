@@ -43,20 +43,20 @@ def visualize_camera(args):
         render_view(os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply'),
                     os.path.join(scene_folder, args.task_id, 'layout_bdb3d.png'))
         
-        ro = RelationOptimization(expand_dis=args.expand_dis, use_anno_supp=False)
+        ro = RelationOptimization(expand_dis=args.expand_dis, use_anno_supp=True)
         ro.generate_relation(scene)
         image = visualize_relation(scene, layout=True, relation=True, collision=True)
         save_path = os.path.join(scene_folder, args.task_id, 'relation.png')
         save_image(image, save_path)
-        hs_image = visualize_relation(scene, layout=True, support=True, relation=False)
-        save_path = os.path.join(scene_folder, args.task_id, 'hs.png')
-        save_image(hs_image, save_path)
-        del scene.data['relation']
-        ro = RelationOptimization(expand_dis=args.expand_dis, use_anno_supp=True)
-        ro.generate_relation(scene)
         as_image = visualize_relation(scene, layout=True, support=True, relation=False)
         save_path = os.path.join(scene_folder, args.task_id, 'as.png')
         save_image(as_image, save_path)
+        del scene.data['relation']
+        ro = RelationOptimization(expand_dis=args.expand_dis, use_anno_supp=False)
+        ro.generate_relation(scene)
+        hs_image = visualize_relation(scene, layout=True, support=True, relation=False)
+        save_path = os.path.join(scene_folder, args.task_id, 'hs.png')
+        save_image(hs_image, save_path)
 
     visualizer = IGVisualizer(scene, gpu_id=args.gpu_id, debug=args.debug)
 

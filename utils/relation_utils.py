@@ -582,9 +582,10 @@ class RelationOptimization:
         criterion = lambda e: nn.SmoothL1Loss(reduction='mean')(e, torch.zeros_like(e, device=e.device))
 
         scene = IGScene.from_batch(data)[0]
-        mesh_path = {i: o['gt_model_path'] for i, o in enumerate(scene['objs']) if 'gt_model_path' in o and o['gt_model_path']}
-        scene.mesh_io = MeshIO.from_file(mesh_path)
-        scene.mesh_io.load()
+        if self.use_mesh_col_mask:
+            mesh_path = {i: o['gt_model_path'] for i, o in enumerate(scene['objs']) if 'gt_model_path' in o and o['gt_model_path']}
+            scene.mesh_io = MeshIO.from_file(mesh_path)
+            scene.mesh_io.load()
 
         # transform for bdb3d projection error
         if self.weights.get('bdb3d_proj'):
