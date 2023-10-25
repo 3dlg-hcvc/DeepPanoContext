@@ -199,6 +199,9 @@ Train object reconstruction network (LIEN+LDIF) with:
 CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif_<data>.yaml --data.split /path/to/data
 ```
 The checkpoint and visualization results will be saved to ```out/ldif/<ldif_id>```.
+```shell
+CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif_rlsd.yaml --exp test_ldif --data.split /project/3dlg-hcvc/rlsd/data/psu/rlsd_obj_cls25 --mode qtest --weight /local-scratch/qiruiw/research/DeepPanoContext/out/ldif/ft_rlsd_real_cls25/model_best.pth
+```
    
 #### Bdb3D Estimation
 
