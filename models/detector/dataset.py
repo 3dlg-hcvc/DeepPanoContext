@@ -13,7 +13,6 @@ from detectron2.data import MetadataCatalog
 from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name, PSU45CLASSES, COMMON25CLASSES
 from utils.visualize_utils import detectron_gt_sample, visualize_igibson_detectron_gt
 from utils.image_utils import show_image
-from models.pano3d.dataloader import SceneDataset
 
 
 def register_detection_dataset(path, real=None):
@@ -38,6 +37,7 @@ def register_detection_dataset(path, real=None):
 
 
 def get_dataset_dicts(folder, mode):
+    from models.pano3d.dataloader import SceneDataset
     dataset_name = get_dataset_name(folder)
     if dataset_name.startswith(('igibson', 'rlsd', 'ig_rr', 's3d')):
         dataset = SceneDataset({'data': {'split': folder}}, mode)
