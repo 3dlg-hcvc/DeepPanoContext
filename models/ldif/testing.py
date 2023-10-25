@@ -12,6 +12,7 @@ from models.testing import BaseTester
 from external.ldif.inference.metrics import mesh_chamfer_via_points
 from external.ldif.util.file_util import read_mesh
 from external.pyTorchChamferDistance.chamfer_distance import ChamferDistance
+from models.eval_metrics import  AverageMeter, ClassMeanMeter
 dist_chamfer = ChamferDistance()
 
 
@@ -24,7 +25,8 @@ class Tester(BaseTester, Trainer):
         self._temp_folder = None
 
     def get_metric_values(self, est_data, gt_data):
-        losses = defaultdict(list)
+        # losses = defaultdict(list)
+        losses = defaultdict(lambda: ClassMeanMeter(AverageMeter))
 
         est_data['mesh'] = est_data['mesh_extractor'].extract_mesh()
         est_vertices = [torch.from_numpy(m.vertices).type(torch.float32).to(self.device) for m in est_data['mesh']]
@@ -34,7 +36,8 @@ class Tester(BaseTester, Trainer):
         for index in range(len(est_vertices)):
             class_name = gt_data['class_name'][index]
             dist1, dist2 = dist_chamfer(gt_vertices[index].unsqueeze(0), est_vertices[index].unsqueeze(0))[:2]
-            losses['Avg_Chamfer'].append((((torch.mean(dist1)) + (torch.mean(dist2))).item(), class_name))
+            # losses['Avg_Chamfer'].append((((torch.mean(dist1)) + (torch.mean(dist2))).item(), class_name))
+            losses['Avg_Chamfer'][class_name].append((torch.mean(dist1) + torch.mean(dist2)).item())
 
             if self.cfg.config['full']:
                 mesh = est_data['mesh'][index]
@@ -56,7 +59,8 @@ class Tester(BaseTester, Trainer):
                 gt = gt_vertices[index].cpu().numpy()
                 for ext, output in zip(('woICP', 'wICP'), (mesh, align_mesh)):
                     chamfer = mesh_chamfer_via_points(points1=output.sample(10000), points2=gt)
-                    losses[f'chamfer_{ext}'].append((chamfer, class_name))
+                    # losses[f'chamfer_{ext}'].append((chamfer, class_name))
+                    losses[f'chamfer_{ext}'][class_name].append(chamfer)
 
         return losses, (est_data, gt_data)
 

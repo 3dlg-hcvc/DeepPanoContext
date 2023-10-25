@@ -291,7 +291,7 @@ class ClassMeanMeter(defaultdict, MetricMeter):
         return all
 
     def __str__(self):
-        return '{' + ', '.join([f"{k}: {v:.2f}" for k, v in self.__call__().items()]) + '}'
+        return '{' + ', '.join([f"{k}: {v:.4f}" for k, v in self.__call__().items()]) + '}'
 
     def add(self, val):
         for k, v in val.items():
