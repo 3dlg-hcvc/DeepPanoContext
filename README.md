@@ -13,7 +13,8 @@ This repo contains data generation, data preprocessing, training, testing, evalu
 ## Install
 
 Install necessary tools and create conda environment (needs to install anaconda if not available): 
-```
+#### Lab
+```shell
 module load LIB/CUDA/11.2 LIB/CUDNN/8.1.0-CUDA11.2 
 # sudo apt install xvfb ninja-build freeglut3-dev libglew-dev meshlab ### should all installed on lab machine, check with (apt -qq list <PACKAGE>)
 conda env create -f environment.yaml
@@ -21,6 +22,16 @@ conda activate Pano3D
 pip install wandb
 python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu101/torch1.7/index.html
 python project.py build
+```
+#### Solar
+```shell
+module load LIB/CUDA/11.1 LIB/CUDNN/8.0.5-CUDA11.1
+conda env create -f environment.yaml
+conda activate Pano3D
+pip install wandb
+pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.9/index.html
+python project.py build --subwork ldif2mesh py360convert
 ```
 - When running ```python project.py build```, the script will run ```external/build_gaps.sh``` which requires password for sudo privilege for ```apt-get install```.
 Please make sure you are running with a user with sudo privilege.
