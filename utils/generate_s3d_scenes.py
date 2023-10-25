@@ -236,7 +236,7 @@ def main():
                         help='Set to greater than 1 to use super_sample')
     parser.add_argument('--no_physim', default=False, action='store_true',
                         help='Do physical simulation before rendering')
-    parser.add_argument('--train', type=float, default=0.7,
+    parser.add_argument('--train', type=float, default=0.8,
                         help='Ratio of train split')
     parser.add_argument('--horizon_lo', default=False, action='store_true',
                         help='Generate Horizon format layout GT from manhattan layout')
@@ -310,7 +310,8 @@ def main():
         for camera in data_paths:
             if camera is None: continue
             scene_name, room_id = camera.split('/')[-3:-1]
-            scene = f"{scene_name}/{room_id}"
+            # scene = f"{scene_name}/{room_id}"
+            scene = scene_name
             is_train = hash_split(args.train, scene)
             path = os.path.join(*camera.split('/')[-3:])
             if is_train:
