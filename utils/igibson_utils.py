@@ -519,7 +519,7 @@ class IGScene:
             all_faces.extend((m.faces + cur_num_verts).tolist())
             all_colors.extend([color] * len(m.vertices))
         
-        if filename is not None:
+        if filename is not None and len(all_verts) > 0:
             write_ply_rgb_face(np.array(all_verts), np.array(all_colors), np.array(all_faces), filename)
 
         if separate:
