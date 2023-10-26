@@ -16,7 +16,7 @@ from copy import deepcopy
 from glob import glob
 import traceback
 
-from configs.data_config import PSU45CLASSES, IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, COMMON25CLASSES, RLSD32CLASSES
+from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, COMMON25CLASSES, RLSD32CLASSES
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
 from .rlsd_utils import create_data_splits, encode_rgba, prepare_images
@@ -381,8 +381,8 @@ def main():
                         help='Types of room layout')
     parser.add_argument('--img_mode', type=str, default='real',
                         help='Types of images: real/syn/mix')
-    parser.add_argument('--cls_mode', type=str, default='cls45',
-                        help='Types of object classes: cls45/cls25')
+    parser.add_argument('--cls_mode', type=str, default='cls32',
+                        help='Types of object classes: cls32/cls25')
     parser.add_argument('--model_mode', type=str, default='rlsd',
                         help='Types of images: rlsd/ig')
     parser.add_argument('--resume', default=False, action='store_true',
@@ -399,7 +399,7 @@ def main():
     args = parser.parse_args()
     args.output = f"{args.output}_{args.img_mode}"
     global OBJCLASSES
-    OBJCLASSES = PSU45CLASSES
+    OBJCLASSES = RLSD32CLASSES
     if args.cls_mode == 'cls25':
         args.output = f"{args.output}_{args.cls_mode}"
         OBJCLASSES = COMMON25CLASSES

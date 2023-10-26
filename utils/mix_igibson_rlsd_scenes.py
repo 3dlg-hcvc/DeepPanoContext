@@ -33,4 +33,4 @@ for rlsd_pkl_file in tqdm(rlsd_train_sample):
         pickle.dump(data, f)
         
 with open(os.path.join(data_dir, 'train.json'), 'w') as f:
-    json.dump(mix_train, f)
+    json.dump(mix_train, f, indent=4)

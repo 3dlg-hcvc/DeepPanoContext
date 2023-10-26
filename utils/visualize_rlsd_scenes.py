@@ -4,7 +4,7 @@ import argparse
 from multiprocessing import Pool
 from tqdm import tqdm
 
-from configs.data_config import rlsd_cls45_colorbox, rlsd_cls23_colorbox, igibson_colorbox
+from configs.data_config import rlsd_cls45_colorbox, rlsd_cls25_colorbox, igibson_colorbox
 from models.detector.dataset import register_detection_dataset
 from .igibson_utils import IGScene
 from .image_utils import save_image

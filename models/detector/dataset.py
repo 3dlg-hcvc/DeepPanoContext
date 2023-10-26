@@ -10,7 +10,7 @@ from detectron2.config import get_cfg as default_cfg
 from detectron2.data import DatasetCatalog
 from detectron2.data import MetadataCatalog
 
-from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name, PSU45CLASSES, COMMON25CLASSES
+from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name, RLSD32CLASSES, COMMON25CLASSES
 from utils.visualize_utils import detectron_gt_sample, visualize_igibson_detectron_gt
 from utils.image_utils import show_image
 from models.pano3d.dataloader import SceneDataset
@@ -27,7 +27,7 @@ def register_detection_dataset(path, real=None):
             if 'ig' in dataset:
                 thing_classes = IG56CLASSES
             else:
-                thing_classes = PSU45CLASSES
+                thing_classes = RLSD32CLASSES
         elif dataset.startswith(('pano_context', 'wimr')) or real == True:
             thing_classes = WIMR11CLASSES
         else:

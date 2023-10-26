@@ -7,7 +7,7 @@ from glob import glob
 import shutil
 from torch.utils.data import Dataset
 
-from configs.data_config import IG56CLASSES, PSU45CLASSES, IG56_2_PSU45, get_dataset_name, COMMON25CLASSES
+from configs.data_config import IG56CLASSES, RLSD32CLASSES, get_dataset_name, COMMON25CLASSES
 from utils.basic_utils import read_json
 from utils.image_utils import load_image
 from utils.mesh_utils import load_mesh
@@ -55,7 +55,7 @@ class Pano3DDataset(Dataset):
             if 'ig' in dataset:
                 self.OBJCLASSES = IG56CLASSES
             else:
-                self.OBJCLASSES = PSU45CLASSES
+                self.OBJCLASSES = RLSD32CLASSES
         if 'cls25' in dataset or 'cls25' in config.get('exp', ''):
             self.OBJCLASSES = COMMON25CLASSES
         config["OBJCLASSES"] = self.OBJCLASSES
