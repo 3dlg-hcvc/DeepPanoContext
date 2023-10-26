@@ -176,13 +176,13 @@ CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml
 ```
 Finetune layout estimation network (HorizonNet) with pretrained weight:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data # specify json for rlsd data
 ```
 The checkpoint and visualization results will be saved to ```out/layout_estimation/<layout_estimation_id>/model_best.pth```
 
 Test layout estimation network (HorizonNet) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --mode test --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --mode test --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data # specify json for rlsd data
 ```
    
 #### Save First Stage Outputs

@@ -10,8 +10,9 @@ from PIL import Image
 from multiprocessing import Pool
 from tqdm import tqdm
 import shutil
-import shapely
-from shapely.geometry import Polygon, Point, MultiPoint
+from copy import deepcopy
+# import shapely
+# from shapely.geometry import Polygon, Point, MultiPoint
 from glob import glob
 import traceback
 
@@ -26,10 +27,11 @@ from .layout_utils import scene_layout_from_rlsd_arch, room_layout_from_rlsd_sce
 from .transform_utils import bdb3d_corners, IGTransform
 
 
-issues = {key:[] for key in ["duplicate_points", "duplicate_x", "over_large_objects", "zero_obj_dim", "outside_house", "mask_missing", "close_to_wall"]}
+issues = {key:[] for key in ["duplicate_points", "duplicate_x", "over_large_objects", "zero_obj_dim", "no_objects", "outside_house", "mask_missing", "close_to_wall"]}
 issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
 model_paths = set()
 missing_3dw = set()
+no_layout = set()
 model2cat = {}
 OBJCLASSES = None
 
@@ -93,11 +95,11 @@ def _render_scene(args):
     cam_height = cam3d2world[2, 3]
     cam_view = np.array([0, 1, 0])
     camera = {
-            # "id": pano_id,
+            "id": pano_id,
             'height': 512,
             'width': 1024,
             "pos": cam_pos,
-            # "view_dir": cam_view,
+            "view_dir": cam_view,
             "target": cam_pos + cam_view,
             "up": np.array([0, 0, 1], dtype=np.float32),
             "world2cam3d": world2cam3d,
@@ -113,34 +115,44 @@ def _render_scene(args):
                 'seg': os.path.join(args.output, scene_name, "seg.png"),
             }
         }
-    skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
+    # skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
     plot_path = os.path.join(args.output, scene_name)
-    room, wall_ind_map, distance_wall = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
+    room_id, room, wall_ind_map, distance_wall = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
     if room is None:
         issues["outside_house"].append(full_task_id)
-        print(skip_info + "room layout generation failed")
-        return
-    if distance_wall < 0.5:
-        issues["close_to_wall"]["0.5"].append(f"{full_task_id}/{distance_wall}")
-        # print(f"{full_task_id} close to wall ({distance_wall:.3f} < 0.5)")
-    if distance_wall < 0.3:
-        issues["close_to_wall"]["0.3"].append(f"{full_task_id}/{distance_wall}")
-    if distance_wall < 0.1:
-        issues["close_to_wall"]["0.1"].append(f"{full_task_id}/{distance_wall}")
-        print(skip_info + "room layout generation failed")
-        return
-    data['room'] = room
-    
-    # generate camera layout and check if the camaera is valid
-    layout = {'manhattan_pix': manhattan_pix_layout_from_rlsd_room(camera, room, args.room_mode, full_task_id, issues)}
-    data['layout'] = layout
-    if layout['manhattan_pix'] is None:
-        print(skip_info + "manhattan pixel layout generation failed")
-        return
-    if args.world_lo:
-        layout['manhattan_world'] = manhattan_world_layout_from_room_layout(room)
-    if args.horizon_lo:
-        layout['horizon'] = horizon_layout_gt_from_scene_data(data)
+        print(f"{full_task_id}: outside house, no room layout generated.")
+        no_layout.add(full_task_id)
+        data['room'] = room_id
+        # return
+    else:
+        if distance_wall < 0.5:
+            issues["close_to_wall"]["0.5"].append(f"{full_task_id}/{distance_wall}")
+        if distance_wall < 0.3:
+            issues["close_to_wall"]["0.3"].append(f"{full_task_id}/{distance_wall}")
+        if distance_wall < 0.1:
+            issues["close_to_wall"]["0.1"].append(f"{full_task_id}/{distance_wall}")
+            # print(skip_info + "room layout generation failed")
+            print(f"{full_task_id}: close to wall ({distance_wall:.3f} < 0.1), no room layout generated.")
+            no_layout.add(full_task_id)
+            # return
+        data['room'] = room
+        
+        # generate camera layout and check if the camaera is valid
+        layout = {}
+        manhattan_pix = manhattan_pix_layout_from_rlsd_room(camera, room, args.room_mode, full_task_id, issues)
+        # layout = {'manhattan_pix': manhattan_pix_layout_from_rlsd_room(camera, room, args.room_mode, full_task_id, issues)}
+        # data['layout'] = layout
+        if manhattan_pix is None:
+            # print(skip_info + "manhattan pixel layout generation failed")
+            no_layout.add(full_task_id)
+            # return
+        else:
+            layout['manhattan_pix'] = manhattan_pix
+            data['layout'] = layout
+            if args.world_lo:
+                layout['manhattan_world'] = manhattan_world_layout_from_room_layout(room)
+            if args.horizon_lo:
+                layout['horizon'] = horizon_layout_gt_from_scene_data(data)
     
     # get object params
     scene_json = task_json["sceneJson"]
@@ -284,11 +296,12 @@ def _render_scene(args):
                 obj['ceil_supp'] = 1
             elif len(parent_id.split('_')) == 3: # wall
                 obj['wall_supp'] = 1
-                if int(parent_id.split('_')[1]) == data['room_idx']:
+                if wall_ind_map and int(parent_id.split('_')[1]) == data['room_idx']:
                     obj['wall_parent'] = wall_ind_map.get(int(parent_id.split('_')[-1]), -1)
 
     if not data['objs']:
-        print(f"{skip_info}no object in the frame")
+        print(f"{full_task_id}: no object in the frame")
+        issues["no_objects"].append(full_task_id)
         # return None
 
     # construction IGScene
@@ -440,7 +453,7 @@ def main():
 
     if args.img_mode == 'real' and \
         args.model_mode == 'rlsd' and \
-        args.cls_mode == 'cls45' and \
+        args.cls_mode == 'cls25' and \
         not args.split:
         with open("/project/3dlg-hcvc/rlsd/data/annotations/annotation_issues.json", 'w') as f:
             json.dump(issues, f, indent=4)
@@ -450,6 +463,9 @@ def main():
         with open("/project/3dlg-hcvc/rlsd/data/annotations/missing_3dw.txt", 'w') as f:
             for m in missing_3dw:
                 f.write(f"{m}\n")
+        with open("/project/3dlg-hcvc/rlsd/data/annotations/no_layout_rooms.txt", 'w') as f:
+            for r in no_layout:
+                f.write(f"{r}\n")
 
     if not args.skip_split:
         if data_paths is None:
@@ -462,6 +478,12 @@ def main():
             f"{len(scenes['test'])} test scenes, "
             f"{len(split['train'])} train cameras, "
             f"{len(split['test'])} test cameras")
+        
+        layout_split = {}
+        for k, v in split.items():
+            layout_split = sorted([d for d in v if d.replace('/data.pkl', '') not in no_layout])
+            with open(os.path.join(args.output, k + '.layout.json'), 'w') as f:
+                json.dump(layout_split, f, indent=4)
 
         for k, v in split.items():
             v.sort()

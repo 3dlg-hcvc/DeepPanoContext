@@ -201,7 +201,7 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
                 outside = False
                 break
         if outside:
-            return None, None, None # camera outside rooms -> invalid -> return None
+            return room_id, None, None, None # camera outside rooms -> invalid -> return None
     room = rooms[room_id]
     layout2d = room["room"]
     level = room["level"]
@@ -236,7 +236,7 @@ def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
                 wall_ind_map[int(arch_wall['id'].split('_')[-1])] = i_wall
                 break
 
-    return room, wall_ind_map, distance_wall
+    return room_id, room, wall_ind_map, distance_wall
 
 
 def plot_2d_regions_layout(rooms, room_id, level=0, cameras=[], output_path=None):
@@ -353,13 +353,13 @@ def manhattan_pix_layout_from_rlsd_room(camera, room, room_mode, full_task_id, i
     points_unique = np.unique(points, axis=0)
     if len(points_unique) < len(points):
         issues["duplicate_points"].append(full_task_id)
-        print(f"{full_task_id} duplicate points")
+        print(f"{full_task_id}: duplicate points, no room layout generated")
         return
     xs = points[::2, 0].astype(int)
     xs_unique = np.unique(xs)
     if len(xs_unique) < len(xs):
         issues["duplicate_x"].append(full_task_id)
-        print(f"{full_task_id} duplicate x")
+        print(f"{full_task_id}: duplicate x")
         # return
 
     return points.astype(np.int32)
