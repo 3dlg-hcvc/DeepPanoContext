@@ -242,8 +242,9 @@ class RelationOptimization:
         self.score_weighted = score_weighted
         self.gif_io = GifIO(duration=0.2)
         self.use_anno_supp = use_anno_supp
-        self.avg_iou = torch.from_numpy(np.load("w_col_prob.npy"))
         self.use_bbox_col_mask = use_bbox_col_mask
+        if use_bbox_col_mask:
+            self.avg_iou = torch.from_numpy(np.load("w_col_prob.npy"))
         self.use_mesh_col_mask = use_mesh_col_mask
 
     def generate_relation(self, scene):
