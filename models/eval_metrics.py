@@ -242,6 +242,9 @@ class AveragePrecisionMeter(defaultdict, MetricMeter):
         precision = TP / np.maximum(TP + FP, np.finfo(np.float64).eps)
         ap = voc_ap(recall, precision)
         return ap
+    
+    def __len__(self):
+        return len(self['score'])
 
     def __str__(self):
         return '{' + ', '.join([f"{k}: {v:.2f}" for k, v in self.items()]) + '}'
@@ -309,6 +312,22 @@ class ClassMeanMeter(defaultdict, MetricMeter):
         wandb.summary[name + '_avg'] = metric['mean']
         if self.default_factory == AverageMeter:
             wandb.summary[f"{name}_hist"] = wandb.Histogram(self.val())
+
+
+class ClassWeightedMeter(ClassMeanMeter):
+    def __init__(self, default):
+        super(ClassWeightedMeter, self).__init__(default)
+    
+    def __call__(self):
+        num = {k: len(v) for k, v in self.items()}
+        all_num = sum(num.values())
+        all = {k: v() for k, v in self.items()}
+        all['mean'] = sum([v()*(num[k]/all_num) for k, v in self.items()])
+        # all['mean'] = sum(all.values()) / len(all)
+        if self.default_factory == AverageMeter:
+            val = self.val()
+            all['avg'] = sum(val) / len(val) if len(val) > 0 else None
+        return all
 
 
 class MetricRecorder(defaultdict):

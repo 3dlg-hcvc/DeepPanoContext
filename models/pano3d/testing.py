@@ -9,7 +9,7 @@ from configs.data_config import igibson_colorbox
 from external.ldif.inference.metrics import mesh_chamfer_via_points
 from models.testing import BaseTester
 from models.eval_metrics import bdb3d_iou, bdb2d_iou, rot_err, classification_metric, AverageMeter, \
-    AveragePrecisionMeter, BinaryClassificationMeter, ClassMeanMeter
+    AveragePrecisionMeter, BinaryClassificationMeter, ClassMeanMeter, ClassWeightedMeter
 from utils.layout_utils import manhattan_world_layout_info
 from utils.mesh_utils import save_mesh
 from utils.relation_utils import relation_from_bins, RelationOptimization
@@ -228,7 +228,8 @@ class Tester(BaseTester, Trainer):
         metrics.update(metric_scene)
 
         # mAP and bdb3d parameters
-        metric_aps = ClassMeanMeter(AveragePrecisionMeter)
+        # metric_aps = ClassMeanMeter(AveragePrecisionMeter)
+        metric_aps = ClassWeightedMeter(AveragePrecisionMeter)
         for est_scene, gt_scene in zip(est_scenes, gt_scenes):
             if gt_scene['objs']:
                 if 'bdb3d' not in gt_scene['objs'][0]:
