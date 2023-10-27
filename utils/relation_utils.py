@@ -301,8 +301,8 @@ class RelationOptimization:
             obj['ceil_tch'] = corners_expand[:, -1].max() > layout_info['ceil'] if obj['in_room'] else 0
             
             if self.use_anno_supp:
-                obj['floor_supp'] = obj['floor_supp'] if 'floor_supp' in obj else 1
-                obj['ceil_supp'] = obj['ceil_supp'] if 'ceil_supp' in obj else 0
+                obj['floor_supp'] = obj['floor_supp'] if 'floor_supp' in obj else obj['floor_tch']
+                obj['ceil_supp'] = obj['ceil_supp'] if 'ceil_supp' in obj else obj['ceil_tch']
             else:
                 obj['floor_supp'] = obj['floor_tch']
                 obj['ceil_supp'] = obj['ceil_tch']
