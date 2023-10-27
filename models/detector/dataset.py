@@ -32,7 +32,7 @@ def register_detection_dataset(path, real=None):
             thing_classes = WIMR11CLASSES
         else:
             raise NotImplementedError
-        if 'cls25' in dataset:
+        if '25' in dataset:
             thing_classes = COMMON25CLASSES
         MetadataCatalog.get(f"{dataset}_{d}").set(thing_classes=thing_classes)
 

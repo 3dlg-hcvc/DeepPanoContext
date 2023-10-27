@@ -56,7 +56,7 @@ class Pano3DDataset(Dataset):
                 self.OBJCLASSES = IG56CLASSES
             else:
                 self.OBJCLASSES = RLSD32CLASSES
-        if 'cls25' in dataset or 'cls25' in config.get('exp', ''):
+        if '25' in dataset or '25' in config.get('exp', ''):
             self.OBJCLASSES = COMMON25CLASSES
         config["OBJCLASSES"] = self.OBJCLASSES
         
