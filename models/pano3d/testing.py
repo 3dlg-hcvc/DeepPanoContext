@@ -70,7 +70,7 @@ class Tester(BaseTester, Trainer):
                 for est_scene, gt_scene in zip(est_scenes, gt_scenes):
                     # generate relation between estimated objects and layout
                     # 0.1m of toleration distance when measuring collision
-                    relation_optimization = RelationOptimization(expand_dis=-0.1)
+                    relation_optimization = RelationOptimization(expand_dis=0.1)
                     est_rel_data = est_scene.data.copy()
                     est_rel_data['objs'] = deepcopy(est_rel_data['objs'])
                     est_rel_scene = IGScene(est_rel_data)
@@ -78,11 +78,11 @@ class Tester(BaseTester, Trainer):
                     relation = est_rel_scene['relation']
 
                     # collision metrics
-                    metric_col['collision_pairs'].append(relation['obj_obj_tch'].sum() / 2)
-                    metric_col['collision_objs'].append(relation['obj_obj_tch'].any(axis=0).sum())
-                    metric_col['collision_walls'].append(relation['obj_wall_tch'].any(axis=-1).sum())
-                    metric_col['collision_ceil'].append(sum(o['ceil_tch'] for o in est_rel_scene['objs']))
-                    metric_col['collision_floor'].append(sum(o['floor_tch'] for o in est_rel_scene['objs']))
+                    metric_col['collision_pairs'].append(relation['obj_obj_col'].sum() / 2)
+                    metric_col['collision_objs'].append(relation['obj_obj_col'].any(axis=0).sum())
+                    metric_col['collision_walls'].append(relation['obj_wall_col'].any(axis=-1).sum())
+                    metric_col['collision_ceil'].append(sum(o['ceil_col'] for o in est_rel_scene['objs']))
+                    metric_col['collision_floor'].append(sum(o['floor_col'] for o in est_rel_scene['objs']))
 
                     # # save reconstructed relations for relation fidelity evaluation
                     # relation_optimization = RelationOptimization(expand_dis=self.cfg.config['data'].get('expand_dis', 0.1))

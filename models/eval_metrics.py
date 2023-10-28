@@ -322,8 +322,8 @@ class ClassWeightedMeter(ClassMeanMeter):
         num = {k: len(v) for k, v in self.items()}
         all_num = sum(num.values())
         all = {k: v() for k, v in self.items()}
-        all['mean'] = sum([v()*(num[k]/all_num) for k, v in self.items()])
-        # all['mean'] = sum(all.values()) / len(all)
+        all['w_mean'] = sum([v()*(num[k]/all_num) for k, v in self.items()])
+        all['mean'] = sum(all.values()) / len(all)
         if self.default_factory == AverageMeter:
             val = self.val()
             all['avg'] = sum(val) / len(val) if len(val) > 0 else None
