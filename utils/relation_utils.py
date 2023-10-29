@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 from shapely.geometry import Polygon, Point
 import torch
@@ -15,6 +16,8 @@ from .transform_utils import num2bins, label_or_num_from_cls_reg, bdb3d_corners,
     expand_bdb3d, point_polygon_dis, points2bdb2d
 from .mesh_utils import MeshIO, mesh_collision, save_mesh, load_mesh
 from configs import data_config
+
+proxy_meshes = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/proxy_meshes.json"))
 
 
 def relation_from_bins(data: dict, thres):
@@ -163,19 +166,24 @@ def test_bdb3ds(bdb3d_a, bdb3d_b=None, toleration_dis=0.):
         return labels, collision_err_allaxes, touch_err_allaxes
 
 
-def test_meshes(scene, out_bdb3d_3d, step, output_path=None):
+def test_meshes(scene, out_bdb3d_3d=None, step=0, output_path=None):
     n_objs = len(scene['objs'])
     obj_obj_mesh_mask = np.zeros((n_objs, n_objs))
     meshes = []
     
-    bdb3ds = {'centroid': out_bdb3d_3d['centroid'].detach().cpu().numpy(),
-              'basis': out_bdb3d_3d['basis'].detach().cpu().numpy(),
-              'size': out_bdb3d_3d['size'].detach().cpu().numpy()}
+    # bdb3ds = {'centroid': out_bdb3d_3d['centroid'].detach().cpu().numpy(),
+    #           'basis': out_bdb3d_3d['basis'].detach().cpu().numpy(),
+    #           'size': out_bdb3d_3d['size'].detach().cpu().numpy()}
     
     for k, v in scene.mesh_io.items():
-        bdb3d = {'centroid': bdb3ds['centroid'][k],
-                 'basis': bdb3ds['basis'][k],
-                 'size': bdb3ds['size'][k]}
+        if out_bdb3d_3d:
+            bdb3d = {'centroid': out_bdb3d_3d['centroid'].detach().cpu().numpy()[k],
+                    'basis': out_bdb3d_3d['basis'].detach().cpu().numpy()[k],
+                    'size': out_bdb3d_3d['size'].detach().cpu().numpy()[k]}
+        else:
+            bdb3d = {'centroid': scene['objs'][k]['bdb3d']['centroid'],
+                    'basis': scene['objs'][k]['bdb3d']['basis'],
+                    'size': scene['objs'][k]['bdb3d']['size']}
         bdb3d['basis'] = bdb3d['basis'] @ np.array([[1,0,0],[0,0,-1],[0,1,0]])
         if 'wayfair' in scene.mesh_io.mesh_path[k]:
             bdb3d['basis'] = bdb3d['basis'] @ np.array([[-1,0,0],[0,1,0],[0,0,-1]])
@@ -185,7 +193,8 @@ def test_meshes(scene, out_bdb3d_3d, step, output_path=None):
     
     # import trimesh
     # scene_mesh = sum([m[1] for m in meshes]) if meshes else trimesh.Trimesh()
-    # save_mesh(scene_mesh, os.path.join(output_path, f'scene_mesh_{step}.obj'))
+    # # save_mesh(scene_mesh, os.path.join(output_path, f'scene_mesh_{step}.obj'))
+    # save_mesh(scene_mesh, f'./scene_mesh_test.obj')
     
     for i, (k1, m1) in enumerate(meshes):
         for k2, m2 in meshes[i+1:]:
@@ -247,7 +256,7 @@ class RelationOptimization:
             self.avg_iou = torch.from_numpy(np.load("w_col_prob.npy"))
         self.use_mesh_col_mask = use_mesh_col_mask
 
-    def generate_relation(self, scene):
+    def generate_relation(self, scene, use_mesh_col=False):
         expand_dis = self.expand_dis
         objs = scene['objs']
         n_objs = len(objs)
@@ -256,6 +265,17 @@ class RelationOptimization:
         obj_obj_tch = obj_obj_dis.copy()  # is a touching b
         obj_obj_col = obj_obj_dis.copy()  # is a colliding b
         obj_obj_supp = obj_obj_dis.copy() # is a supported by b
+        
+        if use_mesh_col:
+            mesh_paths = {}
+            for i, o in enumerate(scene['objs']):
+                if 'gt_model_path' in o and o['gt_model_path']:
+                    mesh_paths[i] = o['gt_model_path']
+                else:
+                    mesh_paths[i] = proxy_meshes[o['classname']][0]
+            scene.mesh_io = MeshIO.from_file(mesh_paths)
+            scene.mesh_io.load()
+            obj_obj_col = test_meshes(scene)
 
         # object - object relationships
         for obj in objs:
@@ -274,7 +294,8 @@ class RelationOptimization:
                 obj_obj_rot[i_a, i_b] = num2bins(data_config.metadata['rot_bins'], rot)
                 obj_obj_dis[i_a, i_b] = bdb3d_a['dis'] > bdb3d_b['dis']
                 obj_obj_tch[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, - expand_dis))
-                obj_obj_col[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, expand_dis))
+                if not use_mesh_col:
+                    obj_obj_col[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, expand_dis))
                 
                 if not self.use_anno_supp and obj_obj_tch[i_a, i_b]:
                     corners_a = bdb3d_corners(bdb3d_a)

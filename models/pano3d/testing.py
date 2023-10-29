@@ -74,15 +74,16 @@ class Tester(BaseTester, Trainer):
                     est_rel_data = est_scene.data.copy()
                     est_rel_data['objs'] = deepcopy(est_rel_data['objs'])
                     est_rel_scene = IGScene(est_rel_data)
-                    relation_optimization.generate_relation(est_rel_scene)
+                    relation_optimization.generate_relation(est_rel_scene, use_mesh_col=False)
                     relation = est_rel_scene['relation']
 
                     # collision metrics
-                    metric_col['collision_pairs'].append(relation['obj_obj_col'].sum() / 2)
-                    metric_col['collision_objs'].append(relation['obj_obj_col'].any(axis=0).sum())
+                    metric_col['collision_obj_pairs'].append(relation['obj_obj_col'].sum() / 2)
+                    # metric_col['collision_objs'].append(relation['obj_obj_col'].any(axis=0).sum())
                     metric_col['collision_walls'].append(relation['obj_wall_col'].any(axis=-1).sum())
                     metric_col['collision_ceil'].append(sum(o['ceil_col'] for o in est_rel_scene['objs']))
                     metric_col['collision_floor'].append(sum(o['floor_col'] for o in est_rel_scene['objs']))
+                    metric_col['collision_arch'].append(metric_col['collision_walls'][-1]+metric_col['collision_ceil'][-1]+metric_col['collision_floor'][-1])
 
                     # # save reconstructed relations for relation fidelity evaluation
                     # relation_optimization = RelationOptimization(expand_dis=self.cfg.config['data'].get('expand_dis', 0.1))
