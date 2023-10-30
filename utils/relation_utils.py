@@ -256,7 +256,7 @@ class RelationOptimization:
             self.avg_iou = torch.from_numpy(np.load("w_col_prob.npy"))
         self.use_mesh_col_mask = use_mesh_col_mask
 
-    def generate_relation(self, scene, use_mesh_col=False):
+    def generate_relation(self, scene, mesh_collision=False):
         expand_dis = self.expand_dis
         objs = scene['objs']
         n_objs = len(objs)
@@ -266,11 +266,14 @@ class RelationOptimization:
         obj_obj_col = obj_obj_dis.copy()  # is a colliding b
         obj_obj_supp = obj_obj_dis.copy() # is a supported by b
         
-        if use_mesh_col:
+        if mesh_collision:
             mesh_paths = {}
             for i, o in enumerate(scene['objs']):
                 if 'gt_model_path' in o and o['gt_model_path']:
-                    mesh_paths[i] = o['gt_model_path']
+                    if os.path.exists(o['gt_model_path']):
+                        mesh_paths[i] = o['gt_model_path']
+                    else:
+                        mesh_paths[i] = f"/project/3dlg-hcvc/rlsd/data/psu/igibson_obj/{o['gt_model_path']}/mesh_watertight.ply"
                 else:
                     mesh_paths[i] = proxy_meshes[o['classname']][0]
             scene.mesh_io = MeshIO.from_file(mesh_paths)
@@ -294,7 +297,7 @@ class RelationOptimization:
                 obj_obj_rot[i_a, i_b] = num2bins(data_config.metadata['rot_bins'], rot)
                 obj_obj_dis[i_a, i_b] = bdb3d_a['dis'] > bdb3d_b['dis']
                 obj_obj_tch[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, - expand_dis))
-                if not use_mesh_col:
+                if not mesh_collision:
                     obj_obj_col[i_a, i_b] = bool(test_bdb3ds(bdb3d_a, bdb3d_b, expand_dis))
                 
                 if not self.use_anno_supp and obj_obj_tch[i_a, i_b]:

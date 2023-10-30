@@ -74,7 +74,7 @@ class Tester(BaseTester, Trainer):
                     est_rel_data = est_scene.data.copy()
                     est_rel_data['objs'] = deepcopy(est_rel_data['objs'])
                     est_rel_scene = IGScene(est_rel_data)
-                    relation_optimization.generate_relation(est_rel_scene, use_mesh_col=False)
+                    relation_optimization.generate_relation(est_rel_scene, mesh_collision=self.cfg.config['test'].get('mesh_collision', False))
                     relation = est_rel_scene['relation']
 
                     # collision metrics

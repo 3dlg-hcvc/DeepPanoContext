@@ -51,6 +51,7 @@ val:
   batch_size: 6
 test:
   batch_size: 6
+  mesh_collision: False
 log:
   vis_step: 0
   print_step: 10
