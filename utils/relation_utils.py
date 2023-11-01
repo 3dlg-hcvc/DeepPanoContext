@@ -181,9 +181,9 @@ def test_meshes(scene, out_bdb3d_3d=None, step=0, output_path=None):
                     'basis': out_bdb3d_3d['basis'].detach().cpu().numpy()[k],
                     'size': out_bdb3d_3d['size'].detach().cpu().numpy()[k]}
         else:
-            bdb3d = {'centroid': scene['objs'][k]['bdb3d']['centroid'],
-                    'basis': scene['objs'][k]['bdb3d']['basis'],
-                    'size': scene['objs'][k]['bdb3d']['size']}
+            bdb3d = {'centroid': scene['objs'][k]['bdb3d']['centroid'].copy(),
+                    'basis': scene['objs'][k]['bdb3d']['basis'].copy(),
+                    'size': scene['objs'][k]['bdb3d']['size'].copy()}
         bdb3d['basis'] = bdb3d['basis'] @ np.array([[1,0,0],[0,0,-1],[0,1,0]])
         if 'wayfair' in scene.mesh_io.mesh_path[k]:
             bdb3d['basis'] = bdb3d['basis'] @ np.array([[-1,0,0],[0,1,0],[0,0,-1]])
