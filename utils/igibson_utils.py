@@ -469,15 +469,15 @@ class IGScene:
     
     def merge_layout_bdb3d_mesh(self, colorbox=None, separate=False, camera_color=None, layout_color=None, texture=False, gt_data=None, filename=None):
         mesh_io = MeshIO()
+        objs = self.data['objs']
         
         if gt_data is None:
-            objs = self.data['objs']
             for k, obj in enumerate(objs):
                 bdb3d = obj['bdb3d']
                 mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
                 mesh_io[k] = mesh_world
         else:
-            for k, est_obj in enumerate(self.data['objs']):
+            for k, est_obj in enumerate(objs):
                 bdb3d = est_obj['bdb3d']
                 mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
                 mesh_io[f'est_{k}'] = mesh_world
@@ -509,11 +509,17 @@ class IGScene:
             elif k == 'gt_layout_mesh': color = (255, 255, 0)
             elif str(k).startswith(('est',)): color = (0, 0, 255)
             elif str(k).startswith(('gt',)): color = (0, 255, 0)
-            else: 
-                if isinstance(objs[k]['label'], list):
-                    color = colorbox[objs[k]['label'][0]]
+            else:
+                if 'gt' in objs[k]:
+                    if objs[k]['gt'] == -1:
+                        color = (255, 0, 0)
+                    else:
+                        color = (0, 255, 0)
                 else:
-                    color = colorbox[objs[k]['label']]
+                    if isinstance(objs[k]['label'], list):
+                        color = colorbox[objs[k]['label'][0]]
+                    else:
+                        color = colorbox[objs[k]['label']]
             cur_num_verts = len(all_verts)
             all_verts.extend(m.vertices.tolist())
             all_faces.extend((m.faces + cur_num_verts).tolist())
