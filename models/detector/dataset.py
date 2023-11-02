@@ -31,7 +31,8 @@ def register_detection_dataset(path, real=None):
         elif dataset.startswith(('pano_context', 'wimr')) or real == True:
             thing_classes = WIMR11CLASSES
         else:
-            raise NotImplementedError
+            thing_classes = None
+            # raise NotImplementedError
         if '25' in dataset:
             thing_classes = COMMON25CLASSES
         MetadataCatalog.get(f"{dataset}_{d}").set(thing_classes=thing_classes)
