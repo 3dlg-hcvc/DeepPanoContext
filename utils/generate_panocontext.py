@@ -39,11 +39,11 @@ def fill_mask(mask):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Preprocess PanoContext dataset for 2D detector training.')
-    parser.add_argument('--dataset', type=str, default='data/panoContext_data',
+    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/panocontext',
                         help='The path of the dataset')
     parser.add_argument('--test_data', type=str, default='data/sun360_extended/test/rgb/',
                         help='The path of the test/rgb/ split of sun360_extended')
-    parser.add_argument('--output', type=str, default='data/wimr_detection',
+    parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/wimr_detection',
                         help='The path of the output folder')
     parser.add_argument('--processes', type=int, default=12,
                         help='Number of threads')
