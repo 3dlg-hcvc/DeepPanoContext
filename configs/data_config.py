@@ -225,8 +225,10 @@ PC2IG = {
 
 colorbox_path = 'external/cooperative_scene_parsing/evaluation/vis/igibson_colorbox.mat'
 igibson_colorbox = np.array(sns.hls_palette(n_colors=len(IG59CLASSES), l=.45, s=.8))
-rlsd_cls45_colorbox = np.array(sns.hls_palette(n_colors=len(PSU45CLASSES), l=.45, s=.8))
-rlsd_cls25_colorbox = np.array(sns.hls_palette(n_colors=len(COMMON25CLASSES), l=.45, s=.8))
+# rlsd_cls45_colorbox = np.array(sns.hls_palette(n_colors=len(PSU45CLASSES), l=.45, s=.8))
+# rlsd_cls25_colorbox = np.array(sns.hls_palette(n_colors=len(COMMON25CLASSES), l=.45, s=.8))
+rlsd_cls45_colorbox = np.array(sns.color_palette("husl", n_colors=len(PSU45CLASSES)))
+rlsd_cls25_colorbox = np.array(sns.color_palette("husl", n_colors=len(COMMON25CLASSES)))
 if not os.path.exists(colorbox_path):
     sio.savemat(colorbox_path, {'igibson_colorbox': igibson_colorbox})
 

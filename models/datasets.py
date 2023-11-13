@@ -49,6 +49,7 @@ class Pano3DDataset(Dataset):
         # load split from json file
         split = config['data']['split']
         dataset = get_dataset_name(split)
+        self.OBJCLASSES = IG56CLASSES
         if dataset.startswith(('igibson')):
             self.OBJCLASSES = IG56CLASSES
         if dataset.startswith(('rlsd', 's3d')):

@@ -602,7 +602,7 @@ class RelationSGCN(SceneGCN):
         self.OBJ_ROT_BIN = len(data_config.metadata['rot_bins'])
         self.output_bdb3d = self.model_config['output_bdb3d']
         self.output_relation = self.model_config['output_relation']
-        self.output_support = self.model_config['output_support']
+        self.output_support = self.model_config.get('output_support', False)
         self.output_label = self.model_config.get('output_label', False)
         # relation optimization params
         self.relation_adjust = self.model_config['relation_adjust']

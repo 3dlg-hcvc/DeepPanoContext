@@ -283,7 +283,7 @@ def create_layout_mesh(data, color=None, radius=0.025, texture=True):
     return mesh
 
 
-def create_bdb3d_mesh(bdb3d, color=None, radius=0.05):
+def create_bdb3d_mesh(bdb3d, color=None, radius=0.05, texture=True):
     from .igibson_utils import IGScene
     from .transform_utils import bdb3d_corners
     corners = bdb3d_corners(bdb3d)
@@ -301,7 +301,7 @@ def create_bdb3d_mesh(bdb3d, color=None, radius=0.05):
     #     mesh.append(line_mesh)
     mesh = sum(mesh)
     if color is not None:
-        mesh = IGScene.colorize_mesh_for_igibson(mesh, color)
+        mesh = IGScene.colorize_mesh_for_igibson(mesh, color, texture)
     return mesh
 
 

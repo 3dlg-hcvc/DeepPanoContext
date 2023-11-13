@@ -23,25 +23,27 @@ def visualize_camera(args):
     
     if args.save_scene_mesh:
         scene_mesh = scene.merge_rlsd_mesh(
-            colorbox=igibson_colorbox * 255,
+            colorbox=rlsd_cls25_colorbox * 255,
             separate=False,
-            layout_color=(255, 69, 80),
+            layout_color=(17, 207, 67),
             texture=False
         )
         if len(scene_mesh.vertices) > 0:
             save_mesh(scene_mesh, os.path.join(scene_folder, args.task_id, 'scene_mesh.obj'))
+            save_mesh(scene_mesh, os.path.join(scene_folder, args.task_id, 'scene_mesh.glb'))
             render_view(os.path.join(scene_folder, args.task_id, 'scene_mesh.obj'),
                         os.path.join(scene_folder, args.task_id, 'scene_mesh.png'))
     
         bdb3d_mesh = scene.merge_layout_bdb3d_mesh(
-                colorbox=igibson_colorbox * 255,
+                colorbox=rlsd_cls25_colorbox * 255,
                 separate=False,
-                layout_color=(255, 69, 80),
+                layout_color=(17, 207, 67),
                 texture=False,
-                filename=os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply')
+                # filename=os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply')
             )
         if len(bdb3d_mesh.vertices) > 0:
-            render_view(os.path.join(scene_folder, args.task_id, 'layout_bdb3d.ply'),
+            save_mesh(bdb3d_mesh, os.path.join(scene_folder, args.task_id, 'layout_bdb3d.obj'))
+            render_view(os.path.join(scene_folder, args.task_id, 'layout_bdb3d.obj'),
                         os.path.join(scene_folder, args.task_id, 'layout_bdb3d.png'))
         
     if 'layout' in scene.data and 'objs' in scene.data and scene['objs'] and 'bdb3d' in scene['objs'][0]:
