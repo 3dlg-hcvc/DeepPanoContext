@@ -614,6 +614,7 @@ class RelationSGCN(SceneGCN):
         self.optimize_momentum = self.model_config['optimize_momentum']
         self.toleration_dis = self.model_config['toleration_dis']
         self.loss_weights = self.model_config.get('loss_weights')
+        self.use_mesh_col_mask = self.model_config.get('use_mesh_col_mask', False)
 
         if self.output_bdb3d:
             # representation to object output (from Total3D object_detection)
@@ -884,7 +885,8 @@ class RelationSGCN(SceneGCN):
                             self.cfg.save_path, 'relation_adjust', patch['scene'][0], patch['name'][0]),
                         toleration_dis=self.toleration_dis,
                         score_weighted=self.score_weighted,
-                        score_thres=self.score_thres
+                        score_thres=self.score_thres,
+                        use_mesh_col_mask=self.use_mesh_col_mask
                     )
                     optim_bdb3d = relation_optimization.optimize(
                         patch,
