@@ -19,7 +19,7 @@ def test_func(cfg, tester, test_loader):
     :return:
     '''
     metric_recorder = MetricRecorder()
-    if cfg.config['log'].get('vis_step'):
+    if cfg.config['log'].get('vis_step') and not cfg.config['data'].get('split').startswith('demo'):
         register_detection_dataset(cfg.config['data'].get('split'))
     cfg.log_string('-' * 100)
     eta_calc = ETA(smooth=0.99, ignore_first=True)
