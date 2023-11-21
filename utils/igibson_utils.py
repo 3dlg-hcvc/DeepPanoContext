@@ -1,5 +1,6 @@
 import hashlib
 import os
+import json
 from glob import glob
 import shutil
 import numpy as np
@@ -467,24 +468,63 @@ class IGScene:
 
         return mesh_io.merge()
     
-    def merge_layout_bdb3d_mesh(self, colorbox=None, separate=False, camera_color=None, layout_color=None, texture=False, gt_data=None, filename=None):
+    def merge_layout_bdb3d_mesh(self, colorbox=None, separate=False, camera_color=None, layout_color=None, texture=False, gt_scene=None, load_gt_mesh=False, load_gt_bdb3d=False, load_gt_layout=False, match_file=None):
         mesh_io = MeshIO()
-        objs = self.data['objs']
-        
-        if gt_data is None:
-            for k, obj in enumerate(objs):
-                bdb3d = obj['bdb3d']
-                mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
-                mesh_io[k] = mesh_world
-        else:
-            for k, est_obj in enumerate(objs):
-                bdb3d = est_obj['bdb3d']
-                mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
-                mesh_io[f'est_{k}'] = mesh_world
-            for k, gt_obj in enumerate(gt_data['objs']):
+
+        if gt_scene is not None and load_gt_mesh:
+            gt_scene.mesh_io.load()
+            objs = gt_scene['objs']
+            for k, v in gt_scene.mesh_io.items():
+                bdb3d = deepcopy(objs[k]['bdb3d'])
+                bdb3d['basis'] = bdb3d['basis'] @ np.array([[1,0,0],[0,0,-1],[0,1,0]])
+                if 'wayfair' in gt_scene.mesh_io.mesh_path[k]:
+                    bdb3d['basis'] = bdb3d['basis'] @ np.array([[-1,0,0],[0,1,0],[0,0,-1]])
+                bdb3d['size'][[1, 2]] = bdb3d['size'][[2, 1]]
+                mesh_world = gt_scene.transform.obj2frame(v, bdb3d)
+                color = (162, 191, 254)
+                mesh_world = IGScene.colorize_mesh_for_igibson(mesh_world, color, texture)
+                mesh_io[f'gt_mesh_{k}'] = mesh_world
+
+        if gt_scene is not None and load_gt_bdb3d:
+            for k, gt_obj in enumerate(gt_scene['objs']):
                 bdb3d = gt_obj['bdb3d']
                 mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
-                mesh_io[f'gt_{k}'] = mesh_world
+                mesh_io[f'gt_bdb3d_{k}'] = mesh_world
+
+        if gt_scene is not None and load_gt_layout:
+            layout_mesh = create_layout_mesh(gt_scene.data, color=(162, 191, 254), texture=texture)
+            if layout_mesh is not None:
+                mesh_io['gt_layout_mesh'] = layout_mesh
+
+        objs = self.data['objs']
+        for k, obj in enumerate(objs):
+            bdb3d = obj['bdb3d']
+            color = None
+            if colorbox is not None:
+                if isinstance(objs[k]['label'], list):
+                    color = colorbox[objs[k]['label'][0]]
+                else:
+                    color = colorbox[objs[k]['label']]
+            elif match_file is not None:
+                obj_match = json.load(open(match_file))
+                if obj_match[str(obj['id'])]:
+                    color = (12, 255, 12)
+                elif obj['id'] in obj_match['class_match']:
+                    color = (249, 115, 6)
+                else:
+                    color = (229, 0, 0)
+            mesh_world = create_bdb3d_mesh(bdb3d, color, radius=0.015, texture=texture)
+            mesh_io[k] = mesh_world
+        # if gt_scene is None:
+        #     for k, obj in enumerate(objs):
+        #         bdb3d = obj['bdb3d']
+        #         mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
+        #         mesh_io[k] = mesh_world
+        # else:
+        #     for k, est_obj in enumerate(objs):
+        #         bdb3d = est_obj['bdb3d']
+        #         mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
+        #         mesh_io[f'est_{k}'] = mesh_world
 
         # add camera marker
         if camera_color is not None:
@@ -499,34 +539,6 @@ class IGScene:
                 layout_mesh = None
             if layout_mesh is not None:
                 mesh_io['layout_mesh'] = layout_mesh
-            # if gt_data is not None:
-            #     mesh_io['gt_layout_mesh'] = create_layout_mesh(gt_data, color=layout_color, texture=texture)
-        
-        all_verts, all_faces, all_colors = [], [], []
-        for k, m in mesh_io.items():
-            if k == 'camera': color = camera_color
-            elif k == 'layout_mesh': color = layout_color
-            elif k == 'gt_layout_mesh': color = (255, 255, 0)
-            elif str(k).startswith(('est',)): color = (0, 0, 255)
-            elif str(k).startswith(('gt',)): color = (0, 255, 0)
-            else:
-                if 'gt' in objs[k]:
-                    if objs[k]['gt'] == -1:
-                        color = (255, 0, 0)
-                    else:
-                        color = (0, 255, 0)
-                else:
-                    if isinstance(objs[k]['label'], list):
-                        color = colorbox[objs[k]['label'][0]]
-                    else:
-                        color = colorbox[objs[k]['label']]
-            cur_num_verts = len(all_verts)
-            all_verts.extend(m.vertices.tolist())
-            all_faces.extend((m.faces + cur_num_verts).tolist())
-            all_colors.extend([color] * len(m.vertices))
-        
-        if filename is not None and len(all_verts) > 0:
-            write_ply_rgb_face(np.array(all_verts), np.array(all_colors), np.array(all_faces), filename)
 
         if separate:
             return mesh_io
