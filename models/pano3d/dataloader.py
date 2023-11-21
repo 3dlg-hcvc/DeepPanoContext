@@ -148,10 +148,10 @@ class SceneDataset(Pano3DDataset):
             gt_pkl = os.path.join(os.path.dirname(pkl), 'gt.pkl')
             if os.path.exists(gt_pkl):
                 est_scene = IGScene.from_pickle(pkl) if 'est' in stype else None
-                gt_scene = IGScene.from_pickle(gt_pkl, self.igibson_obj_dataset) if 'gt' in stype else None
+                gt_scene = IGScene.from_pickle(gt_pkl, self.igibson_obj_dataset, load_rlsd_obj='rlsd' in pkl) if 'gt' in stype else None
             else:
                 est_scene = None
-                gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset) if 'gt' in stype else None
+                gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset, load_rlsd_obj='rlsd' in pkl) if 'gt' in stype else None
         
         if 'room' in gt_scene.data and isinstance(gt_scene.data['room'], dict):
             room = str(gt_scene.data['room']['id'])
@@ -161,13 +161,14 @@ class SceneDataset(Pano3DDataset):
         if 'room_idx' in gt_scene.data:
             del gt_scene.data['room_idx']
 
-        for obj in gt_scene.data['objs']:
-            obj['id'] = str(obj['id'])
-            for k in ["mask_ids", "classname", "label"]:
-                if k in obj and isinstance(obj[k], list):
-                    obj[k] = obj[k][0] #HACK
-            if 'bdb2d_clip' in obj: del obj['bdb2d_clip']
-            if 'contour_clip' in obj: del obj['contour_clip']
+        if 'objs' in gt_scene.data:
+            for obj in gt_scene.data['objs']:
+                obj['id'] = str(obj['id'])
+                for k in ["mask_ids", "classname", "label"]:
+                    if k in obj and isinstance(obj[k], list):
+                        obj[k] = obj[k][0] #HACK
+                if 'bdb2d_clip' in obj: del obj['bdb2d_clip']
+                if 'contour_clip' in obj: del obj['contour_clip']
         
         if 'id' in gt_scene.data['camera']:
             del gt_scene.data['camera']['id']

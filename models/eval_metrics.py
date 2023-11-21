@@ -175,6 +175,14 @@ def classification_metric(est_v, gt_v):
     if FP + TN > 0:
         metrics['FPR'] = FP / (FP + TN)
         metrics['TNR'] = TN / (FP + TN)
+    
+    num_gt = gt_v.sum()
+    if TP + FP == 0 and num_gt == 0:
+        precision = metrics['precision'] = 1
+        recall = metrics['recall'] = 1
+    if TP + FP > 0 and num_gt == 0:
+        metrics['precision'] = 0
+        metrics['f1'] = 0
 
     if 'precision' in metrics and 'recall' in metrics and precision + recall > 0:
         metrics['f1'] = 2 * precision * recall / (precision + recall)
