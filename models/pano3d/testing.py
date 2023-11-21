@@ -1,11 +1,12 @@
 import os
+import json
 import numpy as np
 from collections import defaultdict
 from shapely.geometry import Polygon, Point
 from copy import deepcopy
 import trimesh
 
-from configs.data_config import igibson_colorbox
+from configs.data_config import igibson_colorbox, rlsd_cls25_colorbox
 from external.ldif.inference.metrics import mesh_chamfer_via_points
 from models.testing import BaseTester
 from models.eval_metrics import bdb3d_iou, bdb2d_iou, rot_err, classification_metric, AverageMeter, \
@@ -230,6 +231,9 @@ class Tester(BaseTester, Trainer):
 
         # mAP and bdb3d parameters
         # metric_aps = ClassMeanMeter(AveragePrecisionMeter)
+        est_objs_matched = {obj['id']: False for obj in est_scene['objs']}
+        est_objs_matched["match"] = []
+        est_objs_matched["class_match"] = []
         metric_aps = ClassWeightedMeter(AveragePrecisionMeter)
         for est_scene, gt_scene in zip(est_scenes, gt_scenes):
             if gt_scene['objs']:
@@ -253,9 +257,13 @@ class Tester(BaseTester, Trainer):
                         matched_gt_obj = gt_obj
 
                 classname = est_obj['classname']
+                if iou_max >= 0.:
+                    est_objs_matched["class_match"].append(est_obj['id'])
                 if iou_max > 0.15:
                     # label gt as 'matched'
                     matched_gt_obj['matched'] = True
+                    est_objs_matched[est_obj['id']] = True
+                    est_objs_matched["match"].append(est_obj['id'])
 
                     # label as TP
                     metric_aps[classname]['TP'].append(1.)
@@ -273,6 +281,10 @@ class Tester(BaseTester, Trainer):
 
         if metric_aps:
             metrics['3D_detection_AP'] = metric_aps
+        
+        scene_folder = os.path.join(self.cfg.config['log']['vis_path'], est_scene['scene'], est_scene['name'])
+        os.makedirs(scene_folder, exist_ok=True)
+        json.dump(est_objs_matched, open(os.path.join(scene_folder, 'est_objs_matched.json'), 'w'))
 
         return metrics
 
@@ -317,28 +329,32 @@ class Tester(BaseTester, Trainer):
             # save mesh
             if self.cfg.config['log'].get('save_mesh'):
                 scene_mesh = est_scene.merge_mesh(
-                    colorbox=igibson_colorbox * 255,
+                    colorbox=rlsd_cls25_colorbox * 255,
                     separate=False,
                     layout_color=(255, 69, 80),
                     texture=False
                 )
-                scene_mesh.vertices[:, 1] *= -1
-                scene_mesh.vertices = scene_mesh.vertices[:, (0, 2, 1)]
-                save_mesh(scene_mesh, os.path.join(scene_folder, 'scene.glb'))
+                # scene_mesh.vertices[:, 1] *= -1
+                # scene_mesh.vertices = scene_mesh.vertices[:, (0, 2, 1)]
+                # save_mesh(scene_mesh, os.path.join(scene_folder, 'scene.glb'))
+                save_mesh(scene_mesh, os.path.join(scene_folder, 'scene_mesh.obj'))
+                render_view(in_file=os.path.join(scene_folder, 'scene_mesh.obj'),
+                            out_file=os.path.join(scene_folder, 'scene_mesh.png'))
                 
             if self.cfg.config['log'].get('save_bdb3d_mesh'):
-                _ = est_scene.merge_layout_bdb3d_mesh(
-                    colorbox=igibson_colorbox * 255,
+                bdb3d_mesh = est_scene.merge_layout_bdb3d_mesh(
+                    # colorbox=rlsd_cls25_colorbox * 255,
                     separate=False,
                     # camera_color=(29, 203, 224),
-                    layout_color=(255, 69, 80),
+                    layout_color=(255, 238, 5),
                     texture=False,
-                    gt_data=gt_scene.data,
-                    filename=os.path.join(scene_folder, 'layout_bdb3d.ply')
+                    match_file=os.path.join(scene_folder, 'est_objs_matched.json')
                 )
-                render_view(os.path.join(scene_folder, 'layout_bdb3d.ply'),
-                            os.path.join(scene_folder, 'layout_bdb3d.png'))
-
+                save_mesh(bdb3d_mesh, os.path.join(scene_folder, 'layout_bdb3d.obj'))
+                render_view(in_file=os.path.join(scene_folder, 'layout_bdb3d.obj'),
+                            out_file=os.path.join(scene_folder, 'layout_bdb3d.png'),
+                            gt_file=os.path.join("/project/3dlg-hcvc/rlsd/data/psu/rlsd_real_cls25", gt_scene['scene'], gt_scene['name'], 'scene_mesh.obj'))
+            
             if self.cfg.config['full'] and est_scene.mesh_io:
                 background = visualizer.background(200)
                 render = visualizer.render(background=background)
@@ -347,10 +363,10 @@ class Tester(BaseTester, Trainer):
             image = visualizer.image('rgb')
             save_image(image, os.path.join(scene_folder, 'rgb.png'))
             image = visualizer.layout(image, total3d=False)
-            image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
-            save_image(image, os.path.join(scene_folder, 'det3d.png'))
+            det3d_image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
+            save_image(det3d_image, os.path.join(scene_folder, 'det3d.png'))
             # image = visualizer.bfov(image)
-            image = visualizer.bdb2d(image)
-            save_image(image, os.path.join(scene_folder, 'visual.png'))
+            visual_image = visualizer.bdb2d(image)
+            save_image(visual_image, os.path.join(scene_folder, 'visual.png'))
 
             est_scene.to_pickle(scene_folder)
