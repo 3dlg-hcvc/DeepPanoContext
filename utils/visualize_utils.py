@@ -192,7 +192,7 @@ class IGVisualizer:
                 shutil.rmtree(os.path.dirname(obj_path))
         return render
 
-    def background(self, color=200, channels=3, force_pano_height=None):
+    def background(self, color=230, channels=3, force_pano_height=None):
         camera = self.scene['camera']
         height, width = camera['height'], camera['width']
         background = np.ones(
@@ -230,7 +230,7 @@ class IGVisualizer:
                 self._bfov(image, bfov, color, thickness)
         return image
 
-    def layout(self, image, color=(255, 255, 0), thickness=2, force_pano=False, total3d=False):
+    def layout(self, image, color=(219, 181, 12), thickness=2, force_pano=False, total3d=False):
         if total3d and 'K' in self.scene['camera']:
             if 'layout' not in self.scene.data or 'total3d' not in self.scene['layout']:
                 return image
@@ -285,7 +285,7 @@ class IGVisualizer:
 
         return image
 
-    def objs3d(self, image, bbox3d=True, axes=False, centroid=False, info=False, thickness=2):
+    def objs3d(self, image, bbox3d=True, axes=False, centroid=False, info=False, thickness=2, colorbox=igibson_colorbox):
         if not ('objs' in self.scene.data and self.scene['objs'] and 'bdb3d' in self.scene['objs'][0]):
             return image
         image = image.copy()
@@ -295,7 +295,7 @@ class IGVisualizer:
         for i_obj in reversed(i_objs):
             obj = objs[i_obj]
             label = obj['label'] if isinstance(obj['label'], int) else obj['label'][0]
-            color = (igibson_colorbox[label] * 255).astype(np.uint8).tolist()
+            color = (colorbox[label] * 255).astype(np.uint8).tolist()
             # color = (200, 0, 0)
             bdb3d = obj['bdb3d']
             # # test bdb3d transformation
@@ -355,7 +355,7 @@ class IGVisualizer:
         image = image.copy()
         objs = self.scene['objs']
         walls = self.scene['walls']
-        relation_color = 255
+        relation_color = 80
         collision_color = (255, 74, 40)
         relation_thickness = thickness
         collision_thickness = thickness
@@ -422,10 +422,8 @@ class IGVisualizer:
         image = image.copy()
         objs = self.scene['objs']
         walls = self.scene['walls']
-        relation_color = 255
-        # collision_color = (255, 74, 40)
+        relation_color = 70
         relation_thickness = thickness
-        # collision_thickness = thickness
 
         # visualize support relationship between objects
         for i_a, obj_a in enumerate(objs):
