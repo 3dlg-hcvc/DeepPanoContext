@@ -204,5 +204,6 @@ octave-workspace
 /demo_stats
 !/demo/input
 demo
+scripts
 *.zip
 *.DS_Store
