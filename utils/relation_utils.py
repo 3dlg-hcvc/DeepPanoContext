@@ -17,7 +17,8 @@ from .transform_utils import num2bins, label_or_num_from_cls_reg, bdb3d_corners,
 from .mesh_utils import MeshIO, mesh_collision, save_mesh, load_mesh
 from configs import data_config
 
-proxy_meshes = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/proxy_meshes.json"))
+# proxy_meshes = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/proxy_meshes.json"))
+proxy_meshes = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/proxy_meshes_min.json"))
 
 
 def relation_from_bins(data: dict, thres):
@@ -205,18 +206,18 @@ def test_meshes(scene, out_bdb3d_3d=None, step=0, output_path=None):
     return obj_obj_mesh_mask
 
 
-def visualize_relation(scene, background=None, wall3d=False, relation=True, show=False, collision=False, layout=False, support=False):
+def visualize_relation(scene, background=None, wall3d=False, relation=True, show=False, collision=False, layout=False, support=False, colorbox=data_config.igibson_colorbox):
     visualizer = IGVisualizer(scene)
-    image = visualizer.background(0) if background is None else background
+    image = visualizer.background() if background is None else background
     if layout:
-        image = visualizer.layout(image, 50, thickness=1)
+        image = visualizer.layout(image, thickness=2)
     if wall3d:
-        image = visualizer.wall3d(image, 50, thickness=1)
-    image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=1)
+        image = visualizer.wall3d(image, thickness=1)
+    image = visualizer.objs3d(image, bbox3d=True, axes=False, centroid=False, info=False, thickness=2, colorbox=colorbox)
     if relation:
-        image = visualizer.relation(image, thickness=2, collision=collision)
+        image = visualizer.relation(image, thickness=3, collision=collision)
     if support:
-        image = visualizer.support(image, thickness=2)
+        image = visualizer.support(image, thickness=3)
     if show:
         show_image(image)
     return image
@@ -227,7 +228,7 @@ class RelationOptimization:
     def __init__(self, loss_weights=None, expand_dis=None, toleration_dis=None,
                  score_weighted=False, score_thres=None,
                  visual_path=None, visual_background=None, visual_frames=10,
-                 use_anno_supp=False, use_bbox_col_mask=False, use_mesh_col_mask=False):
+                 use_anno_supp=False, use_mesh_col_mask=False):
         if loss_weights is None:
             loss_weights = {
                 'center': 0.0001, 'size': 1.0, 'dis': 0.01, 'ori': 0.001,
@@ -251,9 +252,6 @@ class RelationOptimization:
         self.score_weighted = score_weighted
         self.gif_io = GifIO(duration=0.2)
         self.use_anno_supp = use_anno_supp
-        self.use_bbox_col_mask = use_bbox_col_mask
-        if use_bbox_col_mask:
-            self.avg_iou = torch.from_numpy(np.load("w_col_prob.npy"))
         self.use_mesh_col_mask = use_mesh_col_mask
 
     def generate_relation(self, scene, mesh_collision=False):
@@ -275,7 +273,14 @@ class RelationOptimization:
                     else:
                         mesh_paths[i] = f"/project/3dlg-hcvc/rlsd/data/psu/igibson_obj/{o['gt_model_path']}/mesh_watertight.ply"
                 else:
-                    mesh_paths[i] = proxy_meshes[o['classname']][0]
+                    mesh_paths[i] = proxy_meshes[o['classname']]
+                # if 'model_path' in o and o['model_path']:
+                #     if os.path.exists(o['model_path']):
+                #         mesh_paths[i] = o['model_path']
+                #     else:
+                #         mesh_paths[i] = f"/project/3dlg-hcvc/rlsd/data/psu/igibson_obj/{o['model_path']}/mesh_watertight.ply"
+                # else:
+                #     mesh_paths[i] = proxy_meshes[o['classname']][0]
             scene.mesh_io = MeshIO.from_file(mesh_paths)
             scene.mesh_io.load()
             obj_obj_col = test_meshes(scene)
@@ -346,8 +351,6 @@ class RelationOptimization:
         obj_wall_col = np.zeros_like(obj_wall_rot, dtype=np.bool)  # is obj colliding wall
         # obj_wall_supp = obj_wall_tch.copy() # is obj supported by wall
         for i_obj, obj in enumerate(objs):
-            # if obj['wall_supp']:
-            #     obj_wall_supp[i_obj, obj['wall_parent']] = 1
             for i_wall, wall in enumerate(walls):
                 bdb3d_obj = obj['bdb3d']
                 bdb3d_wall = wall['bdb3d']
@@ -356,6 +359,10 @@ class RelationOptimization:
                 obj_wall_rot[i_obj, i_wall] = num2bins(data_config.metadata['rot_bins'], rot)
                 obj_wall_tch[i_obj, i_wall] = test_bdb3ds(obj['bdb3d'], wall['bdb3d'], - expand_dis) if obj['in_room'] else 0
                 obj_wall_col[i_obj, i_wall] = test_bdb3ds(obj['bdb3d'], wall['bdb3d'], expand_dis) if obj['in_room'] else 0
+            # if self.use_anno_supp and obj['wall_supp']:
+            #     obj_wall_supp[i_obj, obj['wall_parent']] = 1
+            # else:
+            #     obj_wall_supp[i_obj, :] = obj_wall_tch[i_obj, :]
         
         # write to scene data
         if 'walls' in scene.data:
@@ -386,13 +393,6 @@ class RelationOptimization:
         n_objs = len(in_room)
         toleration_dis = self.toleration_dis
         obj_obj_err_mask = 1 - torch.eye(n_objs, device=layout.device)
-
-        if self.use_bbox_col_mask:
-            label_idx = torch.meshgrid([objs['label'], objs['label']])
-            obj_obj_avg_iou = self.avg_iou[label_idx]
-            # obj_obj_col_mask = (1 - obj_obj_avg_iou).type_as(obj_obj_err_mask).to(layout.device)
-            obj_obj_col_mask = (obj_obj_avg_iou > 0.5).type_as(obj_obj_err_mask).to(layout.device)
-            # obj_obj_col_mask = (obj_obj_avg_iou == 0.).type_as(obj_obj_err_mask).to(layout.device)
         
         # rel_in_room = torch.ones([n_objs, n_objs], device=device) > 0
         # rel_in_room[torch.logical_not(in_room), :] = False
@@ -435,8 +435,6 @@ class RelationOptimization:
         all_bdb3d = {k: torch.cat([out_bdb3d_3d[k], est_bdb3d_wall[k]]) for k in out_bdb3d_3d.keys()}
         _, collision_err, _ = test_bdb3ds(all_bdb3d, toleration_dis=toleration_dis)
         loss['obj_obj_col'] = collision_err[:n_objs, :n_objs] * obj_obj_err_mask
-        if self.use_bbox_col_mask:
-            loss['obj_obj_col'] = loss['obj_obj_col'] * obj_obj_col_mask
         if self.use_mesh_col_mask:
             loss['obj_obj_col'] = loss['obj_obj_col'] * obj_obj_mesh_mask
 
@@ -460,8 +458,6 @@ class RelationOptimization:
         obj_obj_tch_err = touch_err[:n_objs, :n_objs]
         obj_obj_tch_err *= self.label2weight('obj_obj_tch', relation['obj_obj_tch'], relation['obj_obj_tch_score'])
         loss['obj_obj_tch'] = obj_obj_tch_err * obj_obj_err_mask
-        if self.use_bbox_col_mask:
-            loss['obj_obj_tch'] = loss['obj_obj_tch'] * obj_obj_col_mask
         if self.use_mesh_col_mask:
             loss['obj_obj_tch'] = loss['obj_obj_tch'] * obj_obj_mesh_mask
 
@@ -608,7 +604,7 @@ class RelationOptimization:
 
         scene = IGScene.from_batch(data)[0]
         if self.use_mesh_col_mask:
-            mesh_path = {i: o['gt_model_path'] for i, o in enumerate(scene['objs']) if 'gt_model_path' in o and o['gt_model_path']}
+            mesh_path = {i: proxy_meshes[o['classname']] for i, o in enumerate(scene['objs']) if 'gt_model_path' in o and o['gt_model_path']}
             scene.mesh_io = MeshIO.from_file(mesh_path)
             scene.mesh_io.load()
 
