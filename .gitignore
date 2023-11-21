@@ -201,6 +201,7 @@ octave-workspace
 /demo/*
 /demo_render
 /demo_obj
+/demo_stats
 !/demo/input
 demo
 *.zip
