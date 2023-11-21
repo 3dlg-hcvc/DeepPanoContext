@@ -515,16 +515,6 @@ class IGScene:
                     color = (229, 0, 0)
             mesh_world = create_bdb3d_mesh(bdb3d, color, radius=0.015, texture=texture)
             mesh_io[k] = mesh_world
-        # if gt_scene is None:
-        #     for k, obj in enumerate(objs):
-        #         bdb3d = obj['bdb3d']
-        #         mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
-        #         mesh_io[k] = mesh_world
-        # else:
-        #     for k, est_obj in enumerate(objs):
-        #         bdb3d = est_obj['bdb3d']
-        #         mesh_world = create_bdb3d_mesh(bdb3d, radius=0.015)
-        #         mesh_io[f'est_{k}'] = mesh_world
 
         # add camera marker
         if camera_color is not None:
