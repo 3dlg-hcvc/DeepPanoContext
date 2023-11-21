@@ -19,7 +19,7 @@ from pyrender import PerspectiveCamera,\
                      OffscreenRenderer
 
 
-def render_view(in_file, out_file):
+def render_view(in_file, out_file, gt_file=None):
     # output_folder = os.path.join(args.output, *args.object.split('/')[-2:])
     # os.makedirs(output_folder, exist_ok=True)
     # if args.skip_done and len(glob(os.path.join(output_folder, f"render-*.png"))) == args.renders:
@@ -46,22 +46,27 @@ def render_view(in_file, out_file):
     scene_mesh.apply_transform(center_mat)
     if not isinstance(scene_mesh, trimesh.Scene):
         scene = trimesh.Scene(scene_mesh)
-    scene = pyrender.Scene.from_trimesh_scene(scene, ambient_light=[0.5, 0.5, 0.5])
+    scene = pyrender.Scene.from_trimesh_scene(scene, ambient_light=[0.2, 0.2, 0.2])
+    
+    if gt_file is not None:
+        gt_mesh = trimesh.load(gt_file)
+        gt_mesh.apply_transform(center_mat)
+        mat = pyrender.MetallicRoughnessMaterial(alphaMode="BLEND", baseColorFactor=(117/255, 187/255, 253/255, 0.6))
+        gt_mesh = pyrender.Mesh.from_trimesh(gt_mesh, material=mat)
+        scene.add(gt_mesh)
 
-    # cam = PerspectiveCamera(yfov=(np.pi / 2.0))
-    direc_l = DirectionalLight(color=np.ones(3), intensity=0.5)
-    spot_l = SpotLight(color=np.ones(3)*0.8, intensity=1.0,
-                    innerConeAngle=np.pi/8, outerConeAngle=np.pi/3)
+    direc_l = DirectionalLight(color=np.ones(3), intensity=2.5)
+    # spot_l = SpotLight(color=np.ones(3), intensity=1.0, innerConeAngle=np.pi/8, outerConeAngle=np.pi/3)
     # point_l = PointLight(color=np.ones(3), intensity=10.0)
-    r = OffscreenRenderer(viewport_width=512, viewport_height=512)
+    r = OffscreenRenderer(viewport_width=1024, viewport_height=1024)
 
     # randomize camera settings
     dis = 8
-    fov = np.arctan2(radius, dis) * 2
+    fov = np.arctan2(radius+2, dis) * 2
     # fov = np.pi / 2 #np.rad2deg(np.arctan2(.5, dis) * 2) * 1.5
     # camera_height = np.random.random() * 1.4
-    azim = 0 # np.random.random() * np.pi * 2
-    elev = - np.pi / 5 # np.random.random() * np.pi / 3
+    azim = 0 # - np.pi / 5 #
+    elev = - np.pi / 6 #
     cam_pose = np.eye(4)
     y = dis * np.sin(elev)
     x = dis * np.cos(elev) * np.sin(azim)
@@ -72,22 +77,27 @@ def render_view(in_file, out_file):
         [0.0, np.cos(elev), np.sin(elev)],
         [0.0, -np.sin(elev), np.cos(elev)]
     ])
-    roty = np.array([
-        [np.cos(azim), 0, np.sin(azim)],
-        [0.0, 1, 0.0],
-        [-np.sin(azim), 0, np.cos(azim)]
+    # roty = np.array([
+    #     [np.cos(azim), 0, np.sin(azim)],
+    #     [0.0, 1, 0.0],
+    #     [-np.sin(azim), 0, np.cos(azim)]
+    # ])
+    rotz = np.array([
+        [np.cos(azim), -np.sin(azim), 0.],
+        [np.sin(azim), np.cos(azim), 0.0],
+        [0., 0., 1.]
     ])
-    cam_pose[:3, :3] = np.matmul(roty, rotx)
-    cam = PerspectiveCamera(yfov=fov)
+    cam_pose[:3, :3] = np.matmul(rotz, rotx)
+    cam = PerspectiveCamera(yfov=fov, aspectRatio=1.0)
     cam_node = scene.add(cam, pose=cam_pose)
+    direc_l_node = scene.add(direc_l)
     # direc_l_node = scene.add(direc_l, pose=cam_pose)
-    spot_l_node = scene.add(spot_l, pose=cam_pose)
+
     
     color, _ = r.render(scene)
     Image.fromarray(color).save(out_file)
     
     scene.remove_node(cam_node)
-    scene.remove_node(spot_l_node)
     # scene.remove_node(direc_l_node)
 
     r.delete()
