@@ -35,7 +35,7 @@ def _load_scene(task_id):
     scene_center = scene_bound.mean(0)
     
 
-def _setup_camera(topdown=None, panorama=None, perspective=None, turntable_idx=None, cam2world=None):
+def _setup_camera(topdown=None, panorama=None, perspective=None, turnaround=None, turntable=None, turn_angle=None, cam2world=None):
     camera = bpy.data.objects["Camera"]
     
     if topdown:
@@ -60,8 +60,19 @@ def _setup_camera(topdown=None, panorama=None, perspective=None, turntable_idx=N
         camera_rot_quat = view_dir.to_track_quat('-Z', 'Y')
         camera_rot = np.array(camera_rot_quat.to_euler())
 
-    if turntable_idx and isinstance(turntable_idx, int):
-        camera_rot[2] += 2*np.pi / 360 * turntable_idx
+    if turnaround:
+        assert turn_angle is not None
+        camera_rot[2] += 2*np.pi / 360 * turn_angle
+        
+    if turntable:
+        assert turn_angle is not None
+        camera_pos = np.array(C.active_object.location) + np.array([0, 0, 8])
+        r = 8 / np.sqrt(3)
+        angle = 2*np.pi * ((turn_angle - 90) / 360)
+        camera_pos[:2] += np.array([r*np.cos(angle), r*np.sin(angle)])
+        view_dir = mathutils.Vector(np.array(C.active_object.location) - camera_pos)
+        camera_rot_quat = view_dir.to_track_quat('-Z', 'Y')
+        camera_rot = np.array(camera_rot_quat.to_euler())
 
     # Add a camera, pointing at the center of the object
     bpy.data.cameras["Camera"].lens_unit = "FOV"
@@ -113,7 +124,7 @@ def _render(filepath):
     bpy.ops.render.render(write_still=True)
 
 
-def render(task_id, topdown=None, perspective=None, turntable=None):
+def render(task_id, topdown=None, perspective=None, turnaround=None, turntable=None):
     out_dir = f"/project/3dlg-hcvc/rlsd/data/annotations/exported_scene_renders/{task_id}"
     os.makedirs(out_dir, exist_ok=True)
 
@@ -141,12 +152,20 @@ def render(task_id, topdown=None, perspective=None, turntable=None):
         _setup_camera(perspective=True, turntable_idx=45, cam2world=cam2world)
         _render(os.path.join(out_dir, "perspective_sample.png"))
 
+    if turnaround:
+        tt_out_dir = os.path.join(out_dir, "turnaround")
+        os.makedirs(tt_out_dir, exist_ok=True)
+        for tt_idx in range(360):
+            _setup_camera(perspective=True, turnaround=True, turn_angle=tt_idx, cam2world=cam2world)
+            _render(os.path.join(tt_out_dir, f"{tt_idx}.png"))
+            
     if turntable:
         tt_out_dir = os.path.join(out_dir, "turntable")
         os.makedirs(tt_out_dir, exist_ok=True)
         for tt_idx in range(360):
-            _setup_camera(perspective=True, turntable_idx=tt_idx, cam2world=cam2world)
+            _setup_camera(perspective=True, turntable=True, turn_angle=tt_idx, cam2world=cam2world)
             _render(os.path.join(tt_out_dir, f"{tt_idx}.png"))
 
 
-render("61e0e083ddd48e322a187d89", topdown=True, perspective=True, turntable=True)
+# render("61e0e083ddd48e322a187d89", topdown=True, perspective=True, turnaround=True)
+render("61e0e083ddd48e322a187d89", turntable=True)
