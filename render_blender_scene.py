@@ -1,4 +1,5 @@
 import os
+import glob
 import bpy
 import json
 import numpy as np
@@ -16,8 +17,21 @@ for obj in objects:
 # bpy.ops.object.select_all(action='SELECT')
 
 
-def _load_scene(task_id):
-    bpy.ops.import_scene.gltf(filepath=f"/project/3dlg-hcvc/rlsd/data/annotations/exported_scene_assets/{task_id}.scene/{task_id}.scene.glb")
+def _load_mp3d(house_id):
+    bpy.ops.object.select_all(action='DESELECT')
+    filepath = glob.glob(f"/datasets/internal/matterport/public_extracted/v1/scans/{house_id}/matterport_mesh/*/*.obj")[0]
+    bpy.ops.wm.obj_import(filepath=filepath)
+    C.object.rotation_euler[0] = 0
+    mp3d_name = C.object.name
+    # C.object.select_set(False)
+
+    return mp3d_name
+
+def _load_r3ds(task_id, mesh_type):
+    bpy.ops.object.select_all(action='DESELECT')
+    filepath = f"/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/{mesh_type}/{task_id}/{task_id}.scene/{task_id}.scene.glb"
+    assert os.path.exists(filepath), f"{task_id} NOT FOUND!"
+    bpy.ops.import_scene.gltf(filepath=filepath)
     bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
     r3ds_meshes = []
     for obj in bpy.data.objects:
@@ -31,14 +45,22 @@ def _load_scene(task_id):
     # with C.temp_override(active_object=C.active_object, selected_editable_objects=r3ds_meshes):
     bpy.ops.object.join()
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
-    scene_bound = np.array([p[:] for p in C.active_object.bound_box])
-    scene_center = scene_bound.mean(0)
+    # scene_bound = np.array([p[:] for p in C.active_object.bound_box])
+    # scene_center = scene_bound.mean(0)
     
 
 def _setup_camera(topdown=None, panorama=None, perspective=None, turnaround=None, turntable=None, turn_angle=None, cam2world=None):
     camera = bpy.data.objects["Camera"]
+    bpy.data.cameras["Camera"].lens_unit = "FOV"
+    bpy.data.cameras["Camera"].angle = math.radians(80)
+    
+    scene_bound = np.array([p[:] for p in C.active_object.bound_box])
+    scene_center = scene_bound.mean(0)
+    radius = np.linalg.norm(scene_bound - scene_center, axis=1).max()
     
     if topdown:
+        fov = np.arctan2(radius+1, 8) * 2
+        bpy.data.cameras["Camera"].angle = fov
         camera_pos = np.array(C.active_object.location) + np.array([0, 0, 8])
         view_dir = mathutils.Vector(np.array([0, 0, -1]))
         camera_rot_quat = view_dir.to_track_quat('-Z', 'Y')
@@ -63,9 +85,13 @@ def _setup_camera(topdown=None, panorama=None, perspective=None, turnaround=None
     if turnaround:
         assert turn_angle is not None
         camera_rot[2] += 2*np.pi / 360 * turn_angle
+        bpy.context.scene.render.resolution_x = 960
+        bpy.context.scene.render.resolution_y = 540
         
     if turntable:
         assert turn_angle is not None
+        fov = np.arctan2(radius, 8) * 2
+        bpy.data.cameras["Camera"].angle = fov
         camera_pos = np.array(C.active_object.location) + np.array([0, 0, 8])
         r = 8 / np.sqrt(3)
         angle = 2*np.pi * ((turn_angle - 90) / 360)
@@ -73,10 +99,10 @@ def _setup_camera(topdown=None, panorama=None, perspective=None, turnaround=None
         view_dir = mathutils.Vector(np.array(C.active_object.location) - camera_pos)
         camera_rot_quat = view_dir.to_track_quat('-Z', 'Y')
         camera_rot = np.array(camera_rot_quat.to_euler())
+        bpy.context.scene.render.resolution_x = 500
+        bpy.context.scene.render.resolution_y = 500
 
     # Add a camera, pointing at the center of the object
-    bpy.data.cameras["Camera"].lens_unit = "FOV"
-    bpy.data.cameras["Camera"].angle = math.radians(75)
     camera.location = camera_pos
     camera.rotation_euler = camera_rot
 
@@ -115,22 +141,35 @@ def _init(use_cycles=None):
         bpy.context.scene.cycles.samples = 1024
     else:
         bpy.context.scene.render.engine = 'BLENDER_EEVEE'
-        bpy.context.scene.eevee.taa_render_samples = 100
+        bpy.context.scene.eevee.taa_render_samples = 64
 
 
 def _render(filepath):
     bpy.context.scene.render.image_settings.file_format = 'PNG'
     bpy.context.scene.render.filepath = filepath
     bpy.ops.render.render(write_still=True)
+    
+def _clean():
+    # Clear the scene
+    for obj in bpy.context.scene.objects:
+        if obj.type not in ["CAMERA", "LIGHT"]:
+            obj.select_set(True)
+    # bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete()
+
+    # # Clear the materials
+    # for material in bpy.data.materials:
+    #     material.user_clear()
+    #     bpy.data.materials.remove(material)
 
 
-def render(task_id, topdown=None, perspective=None, turnaround=None, turntable=None):
-    out_dir = f"/project/3dlg-hcvc/rlsd/data/annotations/exported_scene_renders/{task_id}"
+def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=None, turntable=None, render_mp3d=None):
+    # task_pano_mapping = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/task_pano_mapping.json"))
+    # full_pano_id = task_pano_mapping[task_id]
+    house_id, level_id, pano_id, task_id = full_task_id.split("_")
+    
+    out_dir = f"/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/exported_glb_renders/{mesh_type}/{task_id}"
     os.makedirs(out_dir, exist_ok=True)
-
-    task_pano_mapping = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/task_pano_mapping.json"))
-    full_pano_id = task_pano_mapping[task_id]
-    house_id, level_id, pano_id = full_pano_id.split("_")
 
     with open(f"/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_camera_poses/{house_id}.jsonl") as f:
         cameras = f.readlines()
@@ -141,7 +180,7 @@ def render(task_id, topdown=None, perspective=None, turnaround=None, turntable=N
                 break
     cam2world = np.array(camera["camera"]["extrinsics"]).reshape(4, 4)
 
-    _load_scene(task_id)
+    _load_r3ds(task_id, mesh_type)
     _init()
 
     if topdown:
@@ -149,15 +188,8 @@ def render(task_id, topdown=None, perspective=None, turnaround=None, turntable=N
         _render(os.path.join(out_dir, "topdown.png"))
 
     if perspective:
-        _setup_camera(perspective=True, turntable_idx=45, cam2world=cam2world)
+        _setup_camera(perspective=True, turn_angle=45, cam2world=cam2world)
         _render(os.path.join(out_dir, "perspective_sample.png"))
-
-    if turnaround:
-        tt_out_dir = os.path.join(out_dir, "turnaround")
-        os.makedirs(tt_out_dir, exist_ok=True)
-        for tt_idx in range(360):
-            _setup_camera(perspective=True, turnaround=True, turn_angle=tt_idx, cam2world=cam2world)
-            _render(os.path.join(tt_out_dir, f"{tt_idx}.png"))
             
     if turntable:
         tt_out_dir = os.path.join(out_dir, "turntable")
@@ -166,6 +198,39 @@ def render(task_id, topdown=None, perspective=None, turnaround=None, turntable=N
             _setup_camera(perspective=True, turntable=True, turn_angle=tt_idx, cam2world=cam2world)
             _render(os.path.join(tt_out_dir, f"{tt_idx}.png"))
 
+    if turnaround:
+        tt_out_dir = os.path.join(out_dir, "turnaround")
+        os.makedirs(tt_out_dir, exist_ok=True)
+        for tt_idx in range(360):
+            _setup_camera(perspective=True, turnaround=True, turn_angle=tt_idx, cam2world=cam2world)
+            _render(os.path.join(tt_out_dir, f"{tt_idx}.png"))
+        
+        if render_mp3d:
+            C.active_object.hide_render = True
+            _load_mp3d(house_id)
+            tt_out_dir = os.path.join(out_dir, "turnaround_mp3d")
+            os.makedirs(tt_out_dir, exist_ok=True)
+            for tt_idx in range(360):
+                _setup_camera(perspective=True, turnaround=True, turn_angle=tt_idx, cam2world=cam2world)
+                _render(os.path.join(tt_out_dir, f"{tt_idx}.png"))
+            
+    _clean()
 
-# render("61e0e083ddd48e322a187d89", topdown=True, perspective=True, turnaround=True)
-render("61e0e083ddd48e322a187d89", turntable=True)
+
+if __name__ == "__main__":
+    # render("61e0e083ddd48e322a187d89", topdown=True, perspective=True, turnaround=True)
+    # render("61e0e083ddd48e322a187d89", topdown=True)
+    # render("61e0e083ddd48e322a187d89", turnaround=True)
+    # render("61e0e083ddd48e322a187d89", turntable=True)
+    
+    # mesh_type = "exported_glb_w_texture"
+    scenes = [s.strip() for s in open("/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/selected_task_pano_ids.txt")]
+    
+    for mesh_type in ["exported_glb_by_instance", "exported_glb_by_modelId", "exported_glb_by_semantic", "exported_glb_w_texture"]:
+    # for mesh_type in ["exported_glb_w_texture_by_semantic"]:
+        for scene in scenes:
+            house_id, level_id, pano_id, task_id = scene.split("_")
+            file_path = f"/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/{mesh_type}/{task_id}/{task_id}.scene/{task_id}.scene.glb"
+            if not os.path.exists(file_path):
+                continue
+            render(scene, mesh_type, topdown=True, perspective=True, turntable=True, turnaround=True)
