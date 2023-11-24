@@ -50,7 +50,7 @@ def _load_r3ds(task_id, mesh_type):
     # scene_center = scene_bound.mean(0)
     
 
-def _setup_camera(topdown=None, panorama=None, perspective=None, turnaround=None, turntable=None, turn_angle=None, cam2world=None, orthographic=None):
+def _setup_camera(topdown=None, panorama=None, pano_pers=None, turnaround=None, turntable=None, turn_angle=None, cam2world=None, orthographic=None):
     camera = bpy.data.objects["Camera"]
     bpy.data.cameras["Camera"].type = "PERSP"
     bpy.data.cameras["Camera"].lens_unit = "FOV"
@@ -80,7 +80,7 @@ def _setup_camera(topdown=None, panorama=None, perspective=None, turnaround=None
         cam2world[:3, :3] = cam2world[:3, :3] @ recover @ align
         bpy.data.objects["Camera"].matrix_world = mathutils.Matrix(cam2world)
 
-    if perspective:
+    if pano_pers:
         assert cam2world is not None
         camera_pos = cam2world[:3, 3]
         view_dir = mathutils.Vector(np.array([0, 1, -0.2]))
@@ -172,7 +172,7 @@ def _clean():
     #     bpy.data.materials.remove(material)
 
 
-def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=None, turntable=None, render_mp3d=None, orthographic=None):
+def render(full_task_id, mesh_type, topdown=None, pano_pers=None, turnaround=None, turntable=None, render_mp3d=None, orthographic=None):
     # task_pano_mapping = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/task_pano_mapping.json"))
     # full_pano_id = task_pano_mapping[task_id]
     house_id, level_id, pano_id, task_id = full_task_id.split("_")
@@ -198,8 +198,8 @@ def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=N
         _setup_camera(topdown==True)
         _render(os.path.join(out_dir, "topdown.png"))
 
-    if perspective:
-        _setup_camera(perspective=True, turn_angle=45, cam2world=cam2world)
+    if pano_pers:
+        _setup_camera(pano_pers=True, turn_angle=45, cam2world=cam2world)
         _render(os.path.join(out_dir, "perspective_sample.png"))
             
     if turntable:
@@ -215,7 +215,7 @@ def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=N
         tt_out_dir = os.path.join(out_dir, "turnaround")
         os.makedirs(tt_out_dir, exist_ok=True)
         for tt_idx in range(360):
-            _setup_camera(perspective=True, turnaround=True, turn_angle=tt_idx, cam2world=cam2world)
+            _setup_camera(pano_pers=True, turnaround=True, turn_angle=tt_idx, cam2world=cam2world)
             _render(os.path.join(tt_out_dir, f"{tt_idx}.png"))
         
         if render_mp3d:
@@ -224,7 +224,7 @@ def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=N
             tt_out_dir = os.path.join(out_dir, "turnaround_mp3d")
             os.makedirs(tt_out_dir, exist_ok=True)
             for tt_idx in range(360):
-                _setup_camera(perspective=True, turnaround=True, turn_angle=tt_idx, cam2world=cam2world)
+                _setup_camera(pano_pers=True, turnaround=True, turn_angle=tt_idx, cam2world=cam2world)
                 _render(os.path.join(tt_out_dir, f"{tt_idx}.png"))
             
     _clean()
@@ -236,13 +236,13 @@ if __name__ == "__main__":
     parser.add_argument('--mesh_type', required=True, type=str)
     parser.add_argument('--render_mp3d', default=False, action='store_true')
     parser.add_argument('--topdown', default=False, action='store_true')
-    parser.add_argument('--perspective', default=False, action='store_true')
+    parser.add_argument('--pano_pers', default=False, action='store_true')
     parser.add_argument('--turntable', default=False, action='store_true')
     parser.add_argument('--turnaround', default=False, action='store_true')
     parser.add_argument('--orth', default=False, action='store_true')
     args = parser.parse_args()
 
-    # render("61e0e083ddd48e322a187d89", topdown=True, perspective=True, turnaround=True)
+    # render("61e0e083ddd48e322a187d89", topdown=True, pano_pers=True, turnaround=True)
     # render("PX4nDJXEHrG_L1_9a65ec8ec80d41a492cf617c83b15ec6_6420eb64be0192bc6a4dad5f", "exported_glb_by_instance", topdown=True)
     # render("8WUmhLawc2A_L0_0fd8c430bdb34aedb5c11b56ceb13b63_61e0e084ddd48e322a187e9d", "exported_glb_by_instance", turntable=True, orthographic=True)
     # render("61e0e083ddd48e322a187d89", turntable=True)
@@ -255,4 +255,4 @@ if __name__ == "__main__":
         file_path = f"/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/{args.mesh_type}/{task_id}/{task_id}.scene/{task_id}.scene.glb"
         if not os.path.exists(file_path):
             continue
-        render(scene, args.mesh_type, topdown=args.topdown, perspective=args.perspective, turntable=args.turntable, turnaround=args.turnaround, render_mp3d=args.render_mp3d, orthographic=args.orth)
+        render(scene, args.mesh_type, topdown=args.topdown, pano_pers=args.pano_pers, turntable=args.turntable, turnaround=args.turnaround, render_mp3d=args.render_mp3d, orthographic=args.orth)
