@@ -5,6 +5,7 @@ import json
 import numpy as np
 import mathutils
 import math
+import argparse
 
 
 C = bpy.context
@@ -49,18 +50,22 @@ def _load_r3ds(task_id, mesh_type):
     # scene_center = scene_bound.mean(0)
     
 
-def _setup_camera(topdown=None, panorama=None, perspective=None, turnaround=None, turntable=None, turn_angle=None, cam2world=None):
+def _setup_camera(topdown=None, panorama=None, perspective=None, turnaround=None, turntable=None, turn_angle=None, cam2world=None, orthographic=None):
     camera = bpy.data.objects["Camera"]
+    bpy.data.cameras["Camera"].type = "PERSP"
     bpy.data.cameras["Camera"].lens_unit = "FOV"
     bpy.data.cameras["Camera"].angle = math.radians(80)
     
     scene_bound = np.array([p[:] for p in C.active_object.bound_box])
     scene_center = scene_bound.mean(0)
     radius = np.linalg.norm(scene_bound - scene_center, axis=1).max()
+    print(radius)
     
     if topdown:
-        fov = np.arctan2(radius+1, 8) * 2
+        fov = np.arctan2(radius, 8) * 2
         bpy.data.cameras["Camera"].angle = fov
+        # bpy.data.cameras["Camera"].type = "ORTHO"
+        # bpy.data.cameras["Camera"].ortho_scale = 7.31429 * radius / 3.68
         camera_pos = np.array(C.active_object.location) + np.array([0, 0, 8])
         view_dir = mathutils.Vector(np.array([0, 0, -1]))
         camera_rot_quat = view_dir.to_track_quat('-Z', 'Y')
@@ -90,8 +95,12 @@ def _setup_camera(topdown=None, panorama=None, perspective=None, turnaround=None
         
     if turntable:
         assert turn_angle is not None
-        fov = np.arctan2(radius, 8) * 2
-        bpy.data.cameras["Camera"].angle = fov
+        if orthographic:
+            bpy.data.cameras["Camera"].type = "ORTHO"
+            bpy.data.cameras["Camera"].ortho_scale = 7.31429 * radius / 3.68
+        else:
+            fov = np.arctan2(radius, 8) * 2
+            bpy.data.cameras["Camera"].angle = fov
         camera_pos = np.array(C.active_object.location) + np.array([0, 0, 8])
         r = 8 / np.sqrt(3)
         angle = 2*np.pi * ((turn_angle - 90) / 360)
@@ -130,7 +139,7 @@ def _init(use_cycles=None):
     C.scene.world.use_nodes = True
     # bpy.data.worlds["World"].node_tree.nodes["Environment Texture"].image
     enode = C.scene.world.node_tree.nodes.new("ShaderNodeTexEnvironment")
-    enode.image = bpy.data.images.load("/local-scratch/qiruiw/research/DeepPanoContext/data/background/photo_studio_01_2k.hdr")
+    enode.image = bpy.data.images.load("/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/photo_studio_01_2k.hdr")
     bpy.data.worlds["World"].node_tree.nodes["Environment Texture"].projection = 'EQUIRECTANGULAR'
     C.scene.world.node_tree.links.new(enode.outputs['Color'], C.scene.world.node_tree.nodes['Background'].inputs['Color'])
 
@@ -163,12 +172,14 @@ def _clean():
     #     bpy.data.materials.remove(material)
 
 
-def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=None, turntable=None, render_mp3d=None):
+def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=None, turntable=None, render_mp3d=None, orthographic=None):
     # task_pano_mapping = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/task_pano_mapping.json"))
     # full_pano_id = task_pano_mapping[task_id]
     house_id, level_id, pano_id, task_id = full_task_id.split("_")
     
     out_dir = f"/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/exported_glb_renders/{mesh_type}/{task_id}"
+    # if os.path.exists(out_dir):
+    #     return
     os.makedirs(out_dir, exist_ok=True)
 
     with open(f"/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_camera_poses/{house_id}.jsonl") as f:
@@ -193,9 +204,11 @@ def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=N
             
     if turntable:
         tt_out_dir = os.path.join(out_dir, "turntable")
+        if orthographic:
+            tt_out_dir += '_orth'
         os.makedirs(tt_out_dir, exist_ok=True)
         for tt_idx in range(360):
-            _setup_camera(perspective=True, turntable=True, turn_angle=tt_idx, cam2world=cam2world)
+            _setup_camera(turntable=True, turn_angle=tt_idx, orthographic=orthographic)
             _render(os.path.join(tt_out_dir, f"{tt_idx}.png"))
 
     if turnaround:
@@ -218,19 +231,27 @@ def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=N
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser('Blender render.')
+    parser.add_argument('--mesh_type', required=True, type=str)
+    parser.add_argument('--render_mp3d', default=False, action='store_true')
+    parser.add_argument('--topdown', default=False, action='store_true')
+    parser.add_argument('--perspective', default=False, action='store_true')
+    parser.add_argument('--turntable', default=False, action='store_true')
+    parser.add_argument('--turnaround', default=False, action='store_true')
+    parser.add_argument('--orth', default=False, action='store_true')
+    args = parser.parse_args()
+
     # render("61e0e083ddd48e322a187d89", topdown=True, perspective=True, turnaround=True)
-    # render("61e0e083ddd48e322a187d89", topdown=True)
-    # render("61e0e083ddd48e322a187d89", turnaround=True)
+    # render("PX4nDJXEHrG_L1_9a65ec8ec80d41a492cf617c83b15ec6_6420eb64be0192bc6a4dad5f", "exported_glb_by_instance", topdown=True)
+    # render("8WUmhLawc2A_L0_0fd8c430bdb34aedb5c11b56ceb13b63_61e0e084ddd48e322a187e9d", "exported_glb_by_instance", turntable=True, orthographic=True)
     # render("61e0e083ddd48e322a187d89", turntable=True)
     
-    # mesh_type = "exported_glb_w_texture"
     scenes = [s.strip() for s in open("/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/selected_task_pano_ids.txt")]
     
-    for mesh_type in ["exported_glb_by_instance", "exported_glb_by_modelId", "exported_glb_by_semantic", "exported_glb_w_texture"]:
-    # for mesh_type in ["exported_glb_w_texture_by_semantic"]:
-        for scene in scenes:
-            house_id, level_id, pano_id, task_id = scene.split("_")
-            file_path = f"/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/{mesh_type}/{task_id}/{task_id}.scene/{task_id}.scene.glb"
-            if not os.path.exists(file_path):
-                continue
-            render(scene, mesh_type, topdown=True, perspective=True, turntable=True, turnaround=True)
+    # for mesh_type in ["exported_glb_by_instance", "exported_glb_by_semantic", "exported_glb_by_modelId", "exported_glb_w_texture"]:
+    for scene in scenes:
+        house_id, level_id, pano_id, task_id = scene.split("_")
+        file_path = f"/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/{args.mesh_type}/{task_id}/{task_id}.scene/{task_id}.scene.glb"
+        if not os.path.exists(file_path):
+            continue
+        render(scene, args.mesh_type, topdown=args.topdown, perspective=args.perspective, turntable=args.turntable, turnaround=args.turnaround, render_mp3d=args.render_mp3d, orthographic=args.orth)
