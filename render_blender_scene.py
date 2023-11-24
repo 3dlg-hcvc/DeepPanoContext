@@ -232,6 +232,7 @@ def render(full_task_id, mesh_type, topdown=None, perspective=None, turnaround=N
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Blender render.')
+    parser.add_argument('--tasks', default="/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/selected_task_pano_ids.txt", type=str)
     parser.add_argument('--mesh_type', required=True, type=str)
     parser.add_argument('--render_mp3d', default=False, action='store_true')
     parser.add_argument('--topdown', default=False, action='store_true')
@@ -246,7 +247,7 @@ if __name__ == "__main__":
     # render("8WUmhLawc2A_L0_0fd8c430bdb34aedb5c11b56ceb13b63_61e0e084ddd48e322a187e9d", "exported_glb_by_instance", turntable=True, orthographic=True)
     # render("61e0e083ddd48e322a187d89", turntable=True)
     
-    scenes = [s.strip() for s in open("/project/3dlg-hcvc/rlsd/data/annotations/viz_paper/selected_task_pano_ids.txt")]
+    scenes = [s.strip() for s in open(args.tasks)]
     
     # for mesh_type in ["exported_glb_by_instance", "exported_glb_by_semantic", "exported_glb_by_modelId", "exported_glb_w_texture"]:
     for scene in scenes:
