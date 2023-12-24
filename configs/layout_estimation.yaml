@@ -10,21 +10,11 @@ device:
   gpu_ids: '0'
   num_workers: 8
 data:
-  name: rlsd
-  split: /project/3dlg-hcvc/rlsd/data/psu/rlsd_real
+  name: 
+  split: 
 loss_weights:
   bon_loss: 1.0
   cor_loss: 1.0
-  ### Following are not used for HorizonLoss
-  # pitch_cls_loss: 1.0
-  # pitch_reg_loss: 10.0
-  # roll_cls_loss: 1.0
-  # roll_reg_loss: 10.0
-  # lo_ori_cls_loss: 1.0
-  # lo_ori_reg_loss: 10.0
-  # lo_centroid_loss: 10.0
-  # lo_size_loss: 10.0
-  # lo_corner_loss: 10.0
 model:
   layout_estimation:
     module: HorizonNet

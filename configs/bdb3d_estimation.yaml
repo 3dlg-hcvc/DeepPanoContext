@@ -10,8 +10,8 @@ device:
   gpu_ids: '0'
   num_workers: 8
 data:
-  name: igibson
-  split: data/igibson_stage1
+  name: 
+  split: data/rlsd_stage1
   expand_dis: 0.1
   g_feature_length: 64
   fov_split: 0
@@ -44,17 +44,18 @@ scheduler:
   factor: 0.5
   threshold: 0.01
 train:
-  epochs: 15
+  epochs: 30
   freeze: []
   batch_size: 6
 val:
   batch_size: 6
 test:
   batch_size: 6
+  mesh_collision: False
 log:
-  vis_step: 10
+  vis_step: 0
   print_step: 10
   path: out/bdb3d_estimation
   save_checkpoint: True
-
+  save_bdb3d_mesh: False
 

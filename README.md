@@ -15,23 +15,12 @@ This repo contains data generation, data preprocessing, training, testing, evalu
 Install necessary tools and create conda environment (needs to install anaconda if not available): 
 #### Lab
 ```shell
-module load LIB/CUDA/11.2 LIB/CUDNN/8.1.0-CUDA11.2 
-# sudo apt install xvfb ninja-build freeglut3-dev libglew-dev meshlab ### should all installed on lab machine, check with (apt -qq list <PACKAGE>)
+sudo apt install xvfb ninja-build freeglut3-dev libglew-dev meshlab
 conda env create -f environment.yaml
 conda activate Pano3D
 pip install wandb
 python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu101/torch1.7/index.html
 python project.py build
-```
-#### Solar
-```shell
-module load LIB/CUDA/11.1 LIB/CUDNN/8.0.5-CUDA11.1
-conda env create -f environment.yaml
-conda activate Pano3D
-pip install wandb
-pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html
-python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.9/index.html
-python project.py build --subwork ldif2mesh py360convert
 ```
 - When running ```python project.py build```, the script will run ```external/build_gaps.sh``` which requires password for sudo privilege for ```apt-get install```.
 Please make sure you are running with a user with sudo privilege.
@@ -58,13 +47,13 @@ Since the given checkpoints are trained with current version of our code, which 
 Please run the following command to predict on the given example in ```demo/input``` with our full model:
 
 ```shell
-CUDA_VISIBLE_DEVICES=0 WANDB_MODE=dryrun python main.py configs/pano3d_igibson.yaml --model.scene_gcn.relation_adjust True --mode test
+CUDA_VISIBLE_DEVICES=0 WANDB_MODE=dryrun python main.py configs/pano3d.yaml --model.scene_gcn.relation_adjust True --mode test
 ```
     
 Or run without relation optimization:
 
 ```shell
-CUDA_VISIBLE_DEVICES=0 WANDB_MODE=dryrun python main.py configs/pano3d_igibson.yaml --mode test
+CUDA_VISIBLE_DEVICES=0 WANDB_MODE=dryrun python main.py configs/pano3d.yaml --mode test
 ```
 
 The results will be saved to ```out/pano3d/<demo_id>```.
@@ -92,9 +81,9 @@ Update - Since iGibson has gone through a major update, their dataset download l
     ```
    The rendered dataset should be in ```data/igibson/```.
 
-   For **RLSD** data,
+   For **R3DS** data,
     ```shell
-    python -m utils.generate_rlsd_scenes --horizon_lo --world_lo
+    python -m utils.generate_r3ds_scenes --horizon_lo --world_lo
     ```
    
 3. Make models watertight and render/crop single object image:
@@ -103,12 +92,11 @@ Update - Since iGibson has gone through a major update, their dataset download l
     ```
    The processed results should be in ```data/igibson_obj/```.
 
-   For **RLSD** data, separate rendering process
+   For **R3DS** data, separate rendering process
     ```shell
     conda activate Pano3D
-    python -m utils.preprocess_rlsd_obj --skip_mgn --skip_render
-    conda activate gcmic # due to erroneous trimesh version used in Pano3D
-    python -m utils.render_rlsd_obj
+    python -m utils.preprocess_r3ds_obj --skip_mgn --skip_render
+    python -m utils.render_r3ds_obj
     ```
    
 4. (Optional) Before proceeding to the training steps, you could visualize dataset ground-truth of ```data/igibson/``` with:
@@ -164,7 +152,7 @@ Please follow Demo section to download weights for detector before we release fu
    
 4. (Optional) Visualize BFoV detection results:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python main.py configs/detector_2d_igibson.yaml --mode qtest --log.vis_step 1
+    CUDA_VISIBLE_DEVICES=0 python main.py configs/detector_2d.yaml --mode qtest --log.vis_step 1
     ```
    The visualization will be saved to ```out/detector/<detector_test_id>```
 
@@ -172,33 +160,33 @@ Please follow Demo section to download weights for detector before we release fu
 
 Train layout estimation network (HorizonNet) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation.yaml --data.split /path/to/data
 ```
 Finetune layout estimation network (HorizonNet) with pretrained weight:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data # specify json for rlsd data
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation.yaml --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data # specify json for r3ds data
 ```
 The checkpoint and visualization results will be saved to ```out/layout_estimation/<layout_estimation_id>/model_best.pth```
 
 Test layout estimation network (HorizonNet) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --mode test --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data # specify json for rlsd data
+CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation.yaml --mode test --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --data.split /path/to/data # specify json for r3ds data
 ```
    
 #### Save First Stage Outputs
 
 1. Save predictions of 2D detector and LEN as dateset for stage 2 training:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 WANDB_MODE=dryrun python main.py configs/first_stage_<data>.yaml --mode qtest --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --model.detector.weight out/detector/<detection_mask_rcnn_id>/model_final.pth --data.split /path/to/data --log.save_as_dataset /path/to/out_data
+    CUDA_VISIBLE_DEVICES=0 WANDB_MODE=dryrun python main.py configs/first_stage.yaml --mode qtest --weight out/layout_estimation/<layout_estimation_id>/model_best.pth --model.detector.weight out/detector/<detection_mask_rcnn_id>/model_final.pth --data.split /path/to/data --log.save_as_dataset /path/to/out_data
     ```
-   The first stage outputs should be saved to ```</path/to/data>_stage1```
+   The first stage outputs should be saved to ```--log.save_as_dataset```
    
 2. (Optional) Visualize stage 1 dataset with:
     ```shell
     python -m utils.visualize_igibson --dataset /path/to/data --skip_render
     ```
     ```shell
-    python -m utils.visualize_rlsd_scenes --dataset /path/to/data
+    python -m utils.visualize_r3ds_scenes --dataset /path/to/data
     ```
 
 ### Second Stage
@@ -207,43 +195,43 @@ CUDA_VISIBLE_DEVICES=0 python main.py configs/layout_estimation_<data>.yaml --mo
 
 Train object reconstruction network (LIEN+LDIF) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif_<data>.yaml --data.split /path/to/data
+CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif.yaml --data.split /path/to/data
 ```
 The checkpoint and visualization results will be saved to ```out/ldif/<ldif_id>```.
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif_rlsd.yaml --exp test_ldif --data.split /project/3dlg-hcvc/rlsd/data/psu/rlsd_obj_cls25 --mode qtest --weight /local-scratch/qiruiw/research/DeepPanoContext/out/ldif/ft_rlsd_real_cls25/model_best.pth
+CUDA_VISIBLE_DEVICES=0 python main.py configs/ldif.yaml --exp test_ldif --data.split /project/3dlg-hcvc/r3ds/data/psu/r3ds_obj_cls25 --mode qtest --weight /local-scratch/qiruiw/research/DeepPanoContext/out/ldif/ft_r3ds_real_cls25/model_best.pth
 ```
    
 #### Bdb3D Estimation
 
 Train bdb3d estimation network (BEN) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation_<data>.yaml --data.split /path/to/data
+CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation.yaml --data.split /path/to/data
 ```
 The checkpoint and visualization results will be saved to ```out/bdb3d_estimation/<bdb3d_estimation_id>```.
 
 Test bdb3d estimation network (BEN) with:
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation_<data>.yaml --mode test --weight out/bdb3d_estimation/<bdb3d_estimation_id>/model_best.pth --data.split /path/to/data
+CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation.yaml --mode test --weight out/bdb3d_estimation/<bdb3d_estimation_id>/model_best.pth --data.split /path/to/data
 ```
 
 #### Relation SGCN
    
 1. Train Relation SGCN without relation branch:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_<data>.yaml --model.scene_gcn.output_relation False --model.scene_gcn.loss BaseLoss --weight out/bdb3d_estimation/<bdb3d_estimation_id>/model_best.pth out/ldif/<ldif_id>/model_best.pth --data.split /path/to/data
+    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn.yaml --model.scene_gcn.output_relation False --model.scene_gcn.loss BaseLoss --weight out/bdb3d_estimation/<bdb3d_estimation_id>/model_best.pth out/ldif/<ldif_id>/model_best.pth --data.split /path/to/data
     ```
    The checkpoint and visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_wo_rel_id>```.
    
 2. Train Relation SGCN with relation branch:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_<data>.yaml --weight out/relation_scene_gcn/<relation_sgcn_wo_rel_id>/model_best.pth --train.epochs 20 --data.split /path/to/data
+    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn.yaml --weight out/relation_scene_gcn/<relation_sgcn_wo_rel_id>/model_best.pth --train.epochs 20 --data.split /path/to/data
     ```
    The checkpoint and visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_id>```.
  
 3. Fine-tune Relation SGCN end-to-end with relation optimization:
     ```shell
-    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_<data>.yaml --weight out/relation_scene_gcn/<relation_sgcn_id>/model_best.pth --model.scene_gcn.relation_adjust True --train.batch_size 1 --val.batch_size 1 --device.num_workers 2 --train.freeze shape_encoder shape_decoder --model.scene_gcn.loss_weights.bdb3d_proj 1.0 --model.scene_gcn.optimize_steps 20 --train.epochs 10 --data.split /path/to/data
+    CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn.yaml --weight out/relation_scene_gcn/<relation_sgcn_id>/model_best.pth --model.scene_gcn.relation_adjust True --train.batch_size 1 --val.batch_size 1 --device.num_workers 2 --train.freeze shape_encoder shape_decoder --model.scene_gcn.loss_weights.bdb3d_proj 1.0 --model.scene_gcn.optimize_steps 20 --train.epochs 10 --data.split /path/to/data
     ```
    The checkpoint and visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_ro_id>```.
 
@@ -252,9 +240,9 @@ CUDA_VISIBLE_DEVICES=0 python main.py configs/bdb3d_estimation_<data>.yaml --mod
 Run:
 
 ```shell
-CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn_<data>.yaml --weight out/relation_scene_gcn/<relation_sgcn_ro_id>/model_best.pth --log.path out/relation_scene_gcn --resume False --finetune True --model.scene_gcn.relation_adjust True --mode qtest --model.scene_gcn.optimize_steps 100
+CUDA_VISIBLE_DEVICES=0 python main.py configs/relation_scene_gcn.yaml --weight out/relation_scene_gcn/<relation_sgcn_ro_id>/model_best.pth --log.path out/relation_scene_gcn --resume False --finetune True --model.scene_gcn.relation_adjust True --mode qtest --model.scene_gcn.optimize_steps 100
 ```
-Use `--model.scene_gcn.loss_weights.bdb3d_proj 1.0` or even smaller could be better for RLSD data.
+Use `--model.scene_gcn.loss_weights.bdb3d_proj 1.0` or even smaller could be better for R3DS data.
 The visualization results will be saved to ```out/relation_scene_gcn/<relation_sgcn_ro_test_id>```.
 
 ## Citation
