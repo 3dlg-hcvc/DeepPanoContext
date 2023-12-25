@@ -19,7 +19,7 @@ import traceback
 from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, COMMON25CLASSES, RLSD32CLASSES
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
-from .rlsd_utils import create_data_splits, encode_rgba, prepare_images
+from .r3ds_utils import create_data_splits, encode_rgba, prepare_images
 from .igibson_utils import IGScene
 from .layout_utils import scene_layout_from_rlsd_arch, room_layout_from_rlsd_scene, \
     manhattan_pix_layout_from_rlsd_room, \
