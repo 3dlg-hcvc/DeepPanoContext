@@ -12,7 +12,7 @@ from utils.image_utils import save_image
 
 dataset = 'data/igibson'
 register_detection_dataset(dataset)
-igibson_obj_dataset = '/project/3dlg-hcvc/rlsd/data/psu/igibson_obj'
+igibson_obj_dataset = './data/igibson_obj'
 dataset_samples = {
     'Beechwood_0_int': '00009',
     'Beechwood_1_int': '00096',

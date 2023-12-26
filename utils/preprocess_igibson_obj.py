@@ -239,7 +239,7 @@ def main():
         description='Preprocess iGibson objects for single image reconstruction network training.')
     parser.add_argument('--dataset', type=str, default='data/igibson',
                         help='The path of the dataset')
-    parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/igibson_obj',
+    parser.add_argument('--output', type=str, default='./data/psu/igibson_obj',
                         help='The path of the output folder')
     parser.add_argument('--processes', type=int, default=12,
                         help='Number of threads')

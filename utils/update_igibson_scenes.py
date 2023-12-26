@@ -47,9 +47,9 @@ def update_scene(args):
 def main():
     parser = argparse.ArgumentParser(
         description='Visualize iGibson scenes.')
-    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/igibson_cls25',
+    parser.add_argument('--dataset', type=str, default='./data/igibson_cls25',
                         help='The path of the iGibson dataset')
-    parser.add_argument('--igibson_obj_dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/igibson_obj',
+    parser.add_argument('--igibson_obj_dataset', type=str, default='./data/igibson_obj',
                         help='The path of the iGibson object dataset')
     parser.add_argument('--scene', type=str, default=None,
                         help='The name of the scene to visualize')

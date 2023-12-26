@@ -148,10 +148,10 @@ class SceneDataset(Pano3DDataset):
             gt_pkl = os.path.join(os.path.dirname(pkl), 'gt.pkl')
             if os.path.exists(gt_pkl):
                 est_scene = IGScene.from_pickle(pkl) if 'est' in stype else None
-                gt_scene = IGScene.from_pickle(gt_pkl, self.igibson_obj_dataset, load_rlsd_obj='rlsd' in pkl) if 'gt' in stype else None
+                gt_scene = IGScene.from_pickle(gt_pkl, self.igibson_obj_dataset, load_r3ds_obj='r3ds' in pkl) if 'gt' in stype else None
             else:
                 est_scene = None
-                gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset, load_rlsd_obj='rlsd' in pkl) if 'gt' in stype else None
+                gt_scene = IGScene.from_pickle(pkl, self.igibson_obj_dataset, load_r3ds_obj='r3ds' in pkl) if 'gt' in stype else None
         
         if 'room' in gt_scene.data and isinstance(gt_scene.data['room'], dict):
             room = str(gt_scene.data['room']['id'])

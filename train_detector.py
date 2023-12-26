@@ -8,7 +8,7 @@ from models.detector.training import Trainer
 def main():
     parser = argparse.ArgumentParser(
         description='Finetune 2D detector with iGibson dataset.')
-    parser.add_argument('--dataset', type=str, default='data/rlsd',
+    parser.add_argument('--dataset', type=str, default='data/r3ds',
                         help='The path of the dataset')
     parser.add_argument('--batchsize', type=int, default=8,
                         help='cfg.SOLVER.IMS_PER_BATCH')
@@ -18,7 +18,7 @@ def main():
                         help='cfg.SOLVER.MAX_ITER')
     parser.add_argument('--imagebatch', type=int, default=256,
                         help='cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE')
-    parser.add_argument('--out', type=str, default='out/detector/detector_mask_rcnn_rlsd',
+    parser.add_argument('--out', type=str, default='out/detector/detector_mask_rcnn',
                         help='cfg.OUTPUT_DIR')
     parser.add_argument('--steps', type=int, default=[25000, 40000], nargs='+',
                         help='cfg.SOLVER.STEPS')

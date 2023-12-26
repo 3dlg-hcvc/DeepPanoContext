@@ -208,7 +208,7 @@ def main():
     parser.add_argument('--scene', dest='scene_name',
                         type=str, default=None,
                         help='The name of the scene to load')
-    parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/s3d',
+    parser.add_argument('--output', type=str, default='./data/s3d',
                         help='The path of the output folder')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed for generating camera pose')

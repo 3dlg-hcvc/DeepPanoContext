@@ -41,8 +41,8 @@ def visualize_camera(args):
 def main():
     parser = argparse.ArgumentParser(
         description='Visualize iGibson scenes.')
-    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/s3d_cls25',
-                        help='The path of the rlsd dataset')
+    parser.add_argument('--dataset', type=str, default='./data/s3d_cls25',
+                        help='The path of the dataset')
     parser.add_argument('--scene_name', type=str, default=None,
                         help='The name of the scene to visualize')
     parser.add_argument('--room_id', type=str, default=None,

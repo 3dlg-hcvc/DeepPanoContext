@@ -10,7 +10,7 @@ from detectron2.config import get_cfg as default_cfg
 from detectron2.data import DatasetCatalog
 from detectron2.data import MetadataCatalog
 
-from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name, RLSD32CLASSES, COMMON25CLASSES
+from configs.data_config import IG56CLASSES, WIMR11CLASSES, PC12CLASSES, get_dataset_name, R3DS32CLASSES, COMMON25CLASSES
 from utils.visualize_utils import detectron_gt_sample, visualize_igibson_detectron_gt
 from utils.image_utils import show_image
 from models.pano3d.dataloader import SceneDataset
@@ -23,11 +23,11 @@ def register_detection_dataset(path, real=None):
             f"{dataset}_{d}", lambda d=d: get_dataset_dicts(path, d))
         if dataset.startswith(('igibson',)):
             thing_classes = IG56CLASSES
-        elif dataset.startswith(('rlsd', 's3d', 'ig_rr')):
+        elif dataset.startswith(('r3ds', 's3d', 'ig_rr')):
             if 'ig' in dataset:
                 thing_classes = IG56CLASSES
             else:
-                thing_classes = RLSD32CLASSES
+                thing_classes = R3DS32CLASSES
         elif dataset.startswith(('pano_context', 'wimr')) or real == True:
             thing_classes = WIMR11CLASSES
         else:
@@ -40,7 +40,7 @@ def register_detection_dataset(path, real=None):
 
 def get_dataset_dicts(folder, mode):
     dataset_name = get_dataset_name(folder)
-    if dataset_name.startswith(('igibson', 'rlsd', 'ig_rr', 's3d')):
+    if dataset_name.startswith(('igibson', 'r3ds', 'ig_rr', 's3d')):
         dataset = SceneDataset({'data': {'split': folder}}, mode)
     else:
         raise NotImplementedError

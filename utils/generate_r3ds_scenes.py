@@ -16,13 +16,13 @@ from copy import deepcopy
 from glob import glob
 import traceback
 
-from configs.data_config import IG56CLASSES, CUSTOM2RLSD, RLSD32_2_IG56, COMMON25CLASSES, RLSD32CLASSES
+from configs.data_config import IG56CLASSES, CUSTOM2R3DS, R3DS32_2_IG56, COMMON25CLASSES, R3DS32CLASSES
 from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
 from .r3ds_utils import create_data_splits, encode_rgba, prepare_images
 from .igibson_utils import IGScene
-from .layout_utils import scene_layout_from_rlsd_arch, room_layout_from_rlsd_scene, \
-    manhattan_pix_layout_from_rlsd_room, \
+from .layout_utils import scene_layout_from_r3ds_arch, room_layout_from_r3ds_scene, \
+    manhattan_pix_layout_from_r3ds_room, \
     manhattan_world_layout_from_room_layout, horizon_layout_gt_from_scene_data
 from .transform_utils import bdb3d_corners, IGTransform
 
@@ -64,9 +64,9 @@ def _render_scene(args):
         img_mode = args.img_mode
     task_id = args.task_id
     full_task_id = f'{scene_name}/{task_id}'
-    task_file = f"/project/3dlg-hcvc/rlsd/data/annotations/complete_task_json/{task_id}.json"
+    task_file = f"./data/annotations/complete_task_json/{task_id}.json"
     task_json = json.load(open(task_file))
-    panos = json.load(open("/project/3dlg-hcvc/rlsd/data/mp3d/pano_objects_mapping.json"))
+    panos = json.load(open("./data/mp3d/pano_objects_mapping.json"))
     
     output_folder = os.path.join(args.output, scene_name, task_id)
     os.makedirs(output_folder, exist_ok=True)
@@ -74,11 +74,11 @@ def _render_scene(args):
     prepare_images(args)
 
     # generate scene layout
-    rooms, rooms_scale = scene_layout_from_rlsd_arch(args)
+    rooms, rooms_scale = scene_layout_from_r3ds_arch(args)
     if not rooms:
         raise Exception('Layout not valid!')
     
-    with jsonlines.open(f"/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_camera_poses/{house_id}.jsonl") as cameras:
+    with jsonlines.open(f"./data/mp3d/equirectangular_camera_poses/{house_id}.jsonl") as cameras:
         for c in cameras:
             if c["id"] == pano_id:
                 camera = c
@@ -117,7 +117,7 @@ def _render_scene(args):
         }
     # skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
     plot_path = os.path.join(args.output, scene_name)
-    room_id, room, wall_ind_map, distance_wall = room_layout_from_rlsd_scene(camera, rooms, panos, plot_path)
+    room_id, room, wall_ind_map, distance_wall = room_layout_from_r3ds_scene(camera, rooms, panos, plot_path)
     if room is None:
         issues["outside_house"].append(full_task_id)
         print(f"{full_task_id}: outside house, no room layout generated.")
@@ -139,8 +139,8 @@ def _render_scene(args):
         
         # generate camera layout and check if the camaera is valid
         layout = {}
-        manhattan_pix = manhattan_pix_layout_from_rlsd_room(camera, room, args.room_mode, full_task_id, issues)
-        # layout = {'manhattan_pix': manhattan_pix_layout_from_rlsd_room(camera, room, args.room_mode, full_task_id, issues)}
+        manhattan_pix = manhattan_pix_layout_from_r3ds_room(camera, room, args.room_mode, full_task_id, issues)
+        # layout = {'manhattan_pix': manhattan_pix_layout_from_r3ds_room(camera, room, args.room_mode, full_task_id, issues)}
         # data['layout'] = layout
         if manhattan_pix is None:
             # print(skip_info + "manhattan pixel layout generation failed")
@@ -186,16 +186,16 @@ def _render_scene(args):
                 issues["mask_missing"].append(f"{full_task_id}/{mask_id}")
                 continue
             cat = mask_infos[mask_id]["label"].lower()
-            if cat not in RLSD32CLASSES: # and mask_infos[mask_id]["type"] != "mask":
+            if cat not in R3DS32CLASSES: # and mask_infos[mask_id]["type"] != "mask":
                 try:
-                    cat = CUSTOM2RLSD[cat]
+                    cat = CUSTOM2R3DS[cat]
                 except:
                     continue
             if args.cls_mode == 'cls25':
                 if cat not in COMMON25CLASSES: 
                     continue
             if args.model_mode == 'ig':
-                cat = RLSD32_2_IG56[cat]
+                cat = R3DS32_2_IG56[cat]
             categories.append(cat)
         if not categories:
             continue
@@ -204,7 +204,7 @@ def _render_scene(args):
         if model_source == 'wayfair':
             model_path = f'/datasets/internal/models3d/wayfair/wayfair_models_cleaned/{model_name}/{model_name}.glb'
         elif model_source == '3dw':
-            model_path = f'/project/3dlg-hcvc/rlsd/data/3dw/objmeshes/{model_name}/{model_name}.obj'
+            model_path = f'./data/3dw/objmeshes/{model_name}/{model_name}.obj'
             if not os.path.exists(model_path):
                 missing_3dw.add(model_name)
         else:
@@ -244,7 +244,7 @@ def _render_scene(args):
     inst_seg = encode_rgba(np.array(Image.open(inst_path)))
     if img_mode == 'syn':
         obj2insts = {}
-        label_csv_path = f"/project/3dlg-hcvc/rlsd/data/annotations/equirectangular_instance/{task_id}/{task_id}.scene.objectId.csv"
+        label_csv_path = f"./data/annotations/equirectangular_instance/{task_id}/{task_id}.scene.objectId.csv"
         label_df = pd.read_csv(label_csv_path)
         for obj_id in obj2masks:
             obj2insts[obj_id] = label_df[label_df.label == obj_id].index.tolist()
@@ -305,7 +305,7 @@ def _render_scene(args):
         # return None
 
     # construction IGScene
-    # rlsd_scene = IGScene(data)
+    # r3ds_scene = IGScene(data)
 
     # # generate relation
     # if args.relation:
@@ -333,7 +333,7 @@ def main():
     parser.add_argument('--source', dest='scene_source',
                         type=str, default='IG',
                         help='The name of the source dataset, among [IG,CUBICASA,THREEDFRONT]')
-    parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd',
+    parser.add_argument('--output', type=str, default='./data/r3ds',
                         help='The path of the output folder')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed for generating camera pose')
@@ -383,8 +383,8 @@ def main():
                         help='Types of images: real/syn/mix')
     parser.add_argument('--cls_mode', type=str, default='cls32',
                         help='Types of object classes: cls32/cls25')
-    parser.add_argument('--model_mode', type=str, default='rlsd',
-                        help='Types of images: rlsd/ig')
+    parser.add_argument('--model_mode', type=str, default='r3ds',
+                        help='Types of images: r3ds/ig')
     parser.add_argument('--resume', default=False, action='store_true',
                         help='Resume from existing renders')
     parser.add_argument('--expand_dis', type=float, default=0.1,
@@ -399,7 +399,7 @@ def main():
     args = parser.parse_args()
     args.output = f"{args.output}_{args.img_mode}"
     global OBJCLASSES
-    OBJCLASSES = RLSD32CLASSES
+    OBJCLASSES = R3DS32CLASSES
     if args.cls_mode == 'cls25':
         args.output = f"{args.output}_{args.cls_mode}"
         OBJCLASSES = COMMON25CLASSES
@@ -414,9 +414,9 @@ def main():
     assert args.vertical_fov is not None or not any(r in args.render_type for r in ['normal']), \
         "render type 'normal' not supported for panorama"
         
-    task_pano_mapping = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/task_pano_mapping.json"))
+    task_pano_mapping = json.load(open("./data/annotations/task_pano_mapping.json"))
     
-    invalid_rt_anno = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/invalid_room_type_annotation.json"))
+    invalid_rt_anno = json.load(open("./data/annotations/invalid_room_type_annotation.json"))
     invalid_tasks = invalid_rt_anno["stairs"] + invalid_rt_anno["outdoor"]
     for full_task_id in invalid_tasks:
         del task_pano_mapping[full_task_id.split('/')[1]]
@@ -452,18 +452,18 @@ def main():
                 data_paths = list(tqdm(p.imap(_render_scene_fail_remove, args_list), total=len(args_list)))
 
     if args.img_mode == 'real' and \
-        args.model_mode == 'rlsd' and \
+        args.model_mode == 'r3ds' and \
         args.cls_mode == 'cls25' and \
         not args.split:
-        with open("/project/3dlg-hcvc/rlsd/data/annotations/annotation_issues.json", 'w') as f:
+        with open("./data/annotations/annotation_issues.json", 'w') as f:
             json.dump(issues, f, indent=4)
-        with open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt", 'w') as f:
+        with open("./data/annotations/unique_shapes.txt", 'w') as f:
             for p in model_paths:
                 f.write(f"{p}\n")
-        with open("/project/3dlg-hcvc/rlsd/data/annotations/missing_3dw.txt", 'w') as f:
+        with open("./data/annotations/missing_3dw.txt", 'w') as f:
             for m in missing_3dw:
                 f.write(f"{m}\n")
-        with open("/project/3dlg-hcvc/rlsd/data/annotations/no_layout_rooms.txt", 'w') as f:
+        with open("./data/annotations/no_layout_rooms.txt", 'w') as f:
             for r in no_layout:
                 f.write(f"{r}\n")
 

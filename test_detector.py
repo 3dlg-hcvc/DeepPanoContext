@@ -19,7 +19,7 @@ from configs.data_config import get_dataset_name
 def main():
     parser = argparse.ArgumentParser(
         description='Finetune 2D detector with iGibson dataset.')
-    parser.add_argument('--dataset', type=str, default='data/rlsd',
+    parser.add_argument('--dataset', type=str, default='data/r3ds',
                         help='The path of the dataset')
     parser.add_argument('--weights', type=str, default='out/detector/detector_mask_rcnn/model_final.pth',
                         help='cfg.MODEL.WEIGHTS')

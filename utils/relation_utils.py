@@ -17,8 +17,7 @@ from .transform_utils import num2bins, label_or_num_from_cls_reg, bdb3d_corners,
 from .mesh_utils import MeshIO, mesh_collision, save_mesh, load_mesh
 from configs import data_config
 
-# proxy_meshes = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/proxy_meshes.json"))
-proxy_meshes = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/proxy_meshes_min.json"))
+proxy_meshes = json.load(open("./data/proxy_meshes_min.json"))
 
 
 def relation_from_bins(data: dict, thres):
@@ -271,14 +270,14 @@ class RelationOptimization:
                     if os.path.exists(o['gt_model_path']):
                         mesh_paths[i] = o['gt_model_path']
                     else:
-                        mesh_paths[i] = f"/project/3dlg-hcvc/rlsd/data/psu/igibson_obj/{o['gt_model_path']}/mesh_watertight.ply"
+                        mesh_paths[i] = f"./data/igibson_obj/{o['gt_model_path']}/mesh_watertight.ply"
                 else:
                     mesh_paths[i] = proxy_meshes[o['classname']]
                 # if 'model_path' in o and o['model_path']:
                 #     if os.path.exists(o['model_path']):
                 #         mesh_paths[i] = o['model_path']
                 #     else:
-                #         mesh_paths[i] = f"/project/3dlg-hcvc/rlsd/data/psu/igibson_obj/{o['model_path']}/mesh_watertight.ply"
+                #         mesh_paths[i] = f"./data/igibson_obj/{o['model_path']}/mesh_watertight.ply"
                 # else:
                 #     mesh_paths[i] = proxy_meshes[o['classname']][0]
             scene.mesh_io = MeshIO.from_file(mesh_paths)

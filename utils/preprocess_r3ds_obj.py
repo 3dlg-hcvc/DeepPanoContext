@@ -192,10 +192,10 @@ def preprocess_obj(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Preprocess rlsd objects for single image reconstruction network training.')
-    parser.add_argument('--dataset', type=str, default='data/rlsd',
+        description='Preprocess r3ds objects for single image reconstruction network training.')
+    parser.add_argument('--dataset', type=str, default='data/r3ds',
                         help='The path of the dataset')
-    parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd_obj',
+    parser.add_argument('--output', type=str, default='./data/r3ds_obj',
                         help='The path of the output folder')
     parser.add_argument('--processes', type=int, default=12,
                         help='Number of threads')
@@ -266,8 +266,8 @@ def main():
 
         if args.object_path is None:
             # object_paths = glob(os.path.join(gibson2.ig_dataset_path, 'objects', '*', '*', '*.urdf'))
-            objects = glob('/project/3dlg-hcvc/rlsd/data/psu/rlsd_obj/*/*')
-            object_paths = [p.strip() for p in open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt")]
+            objects = glob('./data/r3ds_obj/*/*')
+            object_paths = [p.strip() for p in open("./data/unique_shapes.txt")]
             print(f"{len(object_paths)} objects in total")
         else:
             objects = [args.object_path]

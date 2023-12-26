@@ -4,7 +4,7 @@ import argparse
 from multiprocessing import Pool
 from tqdm import tqdm
 
-from configs.data_config import rlsd_cls45_colorbox, rlsd_cls25_colorbox, igibson_colorbox
+from configs.data_config import r3ds_cls25_colorbox
 from models.detector.dataset import register_detection_dataset
 from .igibson_utils import IGScene
 from .image_utils import save_image
@@ -19,11 +19,11 @@ def visualize_camera(args):
     scene_folder = os.path.join(args.dataset, args.scene_name) if args.scene_name is not None else args.dataset
     camera_folder = os.path.join(scene_folder, args.task_id)
     if not os.path.exists(os.path.join(camera_folder, 'data.pkl')): return
-    scene = IGScene.from_pickle(camera_folder, load_rlsd_obj=True)
+    scene = IGScene.from_pickle(camera_folder, load_r3ds_obj=True)
     
     if args.save_scene_mesh:
-        scene_mesh = scene.merge_rlsd_mesh(
-            colorbox=rlsd_cls25_colorbox * 255,
+        scene_mesh = scene.merge_r3ds_mesh(
+            colorbox=r3ds_cls25_colorbox * 255,
             separate=False,
             layout_color=(17, 207, 67),
             texture=False
@@ -35,7 +35,7 @@ def visualize_camera(args):
                         os.path.join(scene_folder, args.task_id, 'scene_mesh.png'))
     
         bdb3d_mesh = scene.merge_layout_bdb3d_mesh(
-                colorbox=rlsd_cls25_colorbox * 255,
+                colorbox=r3ds_cls25_colorbox * 255,
                 separate=False,
                 layout_color=(17, 207, 67),
                 texture=False,
@@ -49,16 +49,16 @@ def visualize_camera(args):
     if 'layout' in scene.data and 'objs' in scene.data and scene['objs'] and 'bdb3d' in scene['objs'][0]:
         ro = RelationOptimization(expand_dis=args.expand_dis, use_anno_supp=True)
         ro.generate_relation(scene)
-        image = visualize_relation(scene, layout=True, relation=True, collision=True, colorbox=rlsd_cls25_colorbox)
+        image = visualize_relation(scene, layout=True, relation=True, collision=True, colorbox=r3ds_cls25_colorbox)
         save_path = os.path.join(scene_folder, args.task_id, 'relation.png')
         save_image(image, save_path)
-        as_image = visualize_relation(scene, layout=True, support=True, relation=False, colorbox=rlsd_cls25_colorbox)
+        as_image = visualize_relation(scene, layout=True, support=True, relation=False, colorbox=r3ds_cls25_colorbox)
         save_path = os.path.join(scene_folder, args.task_id, 'as.png')
         save_image(as_image, save_path)
         del scene.data['relation']
         ro = RelationOptimization(expand_dis=args.expand_dis, use_anno_supp=False)
         ro.generate_relation(scene)
-        hs_image = visualize_relation(scene, layout=True, support=True, relation=False, colorbox=rlsd_cls25_colorbox)
+        hs_image = visualize_relation(scene, layout=True, support=True, relation=False, colorbox=r3ds_cls25_colorbox)
         save_path = os.path.join(scene_folder, args.task_id, 'hs.png')
         save_image(hs_image, save_path)
 
@@ -79,8 +79,8 @@ def visualize_camera(args):
 def main():
     parser = argparse.ArgumentParser(
         description='Visualize iGibson scenes.')
-    parser.add_argument('--dataset', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd_real',
-                        help='The path of the rlsd dataset')
+    parser.add_argument('--dataset', type=str, default='./data/psu/r3ds_real',
+                        help='The path of the dataset')
     parser.add_argument('--full_pano_id', type=str, default=None,
                         help='The name of the scene to visualize')
     parser.add_argument('--task_id', type=str, default=None,
@@ -109,7 +109,7 @@ def main():
         args_dict['scene_name'] = f'{house_id}_{level_id}/{pano_id}'
         visualize_camera(argparse.Namespace(**args_dict))
     elif args.full_pano_id is None and args.task_id is None:
-        task_pano_mapping = json.load(open("/project/3dlg-hcvc/rlsd/data/annotations/task_pano_mapping.json"))
+        task_pano_mapping = json.load(open("./data/annotations/task_pano_mapping.json"))
         task_ids = list(task_pano_mapping.keys())
         args_dict = args.__dict__.copy()
         args_list = []

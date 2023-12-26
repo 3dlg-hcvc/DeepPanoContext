@@ -6,7 +6,7 @@ from shapely.geometry import Polygon, Point
 from copy import deepcopy
 import trimesh
 
-from configs.data_config import igibson_colorbox, rlsd_cls25_colorbox
+from configs.data_config import igibson_colorbox, r3ds_cls25_colorbox
 from external.ldif.inference.metrics import mesh_chamfer_via_points
 from models.testing import BaseTester
 from models.eval_metrics import bdb3d_iou, bdb2d_iou, rot_err, classification_metric, AverageMeter, \
@@ -329,7 +329,7 @@ class Tester(BaseTester, Trainer):
             # save mesh
             if self.cfg.config['log'].get('save_mesh'):
                 scene_mesh = est_scene.merge_mesh(
-                    colorbox=rlsd_cls25_colorbox * 255,
+                    colorbox=r3ds_cls25_colorbox * 255,
                     separate=False,
                     layout_color=(255, 69, 80),
                     texture=False
@@ -343,7 +343,7 @@ class Tester(BaseTester, Trainer):
                 
             if self.cfg.config['log'].get('save_bdb3d_mesh'):
                 bdb3d_mesh = est_scene.merge_layout_bdb3d_mesh(
-                    # colorbox=rlsd_cls25_colorbox * 255,
+                    # colorbox=r3ds_cls25_colorbox * 255,
                     separate=False,
                     # camera_color=(29, 203, 224),
                     layout_color=(255, 238, 5),
@@ -353,7 +353,7 @@ class Tester(BaseTester, Trainer):
                 save_mesh(bdb3d_mesh, os.path.join(scene_folder, 'layout_bdb3d.obj'))
                 render_view(in_file=os.path.join(scene_folder, 'layout_bdb3d.obj'),
                             out_file=os.path.join(scene_folder, 'layout_bdb3d.png'),
-                            gt_file=os.path.join("/project/3dlg-hcvc/rlsd/data/psu/rlsd_real_cls25", gt_scene['scene'], gt_scene['name'], 'scene_mesh.obj'))
+                            gt_file=os.path.join("./data/r3ds_real_cls25", gt_scene['scene'], gt_scene['name'], 'scene_mesh.obj'))
             
             if self.cfg.config['full'] and est_scene.mesh_io:
                 background = visualizer.background(200)

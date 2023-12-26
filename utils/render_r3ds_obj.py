@@ -167,7 +167,7 @@ def render_view(args):
     
     bg_list = glob('/local-scratch/qiruiw/research/DeepPanoContext/data/background/*')
     bg_img = np.asarray(Image.open(bg_list[np.random.randint(len(bg_list))]))
-    sphere_trimesh = trimesh.load_mesh("/local-scratch/qiruiw/research/rlsd/evaluation/conf/sphere/sphere.obj")
+    sphere_trimesh = trimesh.load_mesh("./data/sphere/sphere.obj")
     sphere_scale = np.array([
         [10, 0, 0, 0],
         [0.0, 10, 0.0, 0],
@@ -285,9 +285,9 @@ def render_view(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='data/rlsd',
+    parser.add_argument('--dataset', type=str, default='data/r3ds',
                         help='The path of the dataset')
-    parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd_obj',
+    parser.add_argument('--output', type=str, default='./data/r3ds_obj',
                         help='The path of the output folder')
     parser.add_argument('--processes', type=int, default=12,
                         help='Number of threads')
@@ -325,8 +325,8 @@ if __name__ == "__main__":
 
         if args.object_path is None:
             # object_paths = glob(os.path.join(gibson2.ig_dataset_path, 'objects', '*', '*', '*.urdf'))
-            objects = glob('/project/3dlg-hcvc/rlsd/data/psu/rlsd_obj/*/*')
-            object_paths = [p.strip() for p in open("/project/3dlg-hcvc/rlsd/data/annotations/unique_shapes.txt")]
+            objects = glob('./data/r3ds_obj/*/*')
+            object_paths = [p.strip() for p in open("./data/unique_shapes.txt")]
             print(f"{len(object_paths)} objects in total")
         else:
             objects = [args.object_path]

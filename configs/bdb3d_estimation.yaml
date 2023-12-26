@@ -11,7 +11,7 @@ device:
   num_workers: 8
 data:
   name: 
-  split: data/rlsd_stage1
+  split: data/r3ds_stage1
   expand_dis: 0.1
   g_feature_length: 64
   fov_split: 0

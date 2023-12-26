@@ -6,12 +6,12 @@ from .igibson_utils import hash_split
 
 data_dirs = {
     "real": {
-        "rgb": "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_rgb_panos",
-        "inst": "/project/3dlg-hcvc/rlsd/data/mp3d/equirectangular_instance_panos"
+        "rgb": "./data/mp3d/equirectangular_rgb_panos",
+        "inst": "./data/mp3d/equirectangular_instance_panos"
     },
     "syn": {
-        "rgb": "/project/3dlg-hcvc/rlsd/data/annotations/equirectangular_objects_arch",
-        "inst": "/project/3dlg-hcvc/rlsd/data/annotations/equirectangular_instance"
+        "rgb": "./data/annotations/equirectangular_objects_arch",
+        "inst": "./data/annotations/equirectangular_instance"
     }
 }
 
@@ -50,10 +50,10 @@ def create_data_splits(args, data_paths):
         mp3d_splits = ['train', 'val', 'test']
         house2split = {}
         for sp in mp3d_splits:
-            rlsd_sp = sp if sp != 'val' else 'train'
-            split_file = f"/project/3dlg-hcvc/rlsd/data/mp3d/split/{sp}.txt"
+            r3ds_sp = sp if sp != 'val' else 'train'
+            split_file = f"./data/mp3d/split/{sp}.txt"
             houses = [l.strip() for l in open(split_file)]
-            house2split.update({h: rlsd_sp for h in houses})
+            house2split.update({h: r3ds_sp for h in houses})
         for camera in data_paths:
             if camera is None: continue
             arch_id = camera.split('/')[-4] # based on arch id
@@ -68,7 +68,7 @@ def create_data_splits(args, data_paths):
                 scenes['test'].add(house_id)
     elif args.split_by == 'region':
         pass
-        pano_df = pd.read_csv("/project/3dlg-hcvc/rlsd/data/annotations/pano_arch_element.csv")
+        pano_df = pd.read_csv("./data/pano_arch_element.csv")
         for camera in data_paths:
             if camera is None: continue
             arch_id, pano_id = camera.split('/')[-4:-2] # based on arch id

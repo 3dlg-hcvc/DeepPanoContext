@@ -181,7 +181,7 @@ class IGScene:
         self.data['camera'] = Camera(self.data['camera'])
 
     @classmethod
-    def from_pickle(cls, path: str, igibson_obj_dataset=None, load_rlsd_obj=False):
+    def from_pickle(cls, path: str, igibson_obj_dataset=None, load_r3ds_obj=False):
         camera_folder, pickle_file = pickle_path(path)
         data = read_pkl(pickle_file)
         if 'image_path' not in data:
@@ -192,7 +192,7 @@ class IGScene:
                          for o in data['objs'] if 'model_path' in o]
             if mesh_path:
                 data['mesh_path'] = mesh_path
-        if load_rlsd_obj:
+        if load_r3ds_obj:
             mesh_path = [o['model_path'] for o in data['objs'] if 'model_path' in o]
             if mesh_path:
                 data['mesh_path'] = mesh_path
@@ -432,7 +432,7 @@ class IGScene:
 
         return mesh_io.merge()
     
-    def merge_rlsd_mesh(self, colorbox=None, separate=False, camera_color=None, layout_color=None, texture=True):
+    def merge_r3ds_mesh(self, colorbox=None, separate=False, camera_color=None, layout_color=None, texture=True):
         self.mesh_io.load()
         mesh_io = MeshIO()
 

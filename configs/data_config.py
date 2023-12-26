@@ -4,22 +4,22 @@ import scipy.io as sio
 import os
 
 
-RLSD32CLASSES = ['bathtub', 'bed', 'blinds', 'cabinet', 'chair', 'chest_of_drawers', 
+R3DS32CLASSES = ['bathtub', 'bed', 'blinds', 'cabinet', 'chair', 'chest_of_drawers', 
                   'clothes dryer', 'counter', 'curtain', 'cushion', 'dishwasher', 'door', 
                   'lighting', 'microwave', 'mirror', 'oven', 'picture', 'plant', 
                   'refrigerator', 'seating', 'shelving', 'shower', 'sink', 'sofa', 
                   'stool', 'stove', 'table', 'toilet', 'towel', 'tv_monitor', 'washing machine', 'window']
-RLSD16CLASSES_NOCARE = ['beam', 'board_panel', 'ceiling', 'clothes', 'column', 'fireplace', 
+R3DS16CLASSES_NOCARE = ['beam', 'board_panel', 'ceiling', 'clothes', 'column', 'fireplace', 
                     'floor', 'furniture', 'gym_equipment', 'misc', 'objects', 'railing', 
                     'stairs', 'unlabeled', 'void', 'wall']
-RLSD48CLASSES = RLSD32CLASSES + RLSD16CLASSES_NOCARE
+R3DS48CLASSES = R3DS32CLASSES + R3DS16CLASSES_NOCARE
 
-CUSTOM2RLSD = {'pictures': 'picture', 'platn': 'plant', 'light': 'lighting', 'painting': 'picture', 'ligth': 'lighting', 'toilet paper': 'toilet', 'door wat': 'door', 'shelf': 'shelving', 'paint': 'picture', 'monitor': 'tv_monitor', 'light stand': 'lighting', 'tv': 'tv_monitor', 'lamp': 'lighting', 'pentant light': 'lighting'} # grill, basket
+CUSTOM2R3DS = {'pictures': 'picture', 'platn': 'plant', 'light': 'lighting', 'painting': 'picture', 'ligth': 'lighting', 'toilet paper': 'toilet', 'door wat': 'door', 'shelf': 'shelving', 'paint': 'picture', 'monitor': 'tv_monitor', 'light stand': 'lighting', 'tv': 'tv_monitor', 'lamp': 'lighting', 'pentant light': 'lighting'} # grill, basket
 
 common_objects = ['counter', 'picture', 'microwave', 'sink', 'oven', 'dishwasher', 'chair', 'mirror', 'shower', 'table', 'stove', 'stool', 'bed', 'plant', 'door', 'bathtub', 'sofa', 'cushion', 'toilet', 'window']
-rlsd_common_mapping = {k:k for k in common_objects}
-RLSD32_2_IG56 = {'washing machine': 'washer', 'cabinet': 'bottom_cabinet', 'tv_monitor': 'monitor', 'lighting': 'floor_lamp', 'seating': 'bench', 'refrigerator': 'fridge', 'chest_of_drawers': 'chest', 'clothes dryer': 'dryer', 'shelving': 'shelf'}
-RLSD32_2_IG56.update(rlsd_common_mapping)
+r3ds_common_mapping = {k:k for k in common_objects}
+R3DS32_2_IG56 = {'washing machine': 'washer', 'cabinet': 'bottom_cabinet', 'tv_monitor': 'monitor', 'lighting': 'floor_lamp', 'seating': 'bench', 'refrigerator': 'fridge', 'chest_of_drawers': 'chest', 'clothes dryer': 'dryer', 'shelving': 'shelf'}
+R3DS32_2_IG56.update(r3ds_common_mapping)
 
 COMMON25CLASSES = ['bathtub', 'bed', 'cabinet', 'chair', 'chest_of_drawers', 'clothes dryer', 'counter', 'cushion', 'dishwasher', 'microwave', 'mirror', 'oven', 'picture', 'plant', 'refrigerator', 'shelving', 'shower', 'sink', 'sofa', 'stool', 'stove', 'table', 'toilet', 'tv_monitor', 'washing machine']
 
@@ -39,7 +39,7 @@ NYU40_2_PSU45 = {'bookshelf': 'shelving', 'desk': 'table', 'dresser': 'chest_of_
                  'shower curtain': 'curtain', 'television': 'tv_monitor'}
 
 
-PSU45CLASSES = RLSD32CLASSES + ['basket', 'range_hood', 'carpet', 'piano', 'coffee_machine', 'clock', 'guitar', 'heater', 'laptop', 'speaker', 'towel_rack', 'trash_can', 'treadmill']
+PSU45CLASSES = R3DS32CLASSES + ['basket', 'range_hood', 'carpet', 'piano', 'coffee_machine', 'clock', 'guitar', 'heater', 'laptop', 'speaker', 'towel_rack', 'trash_can', 'treadmill']
 
 IG56_2_PSU45 = {'bench': 'seating', 'bottom_cabinet': 'cabinet', 'bottom_cabinet_no_top': 'cabinet',
            'chest': 'chest_of_drawers', 'coffee_table': 'table', 'console_table': 'table',
@@ -225,10 +225,10 @@ PC2IG = {
 
 colorbox_path = 'external/cooperative_scene_parsing/evaluation/vis/igibson_colorbox.mat'
 igibson_colorbox = np.array(sns.hls_palette(n_colors=len(IG59CLASSES), l=.45, s=.8))
-# rlsd_cls45_colorbox = np.array(sns.hls_palette(n_colors=len(PSU45CLASSES), l=.45, s=.8))
-# rlsd_cls25_colorbox = np.array(sns.hls_palette(n_colors=len(COMMON25CLASSES), l=.45, s=.8))
-rlsd_cls45_colorbox = np.array(sns.color_palette("husl", n_colors=len(PSU45CLASSES)))
-rlsd_cls25_colorbox = np.array(sns.color_palette("husl", n_colors=len(COMMON25CLASSES)))
+# r3ds_cls45_colorbox = np.array(sns.hls_palette(n_colors=len(PSU45CLASSES), l=.45, s=.8))
+# r3ds_cls25_colorbox = np.array(sns.hls_palette(n_colors=len(COMMON25CLASSES), l=.45, s=.8))
+r3ds_cls45_colorbox = np.array(sns.color_palette("husl", n_colors=len(PSU45CLASSES)))
+r3ds_cls25_colorbox = np.array(sns.color_palette("husl", n_colors=len(COMMON25CLASSES)))
 if not os.path.exists(colorbox_path):
     sio.savemat(colorbox_path, {'igibson_colorbox': igibson_colorbox})
 

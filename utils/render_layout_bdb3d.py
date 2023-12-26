@@ -105,9 +105,9 @@ def render_view(in_file, out_file, gt_file=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='data/rlsd',
+    parser.add_argument('--dataset', type=str, default='data/r3ds',
                         help='The path of the dataset')
-    parser.add_argument('--output', type=str, default='/project/3dlg-hcvc/rlsd/data/psu/rlsd_obj',
+    parser.add_argument('--output', type=str, default='./data/r3ds_obj',
                         help='The path of the output folder')
     parser.add_argument('--processes', type=int, default=12,
                         help='Number of threads')

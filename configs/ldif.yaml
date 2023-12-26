@@ -10,7 +10,7 @@ device:
   gpu_ids: '0'
   num_workers: 8
 data:
-  split: /project/3dlg-hcvc/rlsd/data/psu/rlsd_obj
+  split: ./data/r3ds_obj
   near_surface_samples: 1024
   uniform_samples: 1024
 loss_weights:

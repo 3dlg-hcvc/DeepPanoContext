@@ -99,11 +99,11 @@ def scene_layout_from_mesh(args):
     return {'rooms': rooms, 'height': wall_height}
 
 
-def scene_layout_from_rlsd_arch(args):
+def scene_layout_from_r3ds_arch(args):
     scene_name, _ = args.scene_name, args.scene_source
     house_id = scene_name.split('_')[0]
     
-    arch = json.load(open(f"/project/3dlg-hcvc/rlsd/data/mp3d/arch_refined_clean/{house_id}.arch.json"))
+    arch = json.load(open(f"./data/mp3d/arch_refined_clean/{house_id}.arch.json"))
     elements = arch["elements"]
     regions = arch["regions"]
     
@@ -187,7 +187,7 @@ def room_layout_from_scene_layout(camera, scene_layout):
     return {'room': room_layout, 'height': scene_layout['height']}
 
 
-def room_layout_from_rlsd_scene(camera, rooms, panos, plot_path):
+def room_layout_from_r3ds_scene(camera, rooms, panos, plot_path):
     cam_id = camera["id"]
     cam_point = Point(*camera["pos"][:2])
     cam_height = camera["pos"][-1]
@@ -319,7 +319,7 @@ def manhattan_pix_layout_from_room_layout(camera, room_layout):
     return points.astype(np.int32)
 
 
-def manhattan_pix_layout_from_rlsd_room(camera, room, room_mode, full_task_id, issues):
+def manhattan_pix_layout_from_r3ds_room(camera, room, room_mode, full_task_id, issues):
     if room is None:
         return
     if room_mode == "regions":

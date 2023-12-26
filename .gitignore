@@ -192,7 +192,7 @@ octave-workspace
 # /data/*
 /data/*.zip
 /data/igibson*
-/data/rlsd*
+/data/r3ds*
 /data/gibson2*
 /data/background
 /data/s3d_metadata/scenes.txt
