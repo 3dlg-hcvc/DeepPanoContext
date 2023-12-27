@@ -10,14 +10,10 @@ from PIL import Image
 from multiprocessing import Pool
 from tqdm import tqdm
 import shutil
-from copy import deepcopy
-# import shapely
-# from shapely.geometry import Polygon, Point, MultiPoint
 from glob import glob
 import traceback
 
 from configs.data_config import IG56CLASSES, CUSTOM2R3DS, R3DS32_2_IG56, COMMON25CLASSES, R3DS32CLASSES
-from utils.relation_utils import RelationOptimization
 from utils.render_utils import seg2obj, is_obj_valid
 from .r3ds_utils import create_data_splits, encode_rgba, prepare_images
 from .igibson_utils import IGScene
@@ -115,7 +111,6 @@ def _render_scene(args):
                 'seg': os.path.join(args.output, scene_name, "seg.png"),
             }
         }
-    # skip_info = f"Skipped camera {data['name']} of {data['scene']}: "
     plot_path = os.path.join(args.output, scene_name)
     room_id, room, wall_ind_map, distance_wall = room_layout_from_r3ds_scene(camera, rooms, panos, plot_path)
     if room is None:
@@ -131,7 +126,6 @@ def _render_scene(args):
             issues["close_to_wall"]["0.3"].append(f"{full_task_id}/{distance_wall}")
         if distance_wall < 0.1:
             issues["close_to_wall"]["0.1"].append(f"{full_task_id}/{distance_wall}")
-            # print(skip_info + "room layout generation failed")
             print(f"{full_task_id}: close to wall ({distance_wall:.3f} < 0.1), no room layout generated.")
             no_layout.add(full_task_id)
             # return
@@ -140,10 +134,7 @@ def _render_scene(args):
         # generate camera layout and check if the camaera is valid
         layout = {}
         manhattan_pix = manhattan_pix_layout_from_r3ds_room(camera, room, args.room_mode, full_task_id, issues)
-        # layout = {'manhattan_pix': manhattan_pix_layout_from_r3ds_room(camera, room, args.room_mode, full_task_id, issues)}
-        # data['layout'] = layout
         if manhattan_pix is None:
-            # print(skip_info + "manhattan pixel layout generation failed")
             no_layout.add(full_task_id)
             # return
         else:
@@ -303,14 +294,6 @@ def _render_scene(args):
         print(f"{full_task_id}: no object in the frame")
         issues["no_objects"].append(full_task_id)
         # return None
-
-    # construction IGScene
-    # r3ds_scene = IGScene(data)
-
-    # # generate relation
-    # if args.relation:
-    #     relation_optimization = RelationOptimization(expand_dis=args.expand_dis)
-    #     relation_optimization.generate_relation(ig_scene)
 
     # save data
     pickle_file = os.path.join(output_folder, 'data.pkl')

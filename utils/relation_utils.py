@@ -170,11 +170,7 @@ def test_meshes(scene, out_bdb3d_3d=None, step=0, output_path=None):
     n_objs = len(scene['objs'])
     obj_obj_mesh_mask = np.zeros((n_objs, n_objs))
     meshes = []
-    
-    # bdb3ds = {'centroid': out_bdb3d_3d['centroid'].detach().cpu().numpy(),
-    #           'basis': out_bdb3d_3d['basis'].detach().cpu().numpy(),
-    #           'size': out_bdb3d_3d['size'].detach().cpu().numpy()}
-    
+        
     for k, v in scene.mesh_io.items():
         if out_bdb3d_3d:
             bdb3d = {'centroid': out_bdb3d_3d['centroid'].detach().cpu().numpy()[k],
@@ -190,11 +186,6 @@ def test_meshes(scene, out_bdb3d_3d=None, step=0, output_path=None):
         bdb3d['size'][[1, 2]] = bdb3d['size'][[2, 1]]
         mesh_world = scene.transform.obj2frame(v, bdb3d)
         meshes.append((k, mesh_world))
-    
-    # import trimesh
-    # scene_mesh = sum([m[1] for m in meshes]) if meshes else trimesh.Trimesh()
-    # # save_mesh(scene_mesh, os.path.join(output_path, f'scene_mesh_{step}.obj'))
-    # save_mesh(scene_mesh, f'./scene_mesh_test.obj')
     
     for i, (k1, m1) in enumerate(meshes):
         for k2, m2 in meshes[i+1:]:
@@ -609,7 +600,6 @@ class RelationOptimization:
 
         # transform for bdb3d projection error
         if self.weights.get('bdb3d_proj'):
-            # scene = IGScene.from_batch(data)[0]
             transforms_to_bfov = IGTransform()
             transforms_to_bfov.camera = []
             for obj in scene['objs']:
