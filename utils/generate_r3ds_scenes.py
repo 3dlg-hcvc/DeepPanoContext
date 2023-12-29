@@ -23,11 +23,6 @@ from .layout_utils import scene_layout_from_r3ds_arch, room_layout_from_r3ds_sce
 from .transform_utils import bdb3d_corners, IGTransform
 
 
-issues = {key:[] for key in ["duplicate_points", "duplicate_x", "over_large_objects", "zero_obj_dim", "no_objects", "outside_house", "mask_missing", "close_to_wall"]}
-issues["close_to_wall"] = {key:[] for key in ["0.5", "0.3", "0.1"]}
-model_paths = set()
-missing_3dw = set()
-no_layout = set()
 model2cat = {}
 OBJCLASSES = None
 
@@ -60,7 +55,7 @@ def _render_scene(args):
         img_mode = args.img_mode
     task_id = args.task_id
     full_task_id = f'{scene_name}/{task_id}'
-    task_file = f"./data/annotations/complete_task_json/{task_id}.json"
+    task_file = f"./data/complete_task_json/{task_id}.json"
     task_json = json.load(open(task_file))
     panos = json.load(open("./data/mp3d/pano_objects_mapping.json"))
     
@@ -114,30 +109,19 @@ def _render_scene(args):
     plot_path = os.path.join(args.output, scene_name)
     room_id, room, wall_ind_map, distance_wall = room_layout_from_r3ds_scene(camera, rooms, panos, plot_path)
     if room is None:
-        issues["outside_house"].append(full_task_id)
         print(f"{full_task_id}: outside house, no room layout generated.")
-        no_layout.add(full_task_id)
         data['room'] = room_id
         # return
     else:
-        if distance_wall < 0.5:
-            issues["close_to_wall"]["0.5"].append(f"{full_task_id}/{distance_wall}")
-        if distance_wall < 0.3:
-            issues["close_to_wall"]["0.3"].append(f"{full_task_id}/{distance_wall}")
         if distance_wall < 0.1:
-            issues["close_to_wall"]["0.1"].append(f"{full_task_id}/{distance_wall}")
             print(f"{full_task_id}: close to wall ({distance_wall:.3f} < 0.1), no room layout generated.")
-            no_layout.add(full_task_id)
             # return
         data['room'] = room
         
         # generate camera layout and check if the camaera is valid
         layout = {}
         manhattan_pix = manhattan_pix_layout_from_r3ds_room(camera, room, args.room_mode, full_task_id, issues)
-        if manhattan_pix is None:
-            no_layout.add(full_task_id)
-            # return
-        else:
+        if manhattan_pix is not None:
             layout['manhattan_pix'] = manhattan_pix
             data['layout'] = layout
             if args.world_lo:
@@ -163,18 +147,14 @@ def _render_scene(args):
             continue
         obj = objects[obj_id]
         if np.any((np.array(obj["obb"]["axesLengths"])-np.array(rooms_scale)) > 1):
-            if full_task_id not in issues["over_large_objects"]:
-                issues["over_large_objects"].append(full_task_id)
             continue
         if np.any(np.array(obj["obb"]["axesLengths"]) < 1e-6):
-            issues["zero_obj_dim"].append(f"{full_task_id}/{obj_id}/{obj['modelId']}")
             continue
         mask_ids = obj2masks[obj_id]
         # categories = [mask_infos[mask_id]["label"] for mask_id in mask_ids if mask_id in mask_infos]
         categories = []
         for mask_id in mask_ids:
             if mask_id not in mask_infos:
-                issues["mask_missing"].append(f"{full_task_id}/{mask_id}")
                 continue
             cat = mask_infos[mask_id]["label"].lower()
             if cat not in R3DS32CLASSES: # and mask_infos[mask_id]["type"] != "mask":
@@ -196,11 +176,8 @@ def _render_scene(args):
             model_path = f'/datasets/internal/models3d/wayfair/wayfair_models_cleaned/{model_name}/{model_name}.glb'
         elif model_source == '3dw':
             model_path = f'./data/3dw/objmeshes/{model_name}/{model_name}.obj'
-            if not os.path.exists(model_path):
-                missing_3dw.add(model_name)
         else:
             raise NotImplementedError
-        model_paths.add(model_path)
         obj_dict = {
             "id": obj_id,
             "mask_ids": mask_ids,
@@ -235,7 +212,7 @@ def _render_scene(args):
     inst_seg = encode_rgba(np.array(Image.open(inst_path)))
     if img_mode == 'syn':
         obj2insts = {}
-        label_csv_path = f"./data/annotations/equirectangular_instance/{task_id}/{task_id}.scene.objectId.csv"
+        label_csv_path = f"./data/r3ds/equirectangular_instance/{task_id}/{task_id}.scene.objectId.csv"
         label_df = pd.read_csv(label_csv_path)
         for obj_id in obj2masks:
             obj2insts[obj_id] = label_df[label_df.label == obj_id].index.tolist()
@@ -292,8 +269,6 @@ def _render_scene(args):
 
     if not data['objs']:
         print(f"{full_task_id}: no object in the frame")
-        issues["no_objects"].append(full_task_id)
-        # return None
 
     # save data
     pickle_file = os.path.join(output_folder, 'data.pkl')
@@ -397,9 +372,9 @@ def main():
     assert args.vertical_fov is not None or not any(r in args.render_type for r in ['normal']), \
         "render type 'normal' not supported for panorama"
         
-    task_pano_mapping = json.load(open("./data/annotations/task_pano_mapping.json"))
+    task_pano_mapping = json.load(open("./data/task_pano_mapping.json"))
     
-    invalid_rt_anno = json.load(open("./data/annotations/invalid_room_type_annotation.json"))
+    invalid_rt_anno = json.load(open("./data/invalid_room_type_annotation.json"))
     invalid_tasks = invalid_rt_anno["stairs"] + invalid_rt_anno["outdoor"]
     for full_task_id in invalid_tasks:
         del task_pano_mapping[full_task_id.split('/')[1]]
@@ -434,22 +409,6 @@ def main():
             with Pool(processes=args.processes) as p:
                 data_paths = list(tqdm(p.imap(_render_scene_fail_remove, args_list), total=len(args_list)))
 
-    if args.img_mode == 'real' and \
-        args.model_mode == 'r3ds' and \
-        args.cls_mode == 'cls25' and \
-        not args.split:
-        with open("./data/annotations/annotation_issues.json", 'w') as f:
-            json.dump(issues, f, indent=4)
-        with open("./data/annotations/unique_shapes.txt", 'w') as f:
-            for p in model_paths:
-                f.write(f"{p}\n")
-        with open("./data/annotations/missing_3dw.txt", 'w') as f:
-            for m in missing_3dw:
-                f.write(f"{m}\n")
-        with open("./data/annotations/no_layout_rooms.txt", 'w') as f:
-            for r in no_layout:
-                f.write(f"{r}\n")
-
     if not args.skip_split:
         if data_paths is None:
             data_paths = sorted(glob(os.path.join(args.output, '*', '*', '*', 'data.pkl')))
@@ -461,12 +420,6 @@ def main():
             f"{len(scenes['test'])} test scenes, "
             f"{len(split['train'])} train cameras, "
             f"{len(split['test'])} test cameras")
-        
-        layout_split = {}
-        for k, v in split.items():
-            layout_split = sorted([d for d in v if d.replace('/data.pkl', '') not in no_layout])
-            with open(os.path.join(args.output, k + '.layout.json'), 'w') as f:
-                json.dump(layout_split, f, indent=4)
 
         for k, v in split.items():
             v.sort()

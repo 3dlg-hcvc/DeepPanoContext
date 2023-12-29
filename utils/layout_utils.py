@@ -319,7 +319,7 @@ def manhattan_pix_layout_from_room_layout(camera, room_layout):
     return points.astype(np.int32)
 
 
-def manhattan_pix_layout_from_r3ds_room(camera, room, room_mode, full_task_id, issues):
+def manhattan_pix_layout_from_r3ds_room(camera, room, room_mode, full_task_id):
     if room is None:
         return
     if room_mode == "regions":
@@ -352,13 +352,11 @@ def manhattan_pix_layout_from_r3ds_room(camera, room, room_mode, full_task_id, i
     points = np.roll(points, -i_first * 2, axis=0)
     points_unique = np.unique(points, axis=0)
     if len(points_unique) < len(points):
-        issues["duplicate_points"].append(full_task_id)
         print(f"{full_task_id}: duplicate points, no room layout generated")
         return
     xs = points[::2, 0].astype(int)
     xs_unique = np.unique(xs)
     if len(xs_unique) < len(xs):
-        issues["duplicate_x"].append(full_task_id)
         print(f"{full_task_id}: duplicate x")
         # return
 

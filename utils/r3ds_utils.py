@@ -10,8 +10,8 @@ data_dirs = {
         "inst": "./data/mp3d/equirectangular_instance_panos"
     },
     "syn": {
-        "rgb": "./data/annotations/equirectangular_objects_arch",
-        "inst": "./data/annotations/equirectangular_instance"
+        "rgb": "./data/r3ds/equirectangular_objects_arch",
+        "inst": "./data/r3ds/equirectangular_instance"
     }
 }
 

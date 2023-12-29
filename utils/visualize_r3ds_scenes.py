@@ -109,7 +109,7 @@ def main():
         args_dict['scene_name'] = f'{house_id}_{level_id}/{pano_id}'
         visualize_camera(argparse.Namespace(**args_dict))
     elif args.full_pano_id is None and args.task_id is None:
-        task_pano_mapping = json.load(open("./data/annotations/task_pano_mapping.json"))
+        task_pano_mapping = json.load(open("./data/task_pano_mapping.json"))
         task_ids = list(task_pano_mapping.keys())
         args_dict = args.__dict__.copy()
         args_list = []
