@@ -120,7 +120,7 @@ def _render_scene(args):
         
         # generate camera layout and check if the camaera is valid
         layout = {}
-        manhattan_pix = manhattan_pix_layout_from_r3ds_room(camera, room, args.room_mode, full_task_id, issues)
+        manhattan_pix = manhattan_pix_layout_from_r3ds_room(camera, room, args.room_mode, full_task_id)
         if manhattan_pix is not None:
             layout['manhattan_pix'] = manhattan_pix
             data['layout'] = layout
